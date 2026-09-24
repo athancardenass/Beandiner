@@ -313,7 +313,7 @@ function Logo({ footer = false }: { footer?: boolean }) {
       className={`logo ${footer ? "footer-logo" : ""}`}
       aria-label="Bean Diner home"
     >
-      bean diner<span className="logo-spark">☕</span>
+      bean diner<span className="logo-spark">✦</span>
       {!footer && <small>BAYAMBANG</small>}
     </a>
   );
@@ -434,7 +434,7 @@ function ProductModal({
     >
       <div className="customize-image" style={{ background: product.color }}>
         <span className="eyebrow">BEAN DINER SPECIALTY</span>
-        <img src={menuImage(product.photo)} alt={product.name} />
+        <img src={image(product.id)} alt={product.name} />
         <Sun />
       </div>
       <form
@@ -600,7 +600,7 @@ function ProductModal({
             onClose();
           }}
         >
-          Message Bean Diner on Facebook to Order 💬
+          Message Bean Diner on Facebook to Order
         </button>
       </form>
     </Modal>
@@ -963,7 +963,7 @@ function App() {
           <a href="#together" className="nav-item nav-together">
             <span className="nav-num">04</span>
             <span className="nav-label">Better together</span>
-            <span className="nav-coffee">☕</span>
+            <span className="nav-coffee">✦</span>
           </a>
           <a
             href="https://www.facebook.com/beandiner"
@@ -1006,7 +1006,7 @@ function App() {
           <div className="hero-oval" />
           <div className="hero-heading">
             <span className="eyebrow">
-              <span className="tiny-star">☕</span> GEN. ANTONIO LUNA ST. ·
+              <span className="tiny-star">✦</span> GEN. ANTONIO LUNA ST. ·
               BAYAMBANG, PANGASINAN
             </span>
             <h1>
@@ -1379,15 +1379,17 @@ function App() {
           <div className="footer-brand-col">
             <Logo footer />
             <p className="footer-tagline">
-              <span className="handwritten">where food heals, coffee understands.</span>
+              <span className="handwritten">
+                where food heals, coffee understands.
+              </span>
               <br />
               Founded in Bayambang, Pangasinan by a US-trained culinary Chef and
               a Middle East specialty coffee Barista.
             </p>
             <div className="footer-founder-chips">
-              <span className="founder-chip">👨🍳 US Culinary Kitchens</span>
-              <span className="founder-chip">☕ Middle East Barista</span>
-              <span className="founder-chip">🌿 Benguet 100% Arabica</span>
+              <span className="founder-chip">US Culinary Kitchens</span>
+              <span className="founder-chip">Middle East Barista</span>
+              <span className="founder-chip">Benguet 100% Arabica</span>
             </div>
           </div>
 
@@ -1395,15 +1397,15 @@ function App() {
             <span className="footer-heading">EXPLORE THE DINER</span>
             <div className="footer-pill-links">
               <a href="#menu" className="footer-pill">
-                <span>☕ Our drinks</span>
+                <span>Our drinks</span>
                 <small>Bestsellers & lattes</small>
               </a>
               <a href="#bites" className="footer-pill">
-                <span>🍗 Diner bites</span>
+                <span>Diner bites</span>
                 <small>₱99 wings & comfort</small>
               </a>
               <a href="#story" className="footer-pill">
-                <span>📖 Our story</span>
+                <span>Our story</span>
                 <small>Two crafts, one home</small>
               </a>
               <a
@@ -1412,7 +1414,7 @@ function App() {
                 rel="noopener noreferrer"
                 className="footer-pill footer-pill-fb"
               >
-                <span>💬 Chat on Messenger</span>
+                <span>Chat on Messenger</span>
                 <small>Order & table inquiry</small>
               </a>
             </div>
@@ -1422,14 +1424,14 @@ function App() {
             <span className="footer-heading">VISIT OUR TABLE</span>
             <div className="footer-info-card">
               <div className="info-row">
-                <span className="info-icon">📍</span>
+                <span className="info-dot" />
                 <div>
                   <strong>Bean Diner Bayambang</strong>
                   <p>Gen. Antonio Luna Street, Zone 2, Bayambang, Pangasinan</p>
                 </div>
               </div>
               <div className="info-row">
-                <span className="info-icon">🕒</span>
+                <span className="info-dot" />
                 <div>
                   <strong>Diner Hours</strong>
                   <p>
@@ -1440,7 +1442,7 @@ function App() {
                 </div>
               </div>
               <div className="info-row">
-                <span className="info-icon">📞</span>
+                <span className="info-dot" />
                 <div>
                   <strong>Phone / Inquiries</strong>
                   <p>
@@ -1466,10 +1468,17 @@ function App() {
 
         <div className="footer-bottom-bar">
           <div className="footer-copy">
-            <span>© {new Date().getFullYear()} BEAN DINER BAYAMBANG. ALL RIGHTS RESERVED.</span>
-            <span className="footer-subcopy">Handcrafted with care for Pangasinan students & coffee lovers.</span>
+            <span>
+              © {new Date().getFullYear()} BEAN DINER BAYAMBANG. ALL RIGHTS
+              RESERVED.
+            </span>
+            <span className="footer-subcopy">
+              Handcrafted with care for Pangasinan students & coffee lovers.
+            </span>
           </div>
-          <span className="footer-closing handwritten">Tara, kain at kape tayo.</span>
+          <span className="footer-closing handwritten">
+            Tara, kain at kape tayo.
+          </span>
           <a href="#home" className="back-top-pill">
             Back to top <span>↑</span>
           </a>
@@ -1516,7 +1525,7 @@ function App() {
                   rel="noopener noreferrer"
                   style={{ display: "inline-flex", justifyContent: "center" }}
                 >
-                  Open Messenger Chat Again 💬
+                  Open Messenger Chat Again
                 </a>
                 <button
                   className="button"
@@ -1574,16 +1583,21 @@ function App() {
                       <div className="cart-item" key={item.key}>
                         {p ? (
                           <img
-                            src={menuImage(p.photo)}
+                            src={image(p.id)}
                             alt={p.name}
                             style={{ background: p.color }}
                           />
                         ) : (
                           <div
                             className="cart-food-icon"
-                            style={{ background: "#f2dfb8" }}
+                            style={{
+                              background: "#f2dfb8",
+                              fontSize: "10px",
+                              fontWeight: "800",
+                              letterSpacing: "0.5px",
+                            }}
                           >
-                            🍗
+                            BITE
                           </div>
                         )}
                         <div>
@@ -1667,7 +1681,7 @@ function App() {
                     className="button button-messenger-checkout"
                     type="submit"
                   >
-                    Send Order to Facebook Messenger 💬
+                    Send Order to Facebook Messenger
                   </button>
                   <small>
                     Copies your order summary &amp; opens Bean Diner's Messenger
@@ -1716,7 +1730,7 @@ function App() {
               },
               {
                 num: "04",
-                label: "Better together ☕",
+                label: "Better together",
                 sub: "Two-cup coffee date bundle for ₱250",
                 badge: "SAVE ₱40",
                 href: "#together",
