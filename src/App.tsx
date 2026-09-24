@@ -8,8 +8,13 @@ import {
 } from "react";
 // ↓ UTILITY: Philippine Peso currency formatter
 const money = (n: number) => `₱${n.toLocaleString("en-PH")}`;
-// ↓ UTILITY: Optimized image path resolver
-const image = (name: string) => `/images/optimized/${name}.webp`;
+// ↓ UTILITY: Relative image path resolvers (supports dev server and file:// protocol)
+const image = (name: string) => {
+  if (name === "hot") return "./images/optimized/hotroast.webp";
+  return `./images/optimized/${name}.webp`;
+};
+const menuImage = (name: string) => `./images/menu/${name}.webp`;
+
 // ↓ TYPE: Product data shape
 type Product = {
   id: string;
@@ -24,104 +29,116 @@ type Product = {
   type: "Coffee" | "Not coffee";
   hot?: boolean;
   badge?: string;
+  photo: string;
 };
-// ↓ DATA: Six signature drink products for Bean Diner Bayambang
+// ↓ DATA: Six signature drink products matching Bean Diner sample photos
 const products: Product[] = [
   {
     id: "latte",
-    name: "Iced Spanish Latte",
-    short: "Signature Spanish latte",
-    note: "Sweet, creamy, and caramel-kissed.",
+    name: "Classic Iced Caffe Latte",
+    short: "Signature espresso & fresh milk",
+    note: "Double espresso, silky milk, poured over ice.",
     description:
-      "Our most-loved pour in Bayambang. Double-shot espresso mellowed with sweet condensed milk, silky dairy, and rich caramel notes.",
-    price: 145,
-    color: "#cee4d9",
-    word: "Sweet comfort.",
-    ingredients: ["Double espresso", "Condensed milk", "Caramel touch"],
+      "Our signature double-shot espresso extraction over chilled fresh milk and crisp ice. The everyday crowd favorite at Antonio Luna Street.",
+    price: 140,
+    color: "#f2dfb8",
+    word: "Daily joy.",
+    ingredients: ["Double espresso", "Fresh milk", "Ice chill"],
     type: "Coffee",
     badge: "BEST SELLER",
+    photo: "caffe-latte",
   },
   {
     id: "matcha",
-    name: "Bean Diner x Oatside",
-    short: "Matcha oat latte",
-    note: "Whisked smooth. 100% plant-based.",
+    name: "Iced Matcha Latte",
+    short: "Ceremonial matcha & creamy milk",
+    note: "Whisked smooth. 100% authentic green tea.",
     description:
-      "Ceremonial green tea matcha whisked to perfection with creamy Oatside oat milk. A velvety smooth, dairy-free everyday escape.",
+      "Vibrant ceremonial-grade Japanese matcha whisked smooth and paired with creamy milk (or Oatside oat milk) over ice. Earthy, soothing, and perfectly balanced.",
     price: 165,
     color: "#dce4b8",
-    word: "Go a little green.",
-    ingredients: ["Ceremonial matcha", "Oatside oat milk", "Clean ice chill"],
+    word: "Matcha chill.",
+    ingredients: [
+      "Ceremonial matcha",
+      "Fresh milk / Oatside",
+      "Clean ice chill",
+    ],
     type: "Not coffee",
     badge: "OATSIDE COLLAB",
+    photo: "matcha-latte",
   },
   {
-    id: "coldbrew",
-    name: "Benguet Farm Cold Brew",
-    short: "Highland single-origin",
-    note: "Direct from Benguet & Baguio farms.",
+    id: "caramel",
+    name: "Layered Iced Caramel Macchiato",
+    short: "Caramel syrup, cold milk & espresso",
+    note: "Sweet golden caramel meets dark roast.",
     description:
-      "Directly sourced highland Arabica slow-steeped for 18 hours. Clean finish, rich cocoa undertones, and zero bitterness.",
-    price: 135,
-    color: "#efcebc",
-    word: "Stay mellow.",
-    ingredients: [
-      "Benguet highland beans",
-      "18-hr slow steep",
-      "Served over ice",
-    ],
+      "Rich amber caramel syrup layered with cold fresh milk, marked with a bold double espresso float and finished with golden drizzle.",
+    price: 160,
+    color: "#eedec7",
+    word: "Caramel swirl.",
+    ingredients: ["Dark caramel drizzle", "Chilled milk", "Espresso float"],
     type: "Coffee",
-    badge: "FARM DIRECT",
+    badge: "HOUSE SPECIAL",
+    photo: "caramel-macchiato",
   },
   {
-    id: "barako",
-    name: "Middle East Barista Roast",
-    short: "Artisan Americano",
-    note: "Crafted by our Middle East-trained barista.",
-    description:
-      "Full-bodied, deeply aromatic extraction celebrating Middle Eastern specialty coffee techniques and Benguet highland beans.",
-    price: 125,
-    color: "#e9c3a4",
-    word: "Bold & craft.",
-    ingredients: [
-      "Barista extraction",
-      "Thick golden crema",
-      "Deep smoky notes",
-    ],
-    type: "Coffee",
-    hot: true,
-    badge: "BARISTA CRAFT",
-  },
-  {
-    id: "ube",
-    name: "Sweet Strawberry Latte",
-    short: "Strawberry milk espresso",
+    id: "strawberry",
+    name: "Sweet Strawberry Iced Latte",
+    short: "Real strawberry fruit & espresso float",
     note: "Coffee that says stay, strawberry that says sweet.",
     description:
-      "Real crushed strawberry milk layered under a bold espresso float. A crowd favorite for cozy diner catchups.",
+      "Real crushed strawberry puree poured with silky milk, topped with a gentle espresso kick. Refreshing, vibrant, and a diner customer favorite.",
     price: 155,
-    color: "#ded4e8",
-    word: "Sweet escape.",
+    color: "#fed7d7",
+    word: "Berry sweet.",
     ingredients: [
       "Real strawberry fruit",
       "Velvety fresh milk",
       "Bold espresso float",
     ],
-    type: "Not coffee",
-    badge: "HOUSE SPECIAL",
+    type: "Coffee",
+    badge: "CROWD FAVORITE",
+    photo: "strawberry-latte",
   },
   {
-    id: "spanish",
-    name: "Diner Caramel Macchiato",
-    short: "Layered caramel espresso",
-    note: "American diner classic comfort.",
+    id: "chai",
+    name: "Iced Milk Tea Chai Latte",
+    short: "Spiced artisan black tea blend",
+    note: "Warm aromatic spice, served ice-cold.",
     description:
-      "Fresh steamed milk and sweet vanilla marked with espresso and drizzled with warm golden butter caramel sauce.",
-    price: 155,
-    color: "#f2dfb8",
+      "Slow-steeped artisan spiced black tea infused with cardamom, cinnamon, and clove, softened with creamy sweetened milk over ice.",
+    price: 145,
+    color: "#efcebc",
+    word: "Spiced chill.",
+    ingredients: [
+      "Artisan spiced tea",
+      "Silky fresh milk",
+      "Fragrant cinnamon",
+    ],
+    type: "Not coffee",
+    badge: "BARISTA CRAFT",
+    photo: "chai-latte",
+  },
+  {
+    id: "hot",
+    name: "Artisan Hot Roast & Latte",
+    short: "Middle East barista craft brew",
+    note: "Crafted by our Middle East-trained barista.",
+    description:
+      "Full-bodied, deeply aromatic extraction celebrating Middle Eastern specialty coffee techniques with golden crema and latte art.",
+    price: 130,
+    color: "#e9c3a4",
     word: "Warm comfort.",
-    ingredients: ["Vanilla cream", "Espresso mark", "Warm caramel drizzle"],
+    ingredients: [
+      "Artisan roast espresso",
+      "Steamed velvety milk",
+      "Latte art pour",
+    ],
     type: "Coffee",
+    hot: true,
+    badge: "BARISTA SPECIAL",
+    photo: "hot-roast",
   },
 ];
 // ↓ DINER BITES: US-trained Chef comfort food favorites
@@ -181,9 +198,11 @@ const dinerBites: DinerBite[] = [
 type CartItem = {
   key: string;
   id: string;
-  size: string;
-  milk: string;
-  temperature: string;
+  size?: string;
+  milk?: string;
+  temperature?: string;
+  sweetness?: string;
+  iceLevel?: string;
   quantity: number;
   price: number;
   name?: string;
@@ -200,13 +219,20 @@ const sendToMessenger = (
     const p = products.find((p) => p.id === item.id);
     const b = dinerBites.find((b) => b.id === item.id);
     const title = p ? p.name : b ? b.name : item.name || "Item";
-    const specs = item.isFood
-      ? "Chef's Comfort Kitchen Plate"
-      : `${item.size}, ${item.temperature}${
-          p && !["barako", "coldbrew"].includes(p.id)
-            ? `, ${item.milk} milk`
-            : ""
-        }`;
+    if (item.isFood) {
+      return `• ${item.quantity}x ${title} (Chef's Comfort Kitchen Plate) - ${money(
+        item.price * item.quantity,
+      )}`;
+    }
+    const specs = [
+      item.size,
+      item.temperature,
+      item.sweetness,
+      item.temperature === "Iced" ? item.iceLevel : null,
+      item.milk && item.milk !== "Regular" ? `${item.milk} milk` : null,
+    ]
+      .filter(Boolean)
+      .join(", ");
     return `• ${item.quantity}x ${title} (${specs}) - ${money(
       item.price * item.quantity,
     )}`;
@@ -394,8 +420,10 @@ function ProductModal({
   const [size, setSize] = useState("16 oz");
   const [milk, setMilk] = useState("Regular");
   const [temperature, setTemperature] = useState(product.hot ? "Hot" : "Iced");
+  const [sweetness, setSweetness] = useState("100% Sweet");
+  const [iceLevel, setIceLevel] = useState("Regular Ice");
   const [quantity, setQuantity] = useState(1);
-  const hasMilk = !["barako", "coldbrew"].includes(product.id);
+  const hasMilk = true;
   const price =
     product.price + (size === "22 oz" ? 30 : 0) + (milk === "Oat" ? 35 : 0);
   return (
@@ -405,8 +433,8 @@ function ProductModal({
       className="product-modal"
     >
       <div className="customize-image" style={{ background: product.color }}>
-        <span className="eyebrow">YOUR NEXT HAPPY PLACE</span>
-        <img src={image(product.id)} alt={product.short} />
+        <span className="eyebrow">BEAN DINER SPECIALTY</span>
+        <img src={menuImage(product.photo)} alt={product.name} />
         <Sun />
       </div>
       <form
@@ -414,20 +442,25 @@ function ProductModal({
         onSubmit={(e) => {
           e.preventDefault();
           onAdd({
-            key: `${product.id}-${size}-${milk}-${temperature}`,
+            key: `${product.id}-${size}-${milk}-${temperature}-${sweetness}-${iceLevel}`,
             id: product.id,
             size,
             milk,
             temperature,
+            sweetness,
+            iceLevel,
             quantity,
             price,
+            name: product.name,
           });
         }}
       >
         <span className="eyebrow">{product.short}</span>
         <h2>{product.name}</h2>
         <p>{product.description}</p>
-        <span className="availability">Available in our demo menu</span>
+        <span className="availability">
+          Available at Antonio Luna St., Bayambang
+        </span>
         <fieldset>
           <legend>Make it your size</legend>
           <div className="choice-row">
@@ -448,21 +481,58 @@ function ProductModal({
         <fieldset>
           <legend>Hot or iced?</legend>
           <div className="choice-row">
-            {(product.id === "coldbrew" ? ["Iced"] : ["Iced", "Hot"]).map(
-              (v) => (
-                <label className={temperature === v ? "selected" : ""} key={v}>
+            {(product.hot ? ["Hot", "Iced"] : ["Iced", "Hot"]).map((v) => (
+              <label className={temperature === v ? "selected" : ""} key={v}>
+                <input
+                  type="radio"
+                  name="temperature"
+                  checked={temperature === v}
+                  onChange={() => setTemperature(v)}
+                />
+                {v}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        {/* Sweetness Preference */}
+        <fieldset>
+          <legend>Sweetness level</legend>
+          <div className="choice-row">
+            {["100% Sweet", "70% Sweet", "50% Sweet", "No Sugar"].map((v) => (
+              <label className={sweetness === v ? "selected" : ""} key={v}>
+                <input
+                  type="radio"
+                  name="sweetness"
+                  checked={sweetness === v}
+                  onChange={() => setSweetness(v)}
+                />
+                {v}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        {/* Ice Level Preference */}
+        {temperature === "Iced" && (
+          <fieldset>
+            <legend>Ice level</legend>
+            <div className="choice-row">
+              {["Regular Ice", "Less Ice"].map((v) => (
+                <label className={iceLevel === v ? "selected" : ""} key={v}>
                   <input
                     type="radio"
-                    name="temperature"
-                    checked={temperature === v}
-                    onChange={() => setTemperature(v)}
+                    name="iceLevel"
+                    checked={iceLevel === v}
+                    onChange={() => setIceLevel(v)}
                   />
                   {v}
                 </label>
-              ),
-            )}
-          </div>
-        </fieldset>
+              ))}
+            </div>
+          </fieldset>
+        )}
+
         {hasMilk && (
           <fieldset>
             <legend>Your milk</legend>
@@ -483,9 +553,7 @@ function ProductModal({
           </fieldset>
         )}
         <small className="allergen">
-          {hasMilk
-            ? "Contains milk. Oat option available; shared preparation equipment."
-            : "Contains caffeine. Prepared using shared equipment."}
+          Handcrafted fresh upon order at our Bayambang diner.
         </small>
         <div className="add-row">
           <div className="quantity">
@@ -517,13 +585,16 @@ function ProductModal({
           className="button button-messenger-direct"
           onClick={() => {
             const singleItem: CartItem = {
-              key: `${product.id}-${size}-${milk}-${temperature}`,
+              key: `${product.id}-${size}-${milk}-${temperature}-${sweetness}-${iceLevel}`,
               id: product.id,
               size,
               milk,
               temperature,
+              sweetness,
+              iceLevel,
               quantity,
               price,
+              name: product.name,
             };
             sendToMessenger([singleItem], "", price * quantity, 0);
             onClose();
@@ -675,16 +746,16 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
               >
                 <span />
                 {p.id === "latte"
-                  ? "Spanish Latte"
-                  : p.id === "coldbrew"
-                    ? "Cold Brew"
-                    : p.id === "matcha"
-                      ? "Oatside"
-                      : p.id === "barako"
-                        ? "Barista Roast"
-                        : p.id === "ube"
-                          ? "Strawberry"
-                          : "Caramel"}
+                  ? "Caffe Latte"
+                  : p.id === "matcha"
+                    ? "Matcha Latte"
+                    : p.id === "caramel"
+                      ? "Caramel Macchiato"
+                      : p.id === "strawberry"
+                        ? "Strawberry Latte"
+                        : p.id === "chai"
+                          ? "Chai Latte"
+                          : "Hot Roast"}
               </button>
             ))}
           </div>
@@ -1093,20 +1164,20 @@ function App() {
                   {p.badge && <span className="product-badge">{p.badge}</span>}
                   <span className="product-art-word" aria-hidden="true">
                     {p.id === "latte"
-                      ? "spanish!"
-                      : p.id === "spanish"
-                        ? "caramel!"
-                        : p.id === "ube"
-                          ? "sweet!"
-                          : p.id === "barako"
-                            ? "bold!"
-                            : p.id === "matcha"
-                              ? "oatside!"
-                              : "mellow!"}
+                      ? "caffe!"
+                      : p.id === "matcha"
+                        ? "matcha!"
+                        : p.id === "caramel"
+                          ? "caramel!"
+                          : p.id === "strawberry"
+                            ? "berry!"
+                            : p.id === "chai"
+                              ? "chai!"
+                              : "roast!"}
                   </span>
                   <img
                     src={image(p.id)}
-                    alt={p.short}
+                    alt={p.name}
                     loading="lazy"
                     width="300"
                     height="420"
@@ -1181,8 +1252,8 @@ function App() {
         <section className="brand-story" id="story">
           <div className="brand-photo reveal">
             <img
-              src={image("merienda")}
-              alt="Two friends sharing Bean Diner iced coffee and comfort food on a café table"
+              src={menuImage("diner-showcase")}
+              alt="Refreshing Bean Diner signature ice drinks served at Bayambang café"
               loading="lazy"
               width="1000"
               height="750"
@@ -1272,7 +1343,7 @@ function App() {
             />
             <img
               className="offer-cup cup-right"
-              src={image("latte")}
+              src={image("caramel")}
               alt="Second signature iced latte in the two-cup bundle"
               loading="lazy"
               width="400"
@@ -1423,18 +1494,24 @@ function App() {
                     const b = dinerBites.find((b) => b.id === item.id);
                     const title = p ? p.name : b ? b.name : item.name || "Item";
                     const desc = item.isFood
-                      ? `${item.size} / ${item.temperature}`
-                      : `${item.size} / ${item.temperature}${
-                          p && !["barako", "coldbrew"].includes(p.id)
-                            ? ` / ${item.milk} milk`
-                            : ""
-                        }`;
+                      ? "Chef's Comfort Kitchen Plate"
+                      : [
+                          item.size,
+                          item.temperature,
+                          item.sweetness,
+                          item.temperature === "Iced" ? item.iceLevel : null,
+                          item.milk && item.milk !== "Regular"
+                            ? `${item.milk} milk`
+                            : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ");
                     return (
                       <div className="cart-item" key={item.key}>
                         {p ? (
                           <img
-                            src={image(p.id)}
-                            alt={p.short}
+                            src={menuImage(p.photo)}
+                            alt={p.name}
                             style={{ background: p.color }}
                           />
                         ) : (
