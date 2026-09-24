@@ -875,20 +875,34 @@ function App() {
       {/* ↓ HEADER: Logo, navigation, order button, bag */}
       <header className="header" id="home">
         <Logo />
-        <nav aria-label="Main navigation">
-          <a href="#menu">Our drinks</a>
-          <a href="#bites">Diner bites</a>
-          <a href="#story">Our story</a>
-          <a href="#together">
-            Better together <span className="nav-star">☕</span>
+        <nav aria-label="Main navigation" className="header-nav">
+          <a href="#menu" className="nav-item">
+            <span className="nav-num">01</span>
+            <span className="nav-label">Our drinks</span>
+          </a>
+          <a href="#bites" className="nav-item">
+            <span className="nav-num">02</span>
+            <span className="nav-label">Diner bites</span>
+            <span className="nav-badge">₱99</span>
+          </a>
+          <a href="#story" className="nav-item">
+            <span className="nav-num">03</span>
+            <span className="nav-label">Our story</span>
+          </a>
+          <a href="#together" className="nav-item nav-together">
+            <span className="nav-num">04</span>
+            <span className="nav-label">Better together</span>
+            <span className="nav-coffee">☕</span>
           </a>
           <a
             href="https://www.facebook.com/beandiner"
             target="_blank"
             rel="noopener noreferrer"
-            className="header-fb"
+            className="nav-fb-pill"
           >
-            Facebook ↗
+            <span className="fb-dot" />
+            <span className="fb-text">Facebook</span>
+            <span className="fb-arrow">↗</span>
           </a>
         </nav>
         <div className="header-actions">
@@ -1538,29 +1552,72 @@ function App() {
           className="nav-modal"
         >
           <Logo />
-          <nav>
+          <nav className="mobile-nav-list">
             {[
-              ["Our drinks", "#menu"],
-              ["Diner bites", "#bites"],
-              ["Our story", "#story"],
-              ["Better together", "#together"],
-              ["Facebook Page ↗", "https://www.facebook.com/beandiner"],
-            ].map(([label, href]) => (
+              {
+                num: "01",
+                label: "Our drinks",
+                sub: "Benguet highland coffee & Oatside lattes",
+                href: "#menu",
+              },
+              {
+                num: "02",
+                label: "Diner bites",
+                sub: "₱99 crispy wings & comfort plates",
+                badge: "₱99 WINGS",
+                href: "#bites",
+              },
+              {
+                num: "03",
+                label: "Our story",
+                sub: "US Chef & Middle East Barista roots",
+                href: "#story",
+              },
+              {
+                num: "04",
+                label: "Better together ☕",
+                sub: "Two-cup coffee date bundle for ₱250",
+                badge: "SAVE ₱40",
+                href: "#together",
+              },
+              {
+                num: "05",
+                label: "Facebook Page ↗",
+                sub: "Community updates & direct messages",
+                href: "https://www.facebook.com/beandiner",
+                isExternal: true,
+              },
+            ].map((item) => (
               <a
-                key={href}
-                href={href}
-                target={href.startsWith("http") ? "_blank" : undefined}
-                rel={
-                  href.startsWith("http") ? "noopener noreferrer" : undefined
-                }
+                key={item.href}
+                href={item.href}
+                target={item.isExternal ? "_blank" : undefined}
+                rel={item.isExternal ? "noopener noreferrer" : undefined}
                 onClick={() => setNavOpen(false)}
+                className={`mobile-nav-item ${item.isExternal ? "mobile-nav-fb" : ""}`}
               >
-                {label}
-                <Icon name="arrow" />
+                <div className="mobile-nav-meta">
+                  <span className="mobile-nav-num">{item.num}</span>
+                  <div className="mobile-nav-titles">
+                    <div className="mobile-nav-heading">
+                      <span className="mobile-nav-label">{item.label}</span>
+                      {item.badge && (
+                        <span className="mobile-nav-badge">{item.badge}</span>
+                      )}
+                    </div>
+                    <span className="mobile-nav-sub">{item.sub}</span>
+                  </div>
+                </div>
+                <span className="mobile-nav-arrow">
+                  <Icon name="arrow" size={18} />
+                </span>
               </a>
             ))}
           </nav>
-          <span className="handwritten">Tara, kain at kape tayo.</span>
+          <div className="mobile-nav-footer">
+            <span className="handwritten">Tara, kain at kape tayo.</span>
+            <small>Gen. Antonio Luna St., Bayambang · Open daily</small>
+          </div>
         </Modal>
       )}
       {/* ↓ FLOATING MESSENGER BUTTON: Direct chat with Bean Diner */}

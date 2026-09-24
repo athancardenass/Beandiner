@@ -1,5 +1,5 @@
-/* ↓ FONTS: Google Fonts import (DM Sans, DM Serif Display, Caveat) */
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;450;500;550;600;650;700&family=DM+Serif+Display:ital@0;1&family=Caveat:wght@500;600&display=swap");
+/* ↓ FONTS: Google Fonts import (DM Sans, DM Serif Display, Caveat, Bricolage Grotesque, Plus Jakarta Sans) */
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;450;500;550;600;650;700&family=DM+Serif+Display:ital@0;1&family=Caveat:wght@500;600&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap");
 /* ↓ TAILWIND: Tailwind CSS v4 import */
 @import "tailwindcss";
 /* ↓ CSS VARIABLES: Brand colors and typography tokens */
@@ -295,36 +295,109 @@ main {
   font-weight: 600;
 }
 /* ↓ NAV: Main navigation links */
-.header nav {
+.header-nav {
   display: flex;
-  gap: 35px;
-  font-size: 12px;
-  margin-left: 80px;
+  gap: 8px;
+  margin-left: auto;
+  margin-right: 20px;
   align-items: center;
 }
-.header nav > a {
-  padding: 14px 0;
+.nav-item {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-family: "Bricolage Grotesque", "Plus Jakarta Sans", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  color: var(--ink);
+  text-decoration: none;
+  background: transparent;
+  transition: all 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
   position: relative;
 }
-.header nav > a:after {
-  content: "";
-  height: 1px;
-  background: var(--red);
-  position: absolute;
-  bottom: 7px;
-  left: 0;
-  width: 0;
-  transition: width 0.3s;
-}
-.header nav > a:hover:after {
-  width: 100%;
-}
-/* ↓ NAV STAR: Red star accent in nav */
-.nav-star {
-  font-size: 17px;
+.nav-item:hover {
+  background: #343b320d;
   color: var(--red);
+  transform: translateY(-1px);
+}
+.nav-num {
+  font-family: "DM Sans", sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  color: #7b6255;
+  margin-right: 6px;
+  letter-spacing: 0.5px;
+  opacity: 0.65;
+}
+.nav-label {
+  position: relative;
+}
+.nav-badge {
+  font-family: "DM Sans", sans-serif;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  background: var(--red);
+  color: var(--cream);
+  padding: 2px 7px;
+  border-radius: 999px;
+  margin-left: 7px;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.2;
+}
+.nav-coffee {
+  font-size: 14px;
+  margin-left: 6px;
   display: inline-block;
-  margin-left: 4px;
+  transition: transform 0.2s;
+}
+.nav-item:hover .nav-coffee {
+  transform: scale(1.25) rotate(10deg);
+}
+.nav-fb-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: #0084ff12;
+  color: #0072db;
+  border: 1px solid #0084ff35;
+  font-family: "Bricolage Grotesque", "Plus Jakarta Sans", sans-serif;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  text-decoration: none;
+  transition: all 0.25s ease;
+}
+.nav-fb-pill:hover {
+  background: #0084ff;
+  color: #ffffff;
+  border-color: #0084ff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 132, 255, 0.35);
+}
+.fb-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #0084ff;
+  box-shadow: 0 0 0 2px rgba(0, 132, 255, 0.2);
+}
+.nav-fb-pill:hover .fb-dot {
+  background: #ffffff;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4);
+}
+.fb-arrow {
+  font-size: 11px;
+  font-weight: 800;
+  transition: transform 0.2s;
+}
+.nav-fb-pill:hover .fb-arrow {
+  transform: translate(2px, -2px);
 }
 /* ↓ HEADER ACTIONS: Order button + bag button + mobile menu */
 .header-actions {
@@ -1825,26 +1898,121 @@ footer {
 /* ↓ NAV MODAL: Mobile navigation drawer */
 .nav-modal {
   width: calc(100% - 24px);
+  max-width: 480px;
 }
 .nav-modal .modal-inner {
-  padding: 38px 25px;
+  padding: 34px 24px;
 }
-.nav-modal nav {
+.mobile-nav-list {
   display: flex;
   flex-direction: column;
-  margin: 45px 0;
-  gap: 27px;
+  margin: 28px 0;
+  gap: 12px;
 }
-.nav-modal nav > a {
-  font-size: 30px;
-  font-family: var(--serif);
+.mobile-nav-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #f4efe4;
+  border: 1px solid #343b3215;
+  text-decoration: none;
+  transition: all 0.22s ease;
+}
+.mobile-nav-item:hover,
+.mobile-nav-item:active {
+  background: var(--cream);
+  border-color: var(--red);
+  transform: translateX(4px);
+}
+.mobile-nav-meta {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.mobile-nav-num {
+  font-family: "DM Sans", sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: #7b6255;
+  opacity: 0.6;
+  margin-top: 3px;
+}
+.mobile-nav-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.mobile-nav-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mobile-nav-label {
+  font-family: "Bricolage Grotesque", "Plus Jakarta Sans", sans-serif;
+  font-size: 19px;
+  font-weight: 750;
+  letter-spacing: -0.4px;
+  color: var(--ink);
+}
+.mobile-nav-item:hover .mobile-nav-label {
   color: var(--red);
 }
-.nav-modal .handwritten {
-  font-size: 33px;
+.mobile-nav-badge {
+  font-family: "DM Sans", sans-serif;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  background: var(--red);
+  color: var(--cream);
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+.mobile-nav-sub {
+  font-size: 11px;
+  color: #6a7362;
+  line-height: 1.4;
+}
+.mobile-nav-arrow {
+  color: #6a7362;
+  transition:
+    transform 0.2s,
+    color 0.2s;
+  display: grid;
+  place-items: center;
+}
+.mobile-nav-item:hover .mobile-nav-arrow {
+  transform: translateX(3px);
+  color: var(--red);
+}
+.mobile-nav-fb {
+  background: #0084ff0d;
+  border-color: #0084ff30;
+}
+.mobile-nav-fb .mobile-nav-label {
+  color: #0070d6;
+}
+.mobile-nav-fb:hover {
+  background: #0084ff18;
+  border-color: #0084ff;
+}
+.mobile-nav-footer {
+  border-top: 1px solid #343b3215;
+  padding-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mobile-nav-footer .handwritten {
+  font-size: 28px;
+  color: var(--red);
+}
+.mobile-nav-footer small {
+  font-size: 9px;
+  color: #7b8474;
+  letter-spacing: 0.5px;
 }
 /* ↓ ANIMATIONS: Keyframe definitions */
 /* ↓ CUP FLOAT: Gentle floating animation for hero cup */
