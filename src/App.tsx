@@ -1373,42 +1373,106 @@ function App() {
           <Sun />
         </section>
       </main>
-      {/* ↓ FOOTER: Logo, links, back-to-top */}
-      <footer>
-        <div className="footer-top">
-          <Logo footer />
-          <p>
-            Good food. Great coffee.
-            <br />
-            Founded by a US Chef &amp; Middle East Barista.
-            <br />
-            Gen. Antonio Luna Street, Zone 2, Bayambang, Pangasinan.
-          </p>
-          <div className="footer-links">
-            <a href="#menu">Our drinks ↗</a>
-            <a href="#bites">Diner bites ↗</a>
-            <a href="#story">Our story ↗</a>
-            <a
-              href="https://www.facebook.com/beandiner"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Facebook Page ↗
-            </a>
+      {/* ↓ FOOTER: Elevated artisanal diner footer */}
+      <footer className="footer-artisanal">
+        <div className="footer-inner">
+          <div className="footer-brand-col">
+            <Logo footer />
+            <p className="footer-tagline">
+              <span className="handwritten">where food heals, coffee understands.</span>
+              <br />
+              Founded in Bayambang, Pangasinan by a US-trained culinary Chef and
+              a Middle East specialty coffee Barista.
+            </p>
+            <div className="footer-founder-chips">
+              <span className="founder-chip">👨🍳 US Culinary Kitchens</span>
+              <span className="founder-chip">☕ Middle East Barista</span>
+              <span className="founder-chip">🌿 Benguet 100% Arabica</span>
+            </div>
           </div>
-          <a href="#home" className="back-top">
-            BACK TO THE TOP <span>↑</span>
-          </a>
+
+          <div className="footer-nav-col">
+            <span className="footer-heading">EXPLORE THE DINER</span>
+            <div className="footer-pill-links">
+              <a href="#menu" className="footer-pill">
+                <span>☕ Our drinks</span>
+                <small>Bestsellers & lattes</small>
+              </a>
+              <a href="#bites" className="footer-pill">
+                <span>🍗 Diner bites</span>
+                <small>₱99 wings & comfort</small>
+              </a>
+              <a href="#story" className="footer-pill">
+                <span>📖 Our story</span>
+                <small>Two crafts, one home</small>
+              </a>
+              <a
+                href="https://m.me/beandiner"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="footer-pill footer-pill-fb"
+              >
+                <span>💬 Chat on Messenger</span>
+                <small>Order & table inquiry</small>
+              </a>
+            </div>
+          </div>
+
+          <div className="footer-info-col">
+            <span className="footer-heading">VISIT OUR TABLE</span>
+            <div className="footer-info-card">
+              <div className="info-row">
+                <span className="info-icon">📍</span>
+                <div>
+                  <strong>Bean Diner Bayambang</strong>
+                  <p>Gen. Antonio Luna Street, Zone 2, Bayambang, Pangasinan</p>
+                </div>
+              </div>
+              <div className="info-row">
+                <span className="info-icon">🕒</span>
+                <div>
+                  <strong>Diner Hours</strong>
+                  <p>
+                    Mon–Fri: 9:00 AM – 10:00 PM
+                    <br />
+                    Sat–Sun: 11:00 AM – 10:00 PM
+                  </p>
+                </div>
+              </div>
+              <div className="info-row">
+                <span className="info-icon">📞</span>
+                <div>
+                  <strong>Phone / Inquiries</strong>
+                  <p>
+                    <a href="tel:09153995000" className="phone-link">
+                      0915 399 5000
+                    </a>
+                  </p>
+                </div>
+              </div>
+              <div className="footer-actions">
+                <a
+                  href="https://maps.google.com/?q=Gen.+Antonio+Luna+St,+Zone+2,+Bayambang,+Pangasinan"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="button footer-map-btn"
+                >
+                  Open in Maps ↗
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="footer-bottom">
-          <span>
-            © {new Date().getFullYear()} BEAN DINER BAYAMBANG. ALL RIGHTS
-            RESERVED.
-          </span>
-          <span>Mon–Fri 9:00 AM – 10:00 PM · Sat–Sun 11:00 AM – 10:00 PM</span>
-          <span>
-            Gen. Antonio Luna St., Bayambang, Pangasinan · 0915 399 5000
-          </span>
+
+        <div className="footer-bottom-bar">
+          <div className="footer-copy">
+            <span>© {new Date().getFullYear()} BEAN DINER BAYAMBANG. ALL RIGHTS RESERVED.</span>
+            <span className="footer-subcopy">Handcrafted with care for Pangasinan students & coffee lovers.</span>
+          </div>
+          <span className="footer-closing handwritten">Tara, kain at kape tayo.</span>
+          <a href="#home" className="back-top-pill">
+            Back to top <span>↑</span>
+          </a>
         </div>
       </footer>
       {/* ↓ TOAST: Add-to-bag confirmation */}
