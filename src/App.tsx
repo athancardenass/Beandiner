@@ -25,93 +25,156 @@ type Product = {
   hot?: boolean;
   badge?: string;
 };
-// ↓ DATA: Six signature drink products
+// ↓ DATA: Six signature drink products for Bean Diner Bayambang
 const products: Product[] = [
   {
     id: "latte",
-    name: "The Daily Saya",
-    short: "Signature iced latte",
-    note: "Your everyday, made a little better.",
+    name: "Iced Spanish Latte",
+    short: "Signature Spanish latte",
+    note: "Sweet, creamy, and caramel-kissed.",
     description:
-      "A bold espresso hug, mellowed with cold milk and poured over ice. Simple things, done really well.",
+      "Our most-loved pour in Bayambang. Double-shot espresso mellowed with sweet condensed milk, silky dairy, and rich caramel notes.",
     price: 145,
     color: "#cee4d9",
-    word: "Everyday happy.",
-    ingredients: ["Double espresso", "Fresh milk", "A whole lot of ice"],
-    type: "Coffee",
-    badge: "HOUSE FAVORITE",
-  },
-  {
-    id: "spanish",
-    name: "Sweet Like Sunday",
-    short: "Spanish latte",
-    note: "Slow down. Sweeten things up.",
-    description:
-      "Rich espresso meets velvety milk and a little condensed-milk magic. All the feeling of a slow Sunday.",
-    price: 165,
-    color: "#f2dfb8",
-    word: "Sweet escape.",
-    ingredients: ["Double espresso", "Fresh milk", "Condensed milk"],
+    word: "Sweet comfort.",
+    ingredients: ["Double espresso", "Condensed milk", "Caramel touch"],
     type: "Coffee",
     badge: "BEST SELLER",
   },
   {
-    id: "ube",
-    name: "Ube, Baby",
-    short: "Ube coffee latte",
-    note: "A little local love. A lot of purple.",
-    description:
-      "Earthy ube, creamy milk, and a bold espresso finish. A familiar Filipino favorite with a coffee-shop crush.",
-    price: 185,
-    color: "#ded4e8",
-    word: "Purple mood.",
-    ingredients: ["Double espresso", "Ube cream", "Fresh milk"],
-    type: "Coffee",
-    badge: "SAYA SPECIAL",
-  },
-  {
-    id: "barako",
-    name: "Gising, Gising!",
-    short: "Kapeng Barako",
-    note: "For the beautifully bold.",
-    description:
-      "A full-bodied, aromatic cup inspired by the Filipino ritual of kapeng barako. No fuss. Just a proper wake-up.",
-    price: 115,
-    color: "#e9c3a4",
-    word: "Rise & shine.",
-    ingredients: ["Barako-style coffee", "Hot water", "Big morning energy"],
-    type: "Coffee",
-    hot: true,
-  },
-  {
     id: "matcha",
-    name: "Matcha Mood",
-    short: "Iced matcha latte",
-    note: "Your greener kind of pick-me-up.",
+    name: "Bean Diner x Oatside",
+    short: "Matcha oat latte",
+    note: "Whisked smooth. 100% plant-based.",
     description:
-      "Vibrant, earthy matcha whisked smooth and layered over chilled milk. Mellow, creamy, and very much your mood.",
-    price: 175,
+      "Ceremonial green tea matcha whisked to perfection with creamy Oatside oat milk. A velvety smooth, dairy-free everyday escape.",
+    price: 165,
     color: "#dce4b8",
     word: "Go a little green.",
-    ingredients: ["Matcha powder", "Fresh milk", "A whole lot of ice"],
+    ingredients: ["Ceremonial matcha", "Oatside oat milk", "Clean ice chill"],
     type: "Not coffee",
+    badge: "OATSIDE COLLAB",
   },
   {
     id: "coldbrew",
-    name: "Easy Does It",
-    short: "Slow-steeped cold brew",
-    note: "Less rush. More good stuff.",
+    name: "Benguet Farm Cold Brew",
+    short: "Highland single-origin",
+    note: "Direct from Benguet & Baguio farms.",
     description:
-      "Slow-steeped coffee, served black over ice. Smooth, refreshing, and ready to take the scenic route with you.",
+      "Directly sourced highland Arabica slow-steeped for 18 hours. Clean finish, rich cocoa undertones, and zero bitterness.",
     price: 135,
     color: "#efcebc",
     word: "Stay mellow.",
     ingredients: [
-      "Slow-steeped coffee",
-      "Filtered water",
-      "A whole lot of ice",
+      "Benguet highland beans",
+      "18-hr slow steep",
+      "Served over ice",
     ],
     type: "Coffee",
+    badge: "FARM DIRECT",
+  },
+  {
+    id: "barako",
+    name: "Middle East Barista Roast",
+    short: "Artisan Americano",
+    note: "Crafted by our Middle East-trained barista.",
+    description:
+      "Full-bodied, deeply aromatic extraction celebrating Middle Eastern specialty coffee techniques and Benguet highland beans.",
+    price: 125,
+    color: "#e9c3a4",
+    word: "Bold & craft.",
+    ingredients: [
+      "Barista extraction",
+      "Thick golden crema",
+      "Deep smoky notes",
+    ],
+    type: "Coffee",
+    hot: true,
+    badge: "BARISTA CRAFT",
+  },
+  {
+    id: "ube",
+    name: "Sweet Strawberry Latte",
+    short: "Strawberry milk espresso",
+    note: "Coffee that says stay, strawberry that says sweet.",
+    description:
+      "Real crushed strawberry milk layered under a bold espresso float. A crowd favorite for cozy diner catchups.",
+    price: 155,
+    color: "#ded4e8",
+    word: "Sweet escape.",
+    ingredients: [
+      "Real strawberry fruit",
+      "Velvety fresh milk",
+      "Bold espresso float",
+    ],
+    type: "Not coffee",
+    badge: "HOUSE SPECIAL",
+  },
+  {
+    id: "spanish",
+    name: "Diner Caramel Macchiato",
+    short: "Layered caramel espresso",
+    note: "American diner classic comfort.",
+    description:
+      "Fresh steamed milk and sweet vanilla marked with espresso and drizzled with warm golden butter caramel sauce.",
+    price: 155,
+    color: "#f2dfb8",
+    word: "Warm comfort.",
+    ingredients: ["Vanilla cream", "Espresso mark", "Warm caramel drizzle"],
+    type: "Coffee",
+  },
+];
+// ↓ DINER BITES: US-trained Chef comfort food favorites
+type DinerBite = {
+  id: string;
+  name: string;
+  subtitle: string;
+  description: string;
+  price: number;
+  tag: string;
+  badge: string;
+};
+
+const dinerBites: DinerBite[] = [
+  {
+    id: "honey-butter-wings",
+    name: "Honey Butter Wings",
+    subtitle: "2PC CRISPY CHICKEN WINGS",
+    description:
+      "Golden fried chicken wings glazed in our US chef's signature sweet honey butter. Crispy, savory, and student-budget approved.",
+    price: 99,
+    tag: "STUDENT BUDGET ₱99",
+    badge: "BESTSELLER",
+  },
+  {
+    id: "snow-cheese-wings",
+    name: "Snow Cheese Wings",
+    subtitle: "2PC CRISPY CHICKEN WINGS",
+    description:
+      "Crunchy double-dredged chicken wings dusted generously in sweet-savory snow cheese seasoning. Irresistibly addictive.",
+    price: 99,
+    tag: "STUDENT BUDGET ₱99",
+    badge: "CHEF'S PICK",
+  },
+  {
+    id: "mexican-nachos",
+    name: "Loaded Mexican Nachos",
+    subtitle: "CHEF'S SHARING PLATTER",
+    description:
+      "Crisp stone-ground corn chips piled high with seasoned savory beans, warm melted queso, diced salsa, and jalapeños.",
+    price: 180,
+    tag: "PERFECT TO SHARE",
+    badge: "NEW & IMPROVED",
+  },
+  {
+    id: "korean-beef-mushroom",
+    name: "Korean Beef Mushroom",
+    subtitle: "SAVORY COMFORT SKILLET",
+    description:
+      "Tender beef slices sautéed with fresh button mushrooms in a sweet-garlic umami soy reduction. Warm comfort on a plate.",
+    price: 210,
+    tag: "HEARTY DINER PLATE",
+    badge: "US CHEF CRAFT",
   },
 ];
 // ↓ TYPE: Shopping cart item shape
@@ -123,6 +186,8 @@ type CartItem = {
   temperature: string;
   quantity: number;
   price: number;
+  name?: string;
+  isFood?: boolean;
 };
 // ↓ ICON COMPONENT: SVG icon set (arrow, bag, close, menu, plus, minus, play, check)
 function Icon({
@@ -168,16 +233,16 @@ function Icon({
     </svg>
   );
 }
-// ↓ LOGO COMPONENT: Saya Coffee brand mark with spark symbol
+// ↓ LOGO COMPONENT: Bean Diner brand mark with coffee bean spark
 function Logo({ footer = false }: { footer?: boolean }) {
   return (
     <a
       href="#home"
       className={`logo ${footer ? "footer-logo" : ""}`}
-      aria-label="Saya Coffee home"
+      aria-label="Bean Diner home"
     >
-      saya<span className="logo-spark">✳</span>
-      {!footer && <small>COFFEE</small>}
+      bean diner<span className="logo-spark">☕</span>
+      {!footer && <small>BAYAMBANG</small>}
     </a>
   );
 }
@@ -475,7 +540,7 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
       className="scroll-story"
       ref={section}
       id="flavors"
-      aria-label="Explore the six Saya flavors"
+      aria-label="Explore the six Bean Diner drinks"
     >
       <div
         ref={stage}
@@ -483,7 +548,7 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
         style={{ backgroundColor: product.color }}
       >
         <div className="story-top">
-          <span className="eyebrow">A CUP FOR EVERY KIND OF DAY</span>
+          <span className="eyebrow">CRAFTED FOR EVERY KIND OF MOOD</span>
           <a className="text-link" href="#menu">
             Skip to the menu <Icon name="arrow" size={18} />
           </a>
@@ -545,10 +610,16 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
               >
                 <span />
                 {p.id === "latte"
-                  ? "Signature"
+                  ? "Spanish Latte"
                   : p.id === "coldbrew"
-                    ? "Cold brew"
-                    : p.id.charAt(0).toUpperCase() + p.id.slice(1)}
+                    ? "Cold Brew"
+                    : p.id === "matcha"
+                      ? "Oatside"
+                      : p.id === "barako"
+                        ? "Barista Roast"
+                        : p.id === "ube"
+                          ? "Strawberry"
+                          : "Caramel"}
               </button>
             ))}
           </div>
@@ -572,14 +643,19 @@ function App() {
   const [filter, setFilter] = useState("All drinks");
   const [receipt, setReceipt] = useState(false);
   const [toast, setToast] = useState("");
-  // ↓ CART STATE: Persisted to localStorage
+  // ↓ CART STATE: Persisted to localStorage with backwards compatibility
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
-      const value = JSON.parse(localStorage.getItem("saya-bag") || "[]");
+      const value = JSON.parse(
+        localStorage.getItem("beandiner-bag-v2") ||
+          localStorage.getItem("saya-bag") ||
+          "[]",
+      );
       return Array.isArray(value)
         ? value.filter(
             (item: CartItem) =>
-              products.some((p) => p.id === item.id) &&
+              (products.some((p) => p.id === item.id) ||
+                dinerBites.some((b) => b.id === item.id)) &&
               typeof item.key === "string" &&
               Number.isFinite(item.price) &&
               item.price > 0 &&
@@ -597,7 +673,7 @@ function App() {
   // ↓ CART PERSISTENCE: Save cart to localStorage on change
   useEffect(() => {
     try {
-      localStorage.setItem("saya-bag", JSON.stringify(cart));
+      localStorage.setItem("beandiner-bag-v2", JSON.stringify(cart));
     } catch {
       /* Private browsing keeps the current session functional. */
     }
@@ -657,7 +733,35 @@ function App() {
     setSelected(null);
     setReceipt(false);
     setBagOpen(true);
-    setToast("A little happy, added to your bag.");
+    setToast("Freshly brewed, added to your bag.");
+  };
+
+  // ↓ ADD DINER BITE: Add comfort food item directly to bag
+  const addBite = (bite: DinerBite) => {
+    const item: CartItem = {
+      key: `bite-${bite.id}`,
+      id: bite.id,
+      name: bite.name,
+      size: "Plate",
+      milk: "None",
+      temperature: "Hot & Fresh",
+      quantity: 1,
+      price: bite.price,
+      isFood: true,
+    };
+    setCart((current) => {
+      const existing = current.find((i) => i.key === item.key);
+      return existing
+        ? current.map((i) =>
+            i.key === item.key
+              ? { ...i, quantity: Math.min(20, i.quantity + 1) }
+              : i,
+          )
+        : [...current, item];
+    });
+    setReceipt(false);
+    setBagOpen(true);
+    setToast(`${bite.name} added to your bag.`);
   };
   const quantity = cart.reduce((n, i) => n + i.quantity, 0);
   const subtotal = cart.reduce((n, i) => n + i.price * i.quantity, 0);
@@ -698,7 +802,7 @@ function App() {
       </a>
       {/* ↓ ANNOUNCEMENT BAR: Promotional banner */}
       <div className="announcement">
-        GOOD COFFEE. BETTER TOGETHER. <span>Two Daily Sayas for ₱250.</span>
+        GOOD FOOD. GREAT COFFEE. <span>Two Iced Spanish Lattes for ₱250.</span>
         <a href="#together">
           Make it a coffee date <span>↗</span>
         </a>
@@ -707,10 +811,19 @@ function App() {
       <header className="header" id="home">
         <Logo />
         <nav aria-label="Main navigation">
-          <a href="#menu">Our coffee</a>
-          <a href="#story">The Saya feeling</a>
+          <a href="#menu">Our drinks</a>
+          <a href="#bites">Diner bites</a>
+          <a href="#story">Our story</a>
           <a href="#together">
-            Better together <span className="nav-star">✳</span>
+            Better together <span className="nav-star">☕</span>
+          </a>
+          <a
+            href="https://www.facebook.com/beandiner"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="header-fb"
+          >
+            Facebook ↗
           </a>
         </nav>
         <div className="header-actions">
@@ -743,27 +856,28 @@ function App() {
           <div className="hero-oval" />
           <div className="hero-heading">
             <span className="eyebrow">
-              <span className="tiny-star">✳</span> A LITTLE FILIPINO. A LOT OF
-              HAPPY.
+              <span className="tiny-star">☕</span> GEN. ANTONIO LUNA ST. ·
+              BAYAMBANG, PANGASINAN
             </span>
             <h1>
-              Good days.
+              Good food.
               <br />
               Great coffee.
             </h1>
           </div>
           <div className="hero-copy">
             <p>
-              Big on flavor. Rooted in familiar.
+              Founded by a Chef trained in the US and a Barista skilled in the
+              Middle East.
               <br />
-              Your daily dose of <em>saya</em>, one cup at a time.
+              Where the food heals and the coffee understands you.
             </p>
             <div className="hero-ctas">
               <a className="button" href="#menu">
-                Find your happy <Icon name="arrow" />
+                Order for pickup <Icon name="arrow" />
               </a>
-              <a className="text-link" href="#flavors">
-                Explore the flavors <span>↘</span>
+              <a className="text-link" href="#bites">
+                Diner comfort bites <span>↘</span>
               </a>
             </div>
           </div>
@@ -771,7 +885,7 @@ function App() {
             <img
               className="hero-product"
               src={image("latte")}
-              alt="Saya signature iced latte with espresso, creamy milk, and ice"
+              alt="Bean Diner signature Iced Spanish Latte with espresso, condensed milk, and caramel"
               fetchPriority="high"
               width="500"
               height="700"
@@ -787,7 +901,7 @@ function App() {
               </defs>
               <text>
                 <textPath href="#stamp-circle" textLength="274">
-                  BREWED FOR THE GOOD DAYS · SAYA COFFEE ·{" "}
+                  BREWED FOR WARM VIBES · BEAN DINER BAYAMBANG ·{" "}
                 </textPath>
               </text>
             </svg>
@@ -795,9 +909,9 @@ function App() {
           </div>
           <div className="hero-scribble">
             <span className="handwritten">
-              sip, smile,
+              where food heals,
               <br />
-              repeat.
+              coffee understands.
             </span>
             <svg viewBox="0 0 100 70" fill="none" aria-hidden="true">
               <path
@@ -823,16 +937,18 @@ function App() {
           <div className="hero-product-caption">
             <span className="caption-line" />
             <div>
-              <span className="eyebrow">MEET YOUR NEW DAILY</span>
+              <span className="eyebrow">BAYAMBANG BEST SELLER</span>
               <p>
-                The Daily Saya <span>₱145</span>
+                Iced Spanish Latte <span>₱145</span>
               </p>
             </div>
           </div>
           <a className="scroll-cue" href="#flavors">
             <span>↓</span> A good day starts with a scroll
           </a>
-          <div className="hero-bottom-note">HAPPINESS, SERVED ICED.</div>
+          <div className="hero-bottom-note">
+            WHERE THE FOOD HEALS &amp; THE COFFEE UNDERSTANDS
+          </div>
           <svg
             className="hero-wave"
             viewBox="0 0 1440 65"
@@ -847,11 +963,13 @@ function App() {
         </section>
         {/* ↓ MANIFESTO STRIP: Brand tagline marquee */}
         <div className="manifesto-strip">
-          <span>Made for your everyday</span>
+          <span>Where the food heals</span>
           <Sun />
-          <span>A little cup of happy</span>
+          <span>Good food, great coffee</span>
           <Sun />
-          <span>Good coffee, good company</span>
+          <span>Warm community vibes</span>
+          <Sun />
+          <span>Bayambang, Pangasinan</span>
           <Sun />
         </div>
         {/* ↓ SCROLL STORY: Interactive product showcase */}
@@ -859,11 +977,13 @@ function App() {
         {/* ↓ MENU SECTION: Product grid with filters */}
         <section id="menu" className="menu-section">
           <div className="menu-heading reveal">
-            <span className="eyebrow">FIND YOUR EVERYDAY FAVORITE</span>
+            <span className="eyebrow">FRESHLY BREWED IN BAYAMBANG</span>
             <h2>
-              What's your <span className="serif-italic">happy?</span>
+              What's your <span className="serif-italic">order?</span>
             </h2>
-            <p>Six little reasons to look forward to your day.</p>
+            <p>
+              Specialty brews, creamy Oatside lattes, and comforting diner sips.
+            </p>
           </div>
           <div className="menu-toolbar">
             <div className="menu-filters" aria-label="Filter drinks">
@@ -880,7 +1000,7 @@ function App() {
                 ),
               )}
             </div>
-            <span className="menu-size">A GOOD PLACE TO START: 16 OZ</span>
+            <span className="menu-size">SERVED IN 16 OZ WITH ICE</span>
           </div>
           <div className="product-grid">
             {visibleProducts.map((p) => (
@@ -894,16 +1014,16 @@ function App() {
                   {p.badge && <span className="product-badge">{p.badge}</span>}
                   <span className="product-art-word" aria-hidden="true">
                     {p.id === "latte"
-                      ? "daily"
+                      ? "spanish!"
                       : p.id === "spanish"
-                        ? "sweet"
+                        ? "caramel!"
                         : p.id === "ube"
-                          ? "ube!"
+                          ? "sweet!"
                           : p.id === "barako"
-                            ? "gising!"
+                            ? "bold!"
                             : p.id === "matcha"
-                              ? "mood"
-                              : "easy"}
+                              ? "oatside!"
+                              : "mellow!"}
                   </span>
                   <img
                     src={image(p.id)}
@@ -930,7 +1050,52 @@ function App() {
             ))}
           </div>
           <p className="menu-footnote">
-            Your cup, your way. Go large or swap to oat milk when you order.
+            Every cup crafted with Benguet highland beans and creamy Oatside oat
+            milk. Ask our barista about custom sweetness!
+          </p>
+        </section>
+        {/* ↓ DINER BITES SECTION: US-Trained Chef comfort kitchen plates */}
+        <section id="bites" className="menu-section bites-section">
+          <div className="menu-heading reveal">
+            <span className="eyebrow">US-TRAINED CHEF'S COMFORT KITCHEN</span>
+            <h2>
+              Diner bites &amp;{" "}
+              <span className="serif-italic">comfort plates.</span>
+            </h2>
+            <p>
+              Crispy chicken wings, loaded nachos, and savory skillets.
+              <br />
+              Student-budget approved, chef-crafted with real flavor.
+            </p>
+          </div>
+          <div className="product-grid bites-grid">
+            {dinerBites.map((bite) => (
+              <article className="product-card bite-card" key={bite.id}>
+                <div className="bite-top-badge">
+                  <span className="product-badge">{bite.badge}</span>
+                  <span className="bite-subtag">{bite.tag}</span>
+                </div>
+                <div className="bite-card-body">
+                  <h3>{bite.name}</h3>
+                  <span className="bite-subheading">{bite.subtitle}</span>
+                  <p>{bite.description}</p>
+                </div>
+                <div className="bite-card-footer">
+                  <strong>{money(bite.price)}</strong>
+                  <button
+                    className="button button-small"
+                    onClick={() => addBite(bite)}
+                    aria-label={`Add ${bite.name} to bag`}
+                  >
+                    Add to bag <Icon name="plus" size={16} />
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+          <p className="menu-footnote">
+            Freshly prepared to order on Antonio Luna Street. Dine in or take
+            away!
           </p>
         </section>
         {/* ↓ BRAND STORY: Editorial photo + brand narrative */}
@@ -938,33 +1103,37 @@ function App() {
           <div className="brand-photo reveal">
             <img
               src={image("merienda")}
-              alt="Two friends sharing Saya iced coffee and pandesal on a mint café table"
+              alt="Two friends sharing Bean Diner iced coffee and comfort food on a café table"
               loading="lazy"
               width="1000"
               height="750"
             />
             <span className="photo-note handwritten">
-              a little pause. a little saya.
+              where the food heals, the coffee understands
             </span>
           </div>
           <div className="brand-copy reveal">
-            <span className="eyebrow">MORE THAN A COFFEE BREAK</span>
+            <span className="eyebrow">
+              TWO CRAFTS. ONE COMMUNITY. BAYAMBANG, PANGASINAN.
+            </span>
             <h2>
-              A little pause.
-              <br />A lot of <em>saya.</em>
+              Not just coffee.
+              <br />A true <em>diner home.</em>
             </h2>
             <p>
-              In Filipino, <em>saya</em> means happiness. We think it lives in
-              the little things. Your first sip. A familiar face. An afternoon
-              that turns into a good conversation.
+              Bean Diner was founded by a Chef trained in the culinary kitchens
+              of the US and a Barista skilled in the specialty coffee culture of
+              the Middle East.
             </p>
             <p>
-              So we're making room for more of it. Thoughtful coffee, playful
-              flavors, and a little local love. For the everyday moments worth
-              slowing down for.
+              Right here on Gen. Antonio Luna Street in Bayambang, we bring
+              together honest comfort food—from our ₱99 student-budget honey
+              butter wings to loaded Mexican nachos—with specialty third-wave
+              coffee brewed from Benguet highland farms and creamy Oatside oat
+              milk.
             </p>
             <span className="brand-signature handwritten">
-              Tara, kape tayo.
+              Tara, kain at kape tayo.
             </span>
             <Sun />
           </div>
@@ -973,16 +1142,19 @@ function App() {
         <section className="together-section" id="together">
           <Ingredient kind="bean" className="offer-bean" />
           <div className="offer-copy reveal">
-            <span className="eyebrow">THE COFFEE DATE IS ON</span>
+            <span className="eyebrow">
+              STUDENTS, FRIENDS &amp; COFFEE LOVERS
+            </span>
             <h2>
               Good things
               <br />
               come in <em>twos.</em>
             </h2>
             <p>
-              Your favorite person. Your favorite coffee.
+              Study sessions, afternoon catchups, or cozy diner merienda on
+              Antonio Luna Street.
               <br />
-              Two signature iced lattes, one happy little price.
+              Two signature Iced Spanish Lattes, one friendly price.
             </p>
             <div className="offer-price">
               2 cups. ₱250. <span>Usually ₱290</span>
@@ -1004,7 +1176,7 @@ function App() {
               Make it a coffee date <Icon name="arrow" />
             </button>
             <small>
-              Two 16 oz Daily Saya iced lattes with regular milk.
+              Two 16 oz signature Iced Spanish Lattes with regular milk.
               <br />
               Bundle savings applied automatically in your bag.
             </small>
@@ -1037,16 +1209,14 @@ function App() {
         </section>
         {/* ↓ FINAL CTA: Closing call-to-action */}
         <section className="final-cta">
-          <span className="eyebrow">
-            THERE'S ALWAYS ROOM FOR A LITTLE HAPPY
-          </span>
+          <span className="eyebrow">YOUR TABLE IS WAITING IN BAYAMBANG</span>
           <h2>
-            Same time.
+            Same corner.
             <br />
             <em>Another cup?</em>
           </h2>
           <a href="#menu" className="button">
-            Order your happy <Icon name="arrow" />
+            Explore the menu <Icon name="arrow" />
           </a>
           <Ingredient kind="cherry" className="final-cherry" />
           <Ingredient kind="leaf" className="final-leaf" />
@@ -1058,22 +1228,37 @@ function App() {
         <div className="footer-top">
           <Logo footer />
           <p>
-            A little Filipino.
-            <br />A lot of happy.
+            Good food. Great coffee.
+            <br />
+            Founded by a US Chef &amp; Middle East Barista.
+            <br />
+            Gen. Antonio Luna Street, Zone 2, Bayambang, Pangasinan.
           </p>
           <div className="footer-links">
-            <a href="#menu">Our coffee ↗</a>
+            <a href="#menu">Our drinks ↗</a>
+            <a href="#bites">Diner bites ↗</a>
             <a href="#story">Our story ↗</a>
-            <a href="#together">Coffee for two ↗</a>
+            <a
+              href="https://www.facebook.com/beandiner"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Facebook Page ↗
+            </a>
           </div>
           <a href="#home" className="back-top">
-            BACK TO THE GOOD STUFF <span>↑</span>
+            BACK TO THE TOP <span>↑</span>
           </a>
         </div>
         <div className="footer-bottom">
-          <span>© {new Date().getFullYear()} SAYA COFFEE</span>
-          <span>Made with a little local love.</span>
-          <span>Fictional brand concept. Demo orders only.</span>
+          <span>
+            © {new Date().getFullYear()} BEAN DINER BAYAMBANG. ALL RIGHTS
+            RESERVED.
+          </span>
+          <span>Mon–Fri 9:00 AM – 10:00 PM · Sat–Sun 11:00 AM – 10:00 PM</span>
+          <span>
+            Gen. Antonio Luna St., Bayambang, Pangasinan · 0915 399 5000
+          </span>
         </div>
       </footer>
       {/* ↓ TOAST: Add-to-bag confirmation */}
@@ -1094,20 +1279,20 @@ function App() {
       {/* ↓ BAG MODAL: Shopping cart drawer */}
       {bagOpen && (
         <Modal
-          label="Your coffee bag"
+          label="Your order bag"
           className="bag-modal"
           onClose={() => setBagOpen(false)}
         >
           <div className="bag-content">
-            <span className="eyebrow">A LITTLE HAPPY, TO GO</span>
-            <h2>{receipt ? "Happy looks good on you." : "Your coffee bag."}</h2>
+            <span className="eyebrow">BEAN DINER · BAYAMBANG</span>
+            <h2>{receipt ? "Salamat sa pagbisita!" : "Your order bag."}</h2>
             {receipt ? (
               <div className="receipt">
                 <Sun />
-                <h3>You're on the list.</h3>
+                <h3>You're on the list!</h3>
                 <p>
-                  Your demo order has been created. This is a fictional coffee
-                  shop, so no payment was taken and no drinks will be prepared.
+                  Your demo order has been confirmed. Drop by Bean Diner on Gen.
+                  Antonio Luna Street, Zone 2, Bayambang, Pangasinan for pickup!
                 </p>
                 <button
                   className="button"
@@ -1124,8 +1309,10 @@ function App() {
             ) : cart.length === 0 ? (
               <div className="empty-bag">
                 <Sun />
-                <h3>A little empty. A lot of possibility.</h3>
-                <p>There's a happy little cup with your name on it.</p>
+                <h3>Your bag is currently empty.</h3>
+                <p>
+                  There's a delicious cup or diner bite with your name on it.
+                </p>
                 <button
                   className="button"
                   onClick={() => {
@@ -1142,32 +1329,46 @@ function App() {
               <>
                 <div className="cart-items">
                   {cart.map((item) => {
-                    const p = products.find((p) => p.id === item.id)!;
+                    const p = products.find((p) => p.id === item.id);
+                    const b = dinerBites.find((b) => b.id === item.id);
+                    const title = p ? p.name : b ? b.name : item.name || "Item";
+                    const desc = item.isFood
+                      ? `${item.size} / ${item.temperature}`
+                      : `${item.size} / ${item.temperature}${
+                          p && !["barako", "coldbrew"].includes(p.id)
+                            ? ` / ${item.milk} milk`
+                            : ""
+                        }`;
                     return (
                       <div className="cart-item" key={item.key}>
-                        <img
-                          src={image(p.id)}
-                          alt={p.short}
-                          style={{ background: p.color }}
-                        />
+                        {p ? (
+                          <img
+                            src={image(p.id)}
+                            alt={p.short}
+                            style={{ background: p.color }}
+                          />
+                        ) : (
+                          <div
+                            className="cart-food-icon"
+                            style={{ background: "#f2dfb8" }}
+                          >
+                            🍗
+                          </div>
+                        )}
                         <div>
-                          <h3>{p.name}</h3>
-                          <p>
-                            {item.size} / {item.temperature}
-                            {!["barako", "coldbrew"].includes(p.id) &&
-                              ` / ${item.milk} milk`}
-                          </p>
+                          <h3>{title}</h3>
+                          <p>{desc}</p>
                           <div className="cart-item-bottom">
                             <div className="quantity">
                               <button
-                                aria-label={`Remove one ${p.name}`}
+                                aria-label={`Remove one ${title}`}
                                 onClick={() => changeQuantity(item.key, -1)}
                               >
                                 <Icon name="minus" size={14} />
                               </button>
                               <span>{item.quantity}</span>
                               <button
-                                aria-label={`Add one ${p.name}`}
+                                aria-label={`Add one ${title}`}
                                 onClick={() => changeQuantity(item.key, 1)}
                                 disabled={item.quantity >= 20}
                               >
@@ -1211,7 +1412,7 @@ function App() {
                     setCart([]);
                   }}
                 >
-                  <label htmlFor="order-name">A name for your cup</label>
+                  <label htmlFor="order-name">Name for pickup order</label>
                   <input
                     id="order-name"
                     name="name"
@@ -1221,10 +1422,11 @@ function App() {
                     maxLength={50}
                   />
                   <button className="button" type="submit">
-                    Place demo order <Icon name="arrow" />
+                    Place demo pickup order <Icon name="arrow" />
                   </button>
                   <small>
-                    This is a concept store. No payment or real fulfillment.
+                    Bean Diner Bayambang demo pickup · Pay on counter upon
+                    pickup
                   </small>
                 </form>
                 <button
@@ -1248,17 +1450,27 @@ function App() {
           <Logo />
           <nav>
             {[
-              ["Our coffee", "#menu"],
-              ["The Saya feeling", "#story"],
+              ["Our drinks", "#menu"],
+              ["Diner bites", "#bites"],
+              ["Our story", "#story"],
               ["Better together", "#together"],
+              ["Facebook Page ↗", "https://www.facebook.com/beandiner"],
             ].map(([label, href]) => (
-              <a key={href} href={href} onClick={() => setNavOpen(false)}>
+              <a
+                key={href}
+                href={href}
+                target={href.startsWith("http") ? "_blank" : undefined}
+                rel={
+                  href.startsWith("http") ? "noopener noreferrer" : undefined
+                }
+                onClick={() => setNavOpen(false)}
+              >
                 {label}
                 <Icon name="arrow" />
               </a>
             ))}
           </nav>
-          <span className="handwritten">Tara, kape tayo.</span>
+          <span className="handwritten">Tara, kain at kape tayo.</span>
         </Modal>
       )}
     </>

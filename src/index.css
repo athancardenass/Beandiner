@@ -1064,6 +1064,103 @@ main {
   margin-top: 47px;
   color: #596050;
 }
+/* ↓ DINER BITES SECTION: Comfort food layout */
+.bites-section {
+  border-top: 1px solid #343b3218;
+  background: #f7f1e6;
+}
+.bites-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
+}
+.bite-card {
+  background: var(--cream);
+  border: 1px solid #343b3220;
+  border-radius: 4px;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+.bite-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 28px #343b3212;
+}
+.bite-top-badge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.bite-top-badge .product-badge {
+  position: static;
+  border-bottom: 1px solid #343b3240;
+  padding-bottom: 3px;
+}
+.bite-subtag {
+  font-size: 8px;
+  font-weight: 650;
+  color: var(--red);
+  letter-spacing: 0.8px;
+}
+.bite-card-body h3 {
+  font-size: 23px;
+  letter-spacing: -0.5px;
+  color: var(--ink);
+  line-height: 1.2;
+}
+.bite-subheading {
+  display: block;
+  font-size: 8px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #636b5c;
+  margin: 4px 0 12px;
+}
+.bite-card-body p {
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: #4f5749;
+  margin-bottom: 22px;
+}
+.bite-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px solid #343b3218;
+  padding-top: 16px;
+}
+.bite-card-footer strong {
+  font-size: 18px;
+  font-family: var(--serif);
+  color: var(--ink);
+}
+.button-small {
+  padding: 9px 14px;
+  font-size: 9.5px;
+  gap: 6px;
+}
+.cart-food-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 4px;
+  display: grid;
+  place-items: center;
+  font-size: 32px;
+  flex-shrink: 0;
+}
+.header-fb {
+  opacity: 0.85;
+  transition: opacity 0.2s;
+}
+.header-fb:hover {
+  opacity: 1;
+}
 /* ↓ BRAND STORY: Editorial photo + brand narrative */
 .brand-story {
   display: grid;
@@ -2058,8 +2155,8 @@ footer {
     padding: 0 6%;
   }
   .logo {
-    font-size: 48px;
-    letter-spacing: -4px;
+    font-size: clamp(34px, 8.5vw, 48px);
+    letter-spacing: -3px;
     padding-bottom: 11px;
   }
   .logo small {
@@ -2542,6 +2639,20 @@ footer {
     margin: 32px auto 0;
     line-height: 1.7;
   }
+  .bites-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .bite-card {
+    padding: 18px 16px;
+  }
+  .bite-card-body h3 {
+    font-size: 20px;
+  }
+  .bite-card-body p {
+    font-size: 11px;
+    margin-bottom: 16px;
+  }
   .brand-story {
     grid-template-columns: 1fr;
     gap: 43px;
@@ -2881,6 +2992,18 @@ footer {
   }
   .manifesto-strip > span {
     font-size: 14px;
+  }
+  .bites-grid {
+    gap: 12px;
+  }
+  .bite-card {
+    padding: 16px 14px;
+  }
+  .bite-card-footer {
+    padding-top: 12px;
+  }
+  .bite-card-footer strong {
+    font-size: 16px;
   }
 }
 /* ↓ ACCESSIBILITY: Reduced motion preferences */
