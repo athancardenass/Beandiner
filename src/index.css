@@ -3006,6 +3006,79 @@ footer {
     font-size: 16px;
   }
 }
+/* ↓ MESSENGER BUTTONS: Direct Facebook Messenger CTA styling */
+.button-messenger-direct {
+  width: 100%;
+  margin-top: 10px;
+  background: #0084ff;
+  color: #ffffff;
+  border-color: #0084ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 11px;
+}
+.button-messenger-direct:hover {
+  background: #0072db;
+  border-color: #0072db;
+}
+.button-messenger-checkout {
+  width: 100%;
+  background: #0084ff;
+  color: #ffffff;
+  border-color: #0084ff;
+  padding: 16px 20px;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 50px;
+  transition:
+    background 0.25s,
+    transform 0.2s;
+}
+.button-messenger-checkout:hover {
+  background: #0072db;
+  border-color: #0072db;
+  transform: translateY(-2px);
+}
+/* ↓ FLOATING MESSENGER: Sticky quick action for customer contact */
+.floating-messenger {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #0084ff;
+  color: #ffffff;
+  padding: 12px 18px;
+  border-radius: 50px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-decoration: none;
+  box-shadow: 0 8px 24px rgba(0, 132, 255, 0.4);
+  transition:
+    transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.3s;
+}
+.floating-messenger:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 12px 30px rgba(0, 132, 255, 0.5);
+}
+@media (max-width: 760px) {
+  .floating-messenger {
+    bottom: 18px;
+    right: 18px;
+    padding: 10px 14px;
+    font-size: 10px;
+  }
+}
 /* ↓ ACCESSIBILITY: Reduced motion preferences */
 @media (prefers-reduced-motion: reduce) {
   html {

@@ -189,6 +189,52 @@ type CartItem = {
   name?: string;
   isFood?: boolean;
 };
+// ↓ HELPER: Send formatted order to Bean Diner Facebook Messenger
+const sendToMessenger = (
+  items: CartItem[],
+  customerName: string = "",
+  totalAmount: number,
+  bundleDiscount: number = 0,
+) => {
+  const lines = items.map((item) => {
+    const p = products.find((p) => p.id === item.id);
+    const b = dinerBites.find((b) => b.id === item.id);
+    const title = p ? p.name : b ? b.name : item.name || "Item";
+    const specs = item.isFood
+      ? "Chef's Comfort Kitchen Plate"
+      : `${item.size}, ${item.temperature}${
+          p && !["barako", "coldbrew"].includes(p.id)
+            ? `, ${item.milk} milk`
+            : ""
+        }`;
+    return `• ${item.quantity}x ${title} (${specs}) - ${money(
+      item.price * item.quantity,
+    )}`;
+  });
+
+  const message = [
+    `Hello Bean Diner Bayambang! I would like to place an order:`,
+    ``,
+    ...lines,
+    ``,
+    bundleDiscount > 0 ? `Bundle Discount: -${money(bundleDiscount)}` : null,
+    `Total: ${money(totalAmount)}`,
+    customerName ? `Name: ${customerName}` : null,
+    `Pickup Location: Bean Diner · Gen. Antonio Luna St., Zone 2, Bayambang, Pangasinan`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(message);
+    }
+  } catch {
+    /* clipboard fallback */
+  }
+
+  window.open("https://m.me/beandiner", "_blank", "noopener,noreferrer");
+};
 // ↓ ICON COMPONENT: SVG icon set (arrow, bag, close, menu, plus, minus, play, check)
 function Icon({
   name,
@@ -466,6 +512,25 @@ function ProductModal({
             <Icon name="bag" size={18} />
           </button>
         </div>
+        <button
+          type="button"
+          className="button button-messenger-direct"
+          onClick={() => {
+            const singleItem: CartItem = {
+              key: `${product.id}-${size}-${milk}-${temperature}`,
+              id: product.id,
+              size,
+              milk,
+              temperature,
+              quantity,
+              price,
+            };
+            sendToMessenger([singleItem], "", price * quantity, 0);
+            onClose();
+          }}
+        >
+          Message Bean Diner on Facebook to Order 💬
+        </button>
       </form>
     </Modal>
   );
@@ -1285,17 +1350,28 @@ function App() {
         >
           <div className="bag-content">
             <span className="eyebrow">BEAN DINER · BAYAMBANG</span>
-            <h2>{receipt ? "Salamat sa pagbisita!" : "Your order bag."}</h2>
+            <h2>{receipt ? "Order sent to Messenger!" : "Your order bag."}</h2>
             {receipt ? (
               <div className="receipt">
                 <Sun />
-                <h3>You're on the list!</h3>
+                <h3>Order sent to Facebook!</h3>
                 <p>
-                  Your demo order has been confirmed. Drop by Bean Diner on Gen.
-                  Antonio Luna Street, Zone 2, Bayambang, Pangasinan for pickup!
+                  Your complete order details have been copied to your
+                  clipboard, and Bean Diner's Messenger chat has been opened.
+                  Simply paste into the chat to finalize your pickup!
                 </p>
+                <a
+                  className="button button-messenger-checkout"
+                  href="https://m.me/beandiner"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ display: "inline-flex", justifyContent: "center" }}
+                >
+                  Open Messenger Chat Again 💬
+                </a>
                 <button
                   className="button"
+                  style={{ marginTop: "12px" }}
                   onClick={() => {
                     setBagOpen(false);
                     document
@@ -1408,25 +1484,39 @@ function App() {
                   className="checkout-form"
                   onSubmit={(e) => {
                     e.preventDefault();
+                    const form = e.currentTarget;
+                    const nameInput = form.elements.namedItem(
+                      "name",
+                    ) as HTMLInputElement;
+                    const customerName = nameInput?.value || "";
+                    sendToMessenger(
+                      cart,
+                      customerName,
+                      subtotal - discount,
+                      discount,
+                    );
                     setReceipt(true);
                     setCart([]);
                   }}
                 >
-                  <label htmlFor="order-name">Name for pickup order</label>
+                  <label htmlFor="order-name">Your name for pickup</label>
                   <input
                     id="order-name"
                     name="name"
                     autoComplete="given-name"
-                    placeholder="Your first name"
+                    placeholder="Enter your name (e.g. Karl)"
                     required
                     maxLength={50}
                   />
-                  <button className="button" type="submit">
-                    Place demo pickup order <Icon name="arrow" />
+                  <button
+                    className="button button-messenger-checkout"
+                    type="submit"
+                  >
+                    Send Order to Facebook Messenger 💬
                   </button>
                   <small>
-                    Bean Diner Bayambang demo pickup · Pay on counter upon
-                    pickup
+                    Copies your order summary &amp; opens Bean Diner's Messenger
+                    automatically!
                   </small>
                 </form>
                 <button
@@ -1473,6 +1563,19 @@ function App() {
           <span className="handwritten">Tara, kain at kape tayo.</span>
         </Modal>
       )}
+      {/* ↓ FLOATING MESSENGER BUTTON: Direct chat with Bean Diner */}
+      <a
+        href="https://m.me/beandiner"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="floating-messenger"
+        aria-label="Chat with Bean Diner on Facebook Messenger"
+      >
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.03 2 11c0 2.87 1.5 5.43 3.84 7.02l-.65 2.45a.75.75 0 0 0 .97.9l2.84-1.22c.96.28 1.97.43 3 .43 5.52 0 10-4.03 10-9s-4.48-9-10-9zm1.06 12.15-2.58-2.75-5.04 2.75 5.54-5.88 2.64 2.75 4.98-2.75-5.54 5.88z" />
+        </svg>
+        <span>Message Us</span>
+      </a>
     </>
   );
 }
