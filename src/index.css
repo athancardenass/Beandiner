@@ -555,7 +555,7 @@ main {
 /* ↓ HERO PRODUCT WRAPPER: Floating cup animation container */
 .hero-product-wrap {
   position: absolute;
-  left: 54%;
+  left: 58%;
   top: 66px;
   width: 38%;
   max-width: 510px;
@@ -619,7 +619,7 @@ main {
 /* ↓ HERO SCRIBBLE: Handwritten note with arrow SVG */
 .hero-scribble {
   position: absolute;
-  left: min(calc(54% + min(38vw, 510px) * 0.76 + 10px), calc(98.5% - 215px));
+  left: min(calc(58% + min(38vw, 510px) * 0.76 + 10px), calc(98.5% - 215px));
   right: auto;
   top: clamp(290px, 19vw, 340px);
   color: var(--accent-light);
@@ -656,13 +656,13 @@ main {
   animation: ingredient-float 9s ease-in-out infinite;
 }
 .bean-one {
-  left: 48%;
+  left: 52%;
   top: 34px;
   width: 57px;
   rotate: -27deg;
 }
 .bean-two {
-  left: 47%;
+  left: 51%;
   top: 419px;
   width: 67px;
   rotate: 24deg;
@@ -677,7 +677,7 @@ main {
 }
 /* ↓ HERO LEAF: Floating leaf decoration */
 .hero-leaf {
-  left: 51%;
+  left: 55%;
   bottom: 105px;
   width: 164px;
   z-index: 2;
@@ -692,7 +692,7 @@ main {
 }
 .ice-one {
   width: 86px;
-  left: 55%;
+  left: 59%;
   top: 73px;
   rotate: 10deg;
 }
@@ -724,7 +724,7 @@ main {
 .hero-product-caption {
   position: absolute;
   bottom: 75px;
-  left: 65%;
+  left: 69%;
   z-index: 5;
   display: flex;
   gap: 15px;
@@ -2377,6 +2377,7 @@ main {
   }
   .hero-product-wrap {
     top: 72px;
+    left: 58%;
   }
   .hero-product {
     height: 630px;
@@ -2393,6 +2394,7 @@ main {
   }
   .hero-product-caption {
     bottom: 88px;
+    left: 69%;
   }
 }
 
