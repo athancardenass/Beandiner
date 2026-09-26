@@ -6,14 +6,25 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
+import DinerBitesPage from "./DinerBitesPage";
+import { dinerBites, type DinerBite } from "./dinerBites";
 // ↓ UTILITY: Philippine Peso currency formatter
 const money = (n: number) => `₱${n.toLocaleString("en-PH")}`;
+const beanDinerMapsUrl =
+  "https://www.google.com/maps/place/Bean+Diner/@15.8103457,120.4573329,17z/data=!4m14!1m7!3m6!1s0x339149ebf4721bcb:0xff2c7401d69cb887!2sBean+Diner!8m2!3d15.8103457!4d120.4573329!16s%2Fg%2F11vljpcbmt!3m5!1s0x339149ebf4721bcb:0xff2c7401d69cb887!8m2!3d15.8103457!4d120.4573329!16s%2Fg%2F11vljpcbmt?entry=ttu&g_ep=EgoyMDI2MDkyMi4wIKXMDSoASAFQAw%3D%3D";
 // ↓ UTILITY: Relative image path resolvers (supports dev server and file:// protocol)
 const image = (name: string) => {
   if (name === "hot") return "./images/optimized/hotroast.webp";
   return `./images/optimized/${name}.webp`;
 };
 const menuImage = (name: string) => `./images/menu/${name}.webp`;
+const pageHref = (page: "home" | "diner-bites", anchor = "") => {
+  const url = new URL(window.location.href);
+  if (page === "diner-bites") url.searchParams.set("page", "diner-bites");
+  else url.searchParams.delete("page");
+  url.hash = anchor;
+  return url.href;
+};
 
 // ↓ TYPE: Product data shape
 type Product = {
@@ -35,12 +46,12 @@ type Product = {
 const products: Product[] = [
   {
     id: "latte",
-    name: "Classic Iced Caffe Latte",
+    name: "Iced Spanish Latte",
     short: "Signature espresso & fresh milk",
     note: "Double espresso, silky milk, poured over ice.",
     description:
       "Our signature double-shot espresso extraction over chilled fresh milk and crisp ice. The everyday crowd favorite at Antonio Luna Street.",
-    price: 140,
+    price: 145,
     color: "#f2dfb8",
     word: "Daily joy.",
     ingredients: ["Double espresso", "Fresh milk", "Ice chill"],
@@ -69,7 +80,7 @@ const products: Product[] = [
   },
   {
     id: "caramel",
-    name: "Layered Iced Caramel Macchiato",
+    name: "Iced Caramel Macchiato",
     short: "Caramel syrup, cold milk & espresso",
     note: "Sweet golden caramel meets dark roast.",
     description:
@@ -141,59 +152,11 @@ const products: Product[] = [
     photo: "hot-roast",
   },
 ];
-// ↓ DINER BITES: US-trained Chef comfort food favorites
-type DinerBite = {
-  id: string;
-  name: string;
-  subtitle: string;
-  description: string;
-  price: number;
-  tag: string;
-  badge: string;
-};
 
-const dinerBites: DinerBite[] = [
-  {
-    id: "honey-butter-wings",
-    name: "Honey Butter Wings",
-    subtitle: "2PC CRISPY CHICKEN WINGS",
-    description:
-      "Golden fried chicken wings glazed in our US chef's signature sweet honey butter. Crispy, savory, and student-budget approved.",
-    price: 99,
-    tag: "STUDENT BUDGET ₱99",
-    badge: "BESTSELLER",
-  },
-  {
-    id: "snow-cheese-wings",
-    name: "Snow Cheese Wings",
-    subtitle: "2PC CRISPY CHICKEN WINGS",
-    description:
-      "Crunchy double-dredged chicken wings dusted generously in sweet-savory snow cheese seasoning. Irresistibly addictive.",
-    price: 99,
-    tag: "STUDENT BUDGET ₱99",
-    badge: "CHEF'S PICK",
-  },
-  {
-    id: "mexican-nachos",
-    name: "Loaded Mexican Nachos",
-    subtitle: "CHEF'S SHARING PLATTER",
-    description:
-      "Crisp stone-ground corn chips piled high with seasoned savory beans, warm melted queso, diced salsa, and jalapeños.",
-    price: 180,
-    tag: "PERFECT TO SHARE",
-    badge: "NEW & IMPROVED",
-  },
-  {
-    id: "korean-beef-mushroom",
-    name: "Korean Beef Mushroom",
-    subtitle: "SAVORY COMFORT SKILLET",
-    description:
-      "Tender beef slices sautéed with fresh button mushrooms in a sweet-garlic umami soy reduction. Warm comfort on a plate.",
-    price: 210,
-    tag: "HEARTY DINER PLATE",
-    badge: "US CHEF CRAFT",
-  },
-];
+const spanishLatte = products.find((product) => product.id === "latte")!;
+const spanishLatteBundlePrice = 250;
+const spanishLatteBundleSavings =
+  spanishLatte.price * 2 - spanishLatteBundlePrice;
 // ↓ TYPE: Shopping cart item shape
 type CartItem = {
   key: string;
@@ -306,10 +269,19 @@ function Icon({
   );
 }
 // ↓ LOGO COMPONENT: Bean Diner brand mark with coffee bean spark
-function Logo({ footer = false }: { footer?: boolean }) {
+function Logo({
+  footer = false,
+  href = "#top",
+  onClick,
+}: {
+  footer?: boolean;
+  href?: string;
+  onClick?: (e: React.MouseEvent) => void;
+}) {
   return (
     <a
-      href="#home"
+      href={href}
+      onClick={onClick}
       className={`logo ${footer ? "footer-logo" : ""}`}
       aria-label="Bean Diner home"
     >
@@ -610,8 +582,30 @@ function ProductModal({
 function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
   const section = useRef<HTMLElement>(null);
   const stage = useRef<HTMLDivElement>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
   const activeRef = useRef(0);
+  const previousActive = useRef(active);
+  useEffect(() => {
+    if (previousActive.current === active) return;
+    previousActive.current = active;
+    const container = tabsRef.current;
+    if (!container) return;
+    // Only scroll tabs horizontally on mobile viewports where overflow exists
+    if (container.scrollWidth > container.clientWidth) {
+      const activeBtn = container.querySelector<HTMLButtonElement>("button.active");
+      if (activeBtn) {
+        const targetScroll =
+          activeBtn.offsetLeft -
+          container.clientWidth / 2 +
+          activeBtn.clientWidth / 2;
+        container.scrollTo({
+          left: Math.max(0, targetScroll),
+          behavior: "smooth",
+        });
+      }
+    }
+  }, [active]);
   useEffect(() => {
     const el = section.current!;
     const stageEl = stage.current!;
@@ -633,6 +627,7 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
         activeRef.current = index;
         setActive(index);
       }
+      stageEl.scrollLeft = 0;
       stageEl.style.setProperty("--progress", `${p}`);
       stageEl
         .querySelectorAll<HTMLElement>(".story-product")
@@ -696,13 +691,15 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
           <span className="eyebrow">{product.short}</span>
           <h2>{product.name}</h2>
           <p>{product.description}</p>
-          <div className="story-details">
-            <span>{money(product.price)}</span>
-            <small>{product.hot ? "HOT" : "ICED"} / 16 OZ</small>
+          <div className="story-action-row">
+            <div className="story-details">
+              <span>{money(product.price)}</span>
+              <small>{product.hot ? "HOT" : "ICED"} / 16 OZ</small>
+            </div>
+            <button className="button" onClick={() => onSelect(product)}>
+              This is my cup <Icon name="plus" size={18} />
+            </button>
           </div>
-          <button className="button" onClick={() => onSelect(product)}>
-            This is my cup <Icon name="plus" size={18} />
-          </button>
         </div>
         <div className="story-art">
           {products.map((p, i) => (
@@ -735,7 +732,7 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
           <div className="story-count">
             <span>0{active + 1}</span> / 06
           </div>
-          <div className="flavor-tabs" aria-label="Select a flavor">
+          <div className="flavor-tabs" ref={tabsRef} role="group" aria-label="Select a flavor">
             {products.map((p, i) => (
               <button
                 key={p.id}
@@ -746,7 +743,7 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
               >
                 <span />
                 {p.id === "latte"
-                  ? "Caffe Latte"
+                  ? "Spanish Latte"
                   : p.id === "matcha"
                     ? "Matcha Latte"
                     : p.id === "caramel"
@@ -773,12 +770,20 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
 }
 // ↓ APP COMPONENT: Root component with state, cart, and all sections
 function App() {
+  const isFoodPage =
+    new URLSearchParams(window.location.search).get("page") === "diner-bites";
+  const foodHref = pageHref("diner-bites");
+  const homeHref = (anchor: string) => pageHref("home", anchor);
   const [selected, setSelected] = useState<Product | null>(null);
   const [bagOpen, setBagOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [filter, setFilter] = useState("All drinks");
   const [receipt, setReceipt] = useState(false);
   const [toast, setToast] = useState("");
+  const scrollToTop = (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+  };
   // ↓ CART STATE: Persisted to localStorage with backwards compatibility
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
@@ -788,17 +793,30 @@ function App() {
           "[]",
       );
       return Array.isArray(value)
-        ? value.filter(
-            (item: CartItem) =>
-              (products.some((p) => p.id === item.id) ||
-                dinerBites.some((b) => b.id === item.id)) &&
-              typeof item.key === "string" &&
-              Number.isFinite(item.price) &&
-              item.price > 0 &&
-              Number.isInteger(item.quantity) &&
-              item.quantity > 0 &&
-              item.quantity <= 20,
-          )
+        ? value
+            .filter(
+              (item: CartItem) =>
+                (products.some((p) => p.id === item.id) ||
+                  dinerBites.some(
+                    (b) => b.id === item.id && !b.sample && b.price !== null,
+                  )) &&
+                typeof item.key === "string" &&
+                Number.isFinite(item.price) &&
+                item.price > 0 &&
+                Number.isInteger(item.quantity) &&
+                item.quantity > 0 &&
+                item.quantity <= 20,
+            )
+            .map((item: CartItem) =>
+              item.id === "latte" &&
+              item.name === "Classic Iced Caffe Latte"
+                ? {
+                    ...item,
+                    name: spanishLatte.name,
+                    price: item.price + 5,
+                  }
+                : item,
+            )
         : [];
     } catch {
       return [];
@@ -806,6 +824,23 @@ function App() {
   });
   const hero = useRef<HTMLElement>(null);
   const progress = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    document.title = isFoodPage
+      ? "Diner Bites & Comfort Plates | Bean Diner"
+      : "Bean Diner | Good Food. Great Coffee. Warm Vibes.";
+  }, [isFoodPage]);
+  // ↓ HASH SCROLL ON MOUNT
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && hash !== "#home" && hash !== "#top") {
+      const el = document.querySelector(hash);
+      if (el) {
+        setTimeout(() => {
+          el.scrollIntoView({ behavior: "smooth" });
+        }, 200);
+      }
+    }
+  }, []);
   // ↓ CART PERSISTENCE: Save cart to localStorage on change
   useEffect(() => {
     try {
@@ -836,6 +871,7 @@ function App() {
       if (!frame) frame = requestAnimationFrame(paint);
     };
     window.addEventListener("scroll", handle, { passive: true });
+    document.documentElement.classList.add("js-ready");
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -845,7 +881,7 @@ function App() {
           }
         });
       },
-      { threshold: 0.12 },
+      { threshold: 0.05, rootMargin: "100px" },
     );
     document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
     return () => {
@@ -874,6 +910,7 @@ function App() {
 
   // ↓ ADD DINER BITE: Add comfort food item directly to bag
   const addBite = (bite: DinerBite) => {
+    if (bite.sample || bite.price === null) return;
     const item: CartItem = {
       key: `bite-${bite.id}`,
       id: bite.id,
@@ -901,7 +938,7 @@ function App() {
   };
   const quantity = cart.reduce((n, i) => n + i.quantity, 0);
   const subtotal = cart.reduce((n, i) => n + i.price * i.quantity, 0);
-  // ↓ BUNDLE DISCOUNT: Two Daily Sayas for ₱250 (save ₱40 per pair)
+  // ↓ BUNDLE DISCOUNT: Two Iced Spanish Lattes for ₱250
   const eligible = cart
     .filter(
       (i) =>
@@ -911,7 +948,7 @@ function App() {
         i.temperature === "Iced",
     )
     .reduce((n, i) => n + i.quantity, 0);
-  const discount = Math.floor(eligible / 2) * 40;
+  const discount = Math.floor(eligible / 2) * spanishLatteBundleSavings;
   const changeQuantity = (key: string, difference: number) =>
     setCart((items) =>
       items
@@ -922,6 +959,11 @@ function App() {
         )
         .filter((i) => i.quantity > 0),
     );
+  const scrollToMenu = () => {
+    document
+      .querySelector(isFoodPage ? "#food-menu" : "#menu")
+      ?.scrollIntoView({ behavior: "smooth" });
+  };
   // ↓ PRODUCT FILTER: All drinks, Best sellers, Coffee, Not coffee
   const visibleProducts = products.filter(
     (p) =>
@@ -930,6 +972,17 @@ function App() {
   );
   return (
     <>
+      <div
+        id="top"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: 0,
+          height: 0,
+          pointerEvents: "none",
+        }}
+      />
       {/* ↓ PAGE PROGRESS: Fixed top scroll indicator */}
       <div className="page-progress" ref={progress} />
       {/* ↓ SKIP LINK: Accessibility skip-to-content */}
@@ -938,29 +991,36 @@ function App() {
       </a>
       {/* ↓ ANNOUNCEMENT BAR: Promotional banner */}
       <div className="announcement">
-        GOOD FOOD. GREAT COFFEE. <span>Two Iced Spanish Lattes for ₱250.</span>
-        <a href="#together">
+        GOOD FOOD. GREAT COFFEE.{" "}
+        <span>
+          Two Iced Spanish Lattes for {money(spanishLatteBundlePrice)}.
+        </span>
+        <a href={homeHref("together")}>
           Make it a coffee date <span>↗</span>
         </a>
       </div>
       {/* ↓ HEADER: Logo, navigation, order button, bag */}
       <header className="header" id="home">
-        <Logo />
+        <Logo href={homeHref("home")} onClick={scrollToTop} />
         <nav aria-label="Main navigation" className="header-nav">
-          <a href="#menu" className="nav-item">
+          <a href={homeHref("menu")} className="nav-item">
             <span className="nav-num">01</span>
             <span className="nav-label">Our drinks</span>
           </a>
-          <a href="#bites" className="nav-item">
+          <a
+            href={foodHref}
+            className="nav-item"
+            aria-current={isFoodPage ? "page" : undefined}
+          >
             <span className="nav-num">02</span>
             <span className="nav-label">Diner bites</span>
             <span className="nav-badge">₱99</span>
           </a>
-          <a href="#story" className="nav-item">
+          <a href={homeHref("story")} className="nav-item">
             <span className="nav-num">03</span>
             <span className="nav-label">Our story</span>
           </a>
-          <a href="#together" className="nav-item nav-together">
+          <a href={homeHref("together")} className="nav-item nav-together">
             <span className="nav-num">04</span>
             <span className="nav-label">Better together</span>
             <span className="nav-coffee">✦</span>
@@ -977,7 +1037,10 @@ function App() {
           </a>
         </nav>
         <div className="header-actions">
-          <a className="button header-order" href="#menu">
+          <a
+            className="button header-order"
+            href={isFoodPage ? "#food-menu" : "#menu"}
+          >
             Order now <Icon name="arrow" size={17} />
           </a>
           <button
@@ -995,12 +1058,18 @@ function App() {
             className="icon-button mobile-menu"
             onClick={() => setNavOpen(true)}
             aria-label="Open navigation"
+            aria-expanded={navOpen}
+            aria-haspopup="dialog"
           >
             <Icon name="menu" />
           </button>
         </div>
       </header>
       <main id="main">
+        {isFoodPage ? (
+          <DinerBitesPage onAdd={addBite} drinksHref={homeHref("menu")} />
+        ) : (
+          <>
         {/* ↓ HERO SECTION: Main landing area with floating cup animation */}
         <section className="hero" ref={hero}>
           <div className="hero-oval" />
@@ -1020,13 +1089,13 @@ function App() {
               Founded by a Chef trained in the US and a Barista skilled in the
               Middle East.
               <br />
-              Where the food heals and the coffee understands you.
+              Authentic diner comfort food &amp; specialty coffee on Antonio Luna Street.
             </p>
             <div className="hero-ctas">
               <a className="button" href="#menu">
                 Order for pickup <Icon name="arrow" />
               </a>
-              <a className="text-link" href="#bites">
+              <a className="text-link" href={foodHref}>
                 Diner comfort bites <span>↘</span>
               </a>
             </div>
@@ -1058,6 +1127,7 @@ function App() {
             <Sun />
           </div>
           <div className="hero-scribble">
+            <span className="scribble-star">✦</span>
             <span className="handwritten">
               where food heals,
               <br />
@@ -1067,7 +1137,7 @@ function App() {
               <path
                 d="M84 6C83 45 47 65 13 36m1 0 3 18M13 36l21 2"
                 stroke="currentColor"
-                strokeWidth="2"
+                strokeWidth="2.2"
                 strokeLinecap="round"
               />
             </svg>
@@ -1089,7 +1159,7 @@ function App() {
             <div>
               <span className="eyebrow">BAYAMBANG BEST SELLER</span>
               <p>
-                Iced Spanish Latte <span>₱145</span>
+                {spanishLatte.name} <span>{money(spanishLatte.price)}</span>
               </p>
             </div>
           </div>
@@ -1136,7 +1206,11 @@ function App() {
             </p>
           </div>
           <div className="menu-toolbar">
-            <div className="menu-filters" aria-label="Filter drinks">
+            <div
+              className="menu-filters"
+              role="group"
+              aria-label="Filter drinks"
+            >
               {["All drinks", "Best sellers", "Coffee", "Not coffee"].map(
                 (f) => (
                   <button
@@ -1150,9 +1224,9 @@ function App() {
                 ),
               )}
             </div>
-            <span className="menu-size">SERVED IN 16 OZ WITH ICE</span>
+            <span className="menu-size">SIGNATURE 16 OZ CUPS</span>
           </div>
-          <div className="product-grid">
+          <div className="product-grid" id="drink-menu-products">
             {visibleProducts.map((p) => (
               <article className="product-card" key={p.id}>
                 <button
@@ -1164,7 +1238,7 @@ function App() {
                   {p.badge && <span className="product-badge">{p.badge}</span>}
                   <span className="product-art-word" aria-hidden="true">
                     {p.id === "latte"
-                      ? "caffe!"
+                      ? "spanish!"
                       : p.id === "matcha"
                         ? "matcha!"
                         : p.id === "caramel"
@@ -1218,8 +1292,8 @@ function App() {
               Student-budget approved, chef-crafted with real flavor.
             </p>
           </div>
-          <div className="product-grid bites-grid">
-            {dinerBites.map((bite) => (
+          <div className="product-grid bites-grid bites-preview-grid">
+            {dinerBites.slice(0, 2).map((bite) => (
               <article className="product-card bite-card" key={bite.id}>
                 <div className="bite-top-badge">
                   <span className="product-badge">{bite.badge}</span>
@@ -1231,7 +1305,9 @@ function App() {
                   <p>{bite.description}</p>
                 </div>
                 <div className="bite-card-footer">
-                  <strong>{money(bite.price)}</strong>
+                  <strong>
+                    {bite.price === null ? "Price TBD" : money(bite.price)}
+                  </strong>
                   <button
                     className="button button-small"
                     onClick={() => addBite(bite)}
@@ -1242,6 +1318,11 @@ function App() {
                 </div>
               </article>
             ))}
+          </div>
+          <div className="bites-preview-link">
+            <a className="button" href={foodHref}>
+              Explore all diner bites <Icon name="arrow" size={18} />
+            </a>
           </div>
           <p className="menu-footnote">
             Freshly prepared to order on Antonio Luna Street. Dine in or take
@@ -1307,7 +1388,8 @@ function App() {
               Two signature Iced Spanish Lattes, one friendly price.
             </p>
             <div className="offer-price">
-              2 cups. ₱250. <span>Usually ₱290</span>
+              2 cups. {money(spanishLatteBundlePrice)}.{" "}
+              <span>Usually {money(spanishLatte.price * 2)}</span>
             </div>
             <button
               className="button"
@@ -1319,7 +1401,7 @@ function App() {
                   milk: "Regular",
                   temperature: "Iced",
                   quantity: 2,
-                  price: 145,
+                  price: spanishLatte.price,
                 })
               }
             >
@@ -1336,15 +1418,15 @@ function App() {
             <img
               className="offer-cup cup-left"
               src={image("latte")}
-              alt="First signature iced latte in the two-cup bundle"
+              alt="First iced Spanish Latte in the two-cup bundle"
               loading="lazy"
               width="400"
               height="600"
             />
             <img
               className="offer-cup cup-right"
-              src={image("caramel")}
-              alt="Second signature iced latte in the two-cup bundle"
+              src={image("latte")}
+              alt="Second iced Spanish Latte in the two-cup bundle"
               loading="lazy"
               width="400"
               height="600"
@@ -1372,12 +1454,14 @@ function App() {
           <Ingredient kind="leaf" className="final-leaf" />
           <Sun />
         </section>
+          </>
+        )}
       </main>
       {/* ↓ FOOTER: Elevated artisanal diner footer */}
       <footer className="footer-artisanal">
         <div className="footer-inner">
           <div className="footer-brand-col">
-            <Logo footer />
+            <Logo footer href={homeHref("home")} onClick={scrollToTop} />
             <p className="footer-tagline">
               <span className="handwritten">
                 where food heals, coffee understands.
@@ -1396,15 +1480,15 @@ function App() {
           <div className="footer-nav-col">
             <span className="footer-heading">EXPLORE THE DINER</span>
             <div className="footer-pill-links">
-              <a href="#menu" className="footer-pill">
+              <a href={homeHref("menu")} className="footer-pill">
                 <span>Our drinks</span>
                 <small>Bestsellers & lattes</small>
               </a>
-              <a href="#bites" className="footer-pill">
+              <a href={foodHref} className="footer-pill">
                 <span>Diner bites</span>
                 <small>₱99 wings & comfort</small>
               </a>
-              <a href="#story" className="footer-pill">
+              <a href={homeHref("story")} className="footer-pill">
                 <span>Our story</span>
                 <small>Two crafts, one home</small>
               </a>
@@ -1454,7 +1538,7 @@ function App() {
               </div>
               <div className="footer-actions">
                 <a
-                  href="https://maps.google.com/?q=Gen.+Antonio+Luna+St,+Zone+2,+Bayambang,+Pangasinan"
+                  href={beanDinerMapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="button footer-map-btn"
@@ -1479,7 +1563,7 @@ function App() {
           <span className="footer-closing handwritten">
             Tara, kain at kape tayo.
           </span>
-          <a href="#home" className="back-top-pill">
+          <a href="#top" className="back-top-pill" onClick={scrollToTop}>
             Back to top <span>↑</span>
           </a>
         </div>
@@ -1532,9 +1616,7 @@ function App() {
                   style={{ marginTop: "12px" }}
                   onClick={() => {
                     setBagOpen(false);
-                    document
-                      .querySelector("#menu")
-                      ?.scrollIntoView({ behavior: "smooth" });
+                    scrollToMenu();
                   }}
                 >
                   Find another favorite <Icon name="arrow" />
@@ -1551,9 +1633,7 @@ function App() {
                   className="button"
                   onClick={() => {
                     setBagOpen(false);
-                    document
-                      .querySelector("#menu")
-                      ?.scrollIntoView({ behavior: "smooth" });
+                    scrollToMenu();
                   }}
                 >
                   Explore the menu <Icon name="arrow" />
@@ -1706,34 +1786,42 @@ function App() {
           label="Navigation"
           className="nav-modal"
         >
-          <Logo />
+          <Logo
+            href={homeHref("home")}
+            onClick={(e) => {
+              setNavOpen(false);
+              scrollToTop(e);
+            }}
+          />
           <nav className="mobile-nav-list">
             {[
               {
                 num: "01",
                 label: "Our drinks",
                 sub: "Benguet highland coffee & Oatside lattes",
-                href: "#menu",
+                href: homeHref("menu"),
               },
               {
                 num: "02",
                 label: "Diner bites",
                 sub: "₱99 crispy wings & comfort plates",
                 badge: "₱99 WINGS",
-                href: "#bites",
+                href: foodHref,
               },
               {
                 num: "03",
                 label: "Our story",
                 sub: "US Chef & Middle East Barista roots",
-                href: "#story",
+                href: homeHref("story"),
               },
               {
                 num: "04",
                 label: "Better together",
-                sub: "Two-cup coffee date bundle for ₱250",
-                badge: "SAVE ₱40",
-                href: "#together",
+                sub:
+                  "Two-cup coffee date bundle for " +
+                  money(spanishLatteBundlePrice),
+                badge: "SAVE " + money(spanishLatteBundleSavings),
+                href: homeHref("together"),
               },
               {
                 num: "05",
