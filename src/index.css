@@ -619,14 +619,16 @@ main {
 /* ↓ HERO SCRIBBLE: Handwritten note with arrow SVG */
 .hero-scribble {
   position: absolute;
-  right: 3.8%;
-  top: 332px;
+  left: min(calc(54% + min(38vw, 510px) * 0.76 + 10px), calc(98.5% - 215px));
+  right: auto;
+  top: clamp(290px, 19vw, 340px);
   color: var(--accent-light);
   z-index: 4;
   transform: rotate(9deg);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  width: max-content;
 }
 .hero-scribble .scribble-star {
   font-size: 15px;
