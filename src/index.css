@@ -508,9 +508,9 @@ main {
 /* ↓ HERO H1: Large serif headline with parallax */
 .hero h1 {
   font-family: var(--serif);
-  font-size: clamp(84px, 7vw, 120px);
+  font-size: clamp(104px, 11.7vw, 184px);
   line-height: 0.97;
-  letter-spacing: -0.04em;
+  letter-spacing: -7px;
   color: var(--beige);
   margin-top: 21px;
   transform: translate3d(
@@ -555,10 +555,10 @@ main {
 /* ↓ HERO PRODUCT WRAPPER: Floating cup animation container */
 .hero-product-wrap {
   position: absolute;
-  left: 55%;
+  left: 54%;
   top: 66px;
-  width: 33%;
-  max-width: 470px;
+  width: 38%;
+  max-width: 510px;
   z-index: 3;
   transform: translate3d(
       calc(var(--scroll) * 0.1px),
@@ -619,11 +619,11 @@ main {
 /* ↓ HERO SCRIBBLE: Handwritten note with arrow SVG */
 .hero-scribble {
   position: absolute;
-  right: 5.5%;
-  top: 295px;
+  right: 3.8%;
+  top: 332px;
   color: var(--accent-light);
   z-index: 4;
-  transform: rotate(8deg);
+  transform: rotate(9deg);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -636,15 +636,15 @@ main {
   opacity: 0.85;
 }
 .hero-scribble .handwritten {
-  font-size: 28px;
+  font-size: 31px;
   line-height: 0.92;
   display: block;
   white-space: nowrap;
 }
 .hero-scribble svg {
-  width: 76px;
-  height: 58px;
-  margin-left: -18px;
+  width: 75px;
+  height: 60px;
+  margin-left: -22px;
   margin-top: 3px;
 }
 /* ↓ HERO BEAN: Floating coffee beans */
@@ -655,49 +655,49 @@ main {
 }
 .bean-one {
   left: 48%;
-  top: 30px;
-  width: 50px;
+  top: 34px;
+  width: 57px;
   rotate: -27deg;
 }
 .bean-two {
-  left: 49%;
-  top: 395px;
-  width: 58px;
+  left: 47%;
+  top: 419px;
+  width: 67px;
   rotate: 24deg;
   animation-delay: -2s;
 }
 .bean-three {
-  right: 5%;
-  bottom: 110px;
-  width: 44px;
+  right: 4%;
+  bottom: 106px;
+  width: 47px;
   rotate: 90deg;
   animation-delay: -5s;
 }
 /* ↓ HERO LEAF: Floating leaf decoration */
 .hero-leaf {
-  left: 52%;
-  bottom: 95px;
-  width: 155px;
+  left: 51%;
+  bottom: 105px;
+  width: 164px;
   z-index: 2;
-  rotate: -34deg;
+  rotate: -40deg;
   animation: leaf-sway 8s ease-in-out infinite;
 }
 /* ↓ HERO ICE: Floating ice cubes */
 .hero-ice {
-  z-index: 2;
+  z-index: 4;
   filter: drop-shadow(6px 10px 6px #4e705615);
   animation: ingredient-float 8s ease-in-out infinite;
 }
 .ice-one {
-  width: 82px;
-  left: 54%;
-  top: 72px;
+  width: 86px;
+  left: 55%;
+  top: 73px;
   rotate: 10deg;
 }
 .ice-two {
-  width: 88px;
+  width: 92px;
   right: 6%;
-  bottom: 185px;
+  bottom: 177px;
   rotate: 26deg;
   animation-delay: -4s;
 }
@@ -2371,41 +2371,26 @@ main {
 /* ↓ RESPONSIVE: Large screens (1500px+) */
 @media (min-width: 1500px) {
   .hero-copy {
-    top: clamp(430px, 27vw, 485px);
+    top: 510px;
   }
   .hero-product-wrap {
     top: 72px;
-    left: 54%;
   }
   .hero-product {
-    height: 600px;
+    height: 630px;
   }
   .hero h1 {
-    font-size: clamp(100px, 6.8vw, 134px);
-    letter-spacing: -0.04em;
+    font-size: 184px;
+    letter-spacing: -7px;
   }
   .hero-heading {
     top: 65px;
   }
   .hero-leaf {
-    left: 52%;
-    bottom: 110px;
+    bottom: 120px;
   }
   .hero-product-caption {
-    left: 64%;
-    bottom: 84px;
-  }
-  .bean-one {
-    left: 48%;
-    top: 35px;
-  }
-  .bean-two {
-    left: 49%;
-    top: 410px;
-  }
-  .ice-one {
-    left: 53.5%;
-    top: 72px;
+    bottom: 88px;
   }
 }
 
@@ -2493,8 +2478,8 @@ main {
     bottom: 115px;
   }
   .hero-bean.bean-two {
-    left: 49.5%;
-    top: 380px;
+    left: 46%;
+    top: 370px;
     width: 53px;
   }
   .hero-product-caption {
