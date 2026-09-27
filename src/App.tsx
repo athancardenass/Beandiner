@@ -258,20 +258,18 @@ const copyToClipboard = (text: string): boolean => {
   return copied;
 };
 
-// ↓ MESSENGER URL: Device-aware destination
-// Mobile uses m.me shortlink to deep-link to the Messenger app
-// Desktop MUST use facebook.com/messages/t/ because standalone messenger.com rejects Page inboxes with "This content isn't available right now"
+// ↓ MESSENGER URL: Universal Facebook Page Messenger Destination
+// Uses https://www.facebook.com/messages/t/100959311683531 across ALL platforms (desktop and mobile 2020-2026).
+// CRITICAL: NEVER use m.me or standalone messenger.com for Facebook Business Pages, because Meta's standalone
+// messenger.com rejects Page inboxes with: "This content isn't available right now. When this happens, it's usually
+// because the owner only shared it with a small group of people, changed who can see it or it's been deleted."
+// facebook.com/messages/t/100959311683531 works reliably on mobile web, mobile simulators, desktop browsers,
+// and invokes the native Messenger app via Universal Links on real iOS/Android devices.
 const getMessengerUrl = () => {
-  const isMobile =
-    typeof navigator !== "undefined" &&
-    /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-      navigator.userAgent,
-    );
-  if (isMobile) {
-    return "https://m.me/100959311683531";
-  }
   return "https://www.facebook.com/messages/t/100959311683531";
 };
+
+const FACEBOOK_PAGE_URL = "https://www.facebook.com/beandiner";
 
 // Open external URL with webview/Electron fallback
 const openExternalUrl = (url: string) => {
@@ -1841,6 +1839,30 @@ function App() {
                     }}
                   >
                     <span>📋</span> (Copy this and open Messenger ↗)
+                  </a>
+                  <a
+                    href={FACEBOOK_PAGE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="button-facebook-page-fallback"
+                    style={{
+                      display: "block",
+                      marginTop: "12px",
+                      fontSize: "11.5px",
+                      fontWeight: 600,
+                      color: "#6b5443",
+                      textAlign: "center",
+                      textDecoration: "underline",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => {
+                      if (lastOrder) {
+                        copyToClipboard(lastOrder);
+                        setToast("✓ Order details copied! Opening Facebook Page...");
+                      }
+                    }}
+                  >
+                    Or open Bean Diner Facebook Page directly ↗
                   </a>
                 </div>
 
