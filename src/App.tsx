@@ -172,7 +172,7 @@ type CartItem = {
   isFood?: boolean;
 };
 // ↓ HELPER: Send formatted order to Bean Diner Facebook Messenger
-const sendToMessenger = (
+const formatOrderMessage = (
   items: CartItem[],
   customerName: string = "",
   totalAmount: number,
@@ -201,7 +201,7 @@ const sendToMessenger = (
     )}`;
   });
 
-  const message = [
+  return [
     `Hello Bean Diner Bayambang! I would like to place an order:`,
     ``,
     ...lines,
@@ -213,16 +213,51 @@ const sendToMessenger = (
   ]
     .filter(Boolean)
     .join("\n");
+};
 
+// ↓ BULLETPROOF CLIPBOARD COPY: Synchronous execCommand + Async navigator.clipboard
+const copyToClipboard = (text: string): boolean => {
+  let copied = false;
+
+  // 1. Synchronous fallback first: Executes immediately inside the user click gesture
+  // This bypasses browser permissions/shields (Brave, Safari) that block async clipboard API
   try {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(message);
-    }
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    textarea.style.top = "-9999px";
+    textarea.style.opacity = "0";
+    textarea.setAttribute("readonly", "");
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    textarea.setSelectionRange(0, 99999);
+    copied = document.execCommand("copy");
+    document.body.removeChild(textarea);
   } catch {
-    /* clipboard fallback */
+    /* fallback handled below */
   }
 
+  // 2. Also trigger modern async navigator.clipboard as backup
+  if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+    navigator.clipboard.writeText(text).catch(() => {});
+    copied = true;
+  }
+
+  return copied;
+};
+
+const sendToMessenger = (
+  items: CartItem[],
+  customerName: string = "",
+  totalAmount: number,
+  bundleDiscount: number = 0,
+) => {
+  const message = formatOrderMessage(items, customerName, totalAmount, bundleDiscount);
+  copyToClipboard(message);
   window.open("https://m.me/beandiner", "_blank", "noopener,noreferrer");
+  return message;
 };
 // ↓ ICON COMPONENT: SVG icon set (arrow, bag, close, menu, plus, minus, play, check)
 function Icon({
@@ -384,10 +419,12 @@ function ProductModal({
   product,
   onClose,
   onAdd,
+  onDirectOrder,
 }: {
   product: Product;
   onClose: () => void;
   onAdd: (item: CartItem) => void;
+  onDirectOrder?: () => void;
 }) {
   const [size, setSize] = useState("16 oz");
   const [milk, setMilk] = useState("Regular");
@@ -569,10 +606,11 @@ function ProductModal({
               name: product.name,
             };
             sendToMessenger([singleItem], "", price * quantity, 0);
+            onDirectOrder?.();
             onClose();
           }}
         >
-          Message Bean Diner on Facebook to Order
+          Order Now via Messenger ↗
         </button>
       </form>
     </Modal>
@@ -780,6 +818,7 @@ function App() {
   const [filter, setFilter] = useState("All drinks");
   const [receipt, setReceipt] = useState(false);
   const [toast, setToast] = useState("");
+  const [lastOrder, setLastOrder] = useState("");
   const scrollToTop = (e?: React.MouseEvent) => {
     if (e) e.preventDefault();
     window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
@@ -1040,6 +1079,13 @@ function App() {
           <a
             className="button header-order"
             href={isFoodPage ? "#food-menu" : "#menu"}
+            onClick={(e) => {
+              if (cart.length > 0) {
+                e.preventDefault();
+                setBagOpen(true);
+                setReceipt(false);
+              }
+            }}
           >
             Order now <Icon name="arrow" size={17} />
           </a>
@@ -1092,7 +1138,17 @@ function App() {
               Authentic diner comfort food &amp; specialty coffee on Antonio Luna Street.
             </p>
             <div className="hero-ctas">
-              <a className="button" href="#menu">
+              <a
+                className="button"
+                href="#menu"
+                onClick={(e) => {
+                  if (cart.length > 0) {
+                    e.preventDefault();
+                    setBagOpen(true);
+                    setReceipt(false);
+                  }
+                }}
+              >
                 Order for pickup <Icon name="arrow" />
               </a>
               <a className="text-link" href={foodHref}>
@@ -1581,6 +1637,9 @@ function App() {
           product={selected}
           onClose={() => setSelected(null)}
           onAdd={add}
+          onDirectOrder={() =>
+            setToast("✓ Order details copied to clipboard! Paste in Messenger.")
+          }
         />
       )}
       {/* ↓ BAG MODAL: Shopping cart drawer */}
@@ -1609,8 +1668,29 @@ function App() {
                   rel="noopener noreferrer"
                   style={{ display: "inline-flex", justifyContent: "center" }}
                 >
-                  Open Messenger Chat Again
+                  Open Messenger Chat Again ↗
                 </a>
+                {lastOrder && (
+                  <button
+                    type="button"
+                    className="button"
+                    style={{
+                      marginTop: "10px",
+                      background: "rgba(242, 231, 215, 0.15)",
+                      color: "var(--beige)",
+                      border: "1px solid rgba(242, 231, 215, 0.3)",
+                      display: "inline-flex",
+                      justifyContent: "center",
+                      gap: "8px",
+                    }}
+                    onClick={() => {
+                      copyToClipboard(lastOrder);
+                      setToast("✓ Order details re-copied to clipboard!");
+                    }}
+                  >
+                    📋 Re-copy Order Details
+                  </button>
+                )}
                 <button
                   className="button"
                   style={{ marginTop: "12px" }}
@@ -1738,11 +1818,15 @@ function App() {
                       "name",
                     ) as HTMLInputElement;
                     const customerName = nameInput?.value || "";
-                    sendToMessenger(
+                    const msg = sendToMessenger(
                       cart,
                       customerName,
                       subtotal - discount,
                       discount,
+                    );
+                    setLastOrder(msg);
+                    setToast(
+                      "✓ Order details copied to clipboard! Paste into Messenger.",
                     );
                     setReceipt(true);
                     setCart([]);
