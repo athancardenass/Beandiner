@@ -2182,6 +2182,83 @@ main {
   margin: 17px auto 26px;
   max-width: 340px;
 }
+/* ↓ RECEIPT CLIPBOARD CARD: High visibility bordered container */
+.receipt-clipboard-card {
+  background: #ffffff;
+  border: 2px solid #8c6546;
+  border-radius: 18px;
+  padding: 18px;
+  margin: 0 auto 20px;
+  max-width: 380px;
+  text-align: left;
+  box-shadow: 0 4px 14px rgba(44, 24, 16, 0.08);
+}
+.clipboard-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.clipboard-card-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #3b2314;
+  letter-spacing: 0.2px;
+}
+.clipboard-badge {
+  font-size: 11px;
+  font-weight: 700;
+  background: #e8f5e9;
+  color: #2e7d32;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid #c8e6c9;
+}
+.clipboard-preview-box {
+  background: #fdfbf7;
+  border: 1.5px dashed #c8b6a6;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: #2c1810;
+  max-height: 125px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  margin-bottom: 14px;
+  user-select: all;
+}
+.button-copy-messenger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #0084ff;
+  color: #ffffff;
+  border: 2px solid #0073e6;
+  border-radius: 999px;
+  padding: 13px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 132, 255, 0.3);
+  transition: all 0.2s ease;
+}
+.button-copy-messenger:hover {
+  background: #0073e6;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 132, 255, 0.4);
+}
+.button-copy-messenger:active {
+  transform: translateY(0);
+}
+.button-continue-shopping {
+  margin-top: 6px;
+  width: 100%;
+  max-width: 380px;
+}
 /* ↓ NAV MODAL: Mobile navigation drawer */
 .nav-modal {
   width: calc(100% - 24px);

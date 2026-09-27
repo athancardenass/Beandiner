@@ -439,7 +439,7 @@ function ProductModal({
   product: Product;
   onClose: () => void;
   onAdd: (item: CartItem) => void;
-  onDirectOrder?: () => void;
+  onDirectOrder?: (msg: string) => void;
 }) {
   const [size, setSize] = useState("16 oz");
   const [milk, setMilk] = useState("Regular");
@@ -620,8 +620,8 @@ function ProductModal({
               price,
               name: product.name,
             };
-            sendToMessenger([singleItem], "", price * quantity, 0);
-            onDirectOrder?.();
+            const msg = sendToMessenger([singleItem], "", price * quantity, 0);
+            onDirectOrder?.(msg);
             onClose();
           }}
         >
@@ -1652,9 +1652,10 @@ function App() {
           product={selected}
           onClose={() => setSelected(null)}
           onAdd={add}
-          onDirectOrder={() =>
-            setToast("✓ Order details copied to clipboard! Paste in Messenger.")
-          }
+          onDirectOrder={(msg) => {
+            setLastOrder(msg);
+            setToast("✓ Order details copied to clipboard! Paste in Messenger.");
+          }}
         />
       )}
       {/* ↓ BAG MODAL: Shopping cart drawer */}
@@ -1676,39 +1677,38 @@ function App() {
                   clipboard, and Bean Diner's Messenger chat has been opened.
                   Simply paste into the chat to finalize your pickup!
                 </p>
-                <a
-                  className="button button-messenger-checkout"
-                  href={getMessengerUrl()}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ display: "inline-flex", justifyContent: "center" }}
-                >
-                  Open Messenger Chat Again ↗
-                </a>
-                {lastOrder && (
+                {/* ↓ BORDERED CLIPBOARD CARD */}
+                <div className="receipt-clipboard-card">
+                  <div className="clipboard-card-header">
+                    <span className="clipboard-card-title">
+                      📋 Order Summary for Messenger
+                    </span>
+                    <span className="clipboard-badge">✓ Ready to send</span>
+                  </div>
+
+                  {lastOrder && (
+                    <div className="clipboard-preview-box">
+                      {lastOrder}
+                    </div>
+                  )}
+
                   <button
                     type="button"
-                    className="button"
-                    style={{
-                      marginTop: "10px",
-                      background: "rgba(242, 231, 215, 0.15)",
-                      color: "var(--beige)",
-                      border: "1px solid rgba(242, 231, 215, 0.3)",
-                      display: "inline-flex",
-                      justifyContent: "center",
-                      gap: "8px",
-                    }}
+                    className="button-copy-messenger"
                     onClick={() => {
-                      copyToClipboard(lastOrder);
-                      setToast("✓ Order details re-copied to clipboard!");
+                      if (lastOrder) {
+                        copyToClipboard(lastOrder);
+                        setToast("✓ Order details copied! Opening Messenger...");
+                      }
+                      window.open(getMessengerUrl(), "_blank", "noopener,noreferrer");
                     }}
                   >
-                    📋 Re-copy Order Details
+                    <span>📋</span> (Copy this and open Messenger ↗)
                   </button>
-                )}
+                </div>
+
                 <button
-                  className="button"
-                  style={{ marginTop: "12px" }}
+                  className="button button-continue-shopping"
                   onClick={() => {
                     setBagOpen(false);
                     scrollToMenu();
