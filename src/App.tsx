@@ -968,6 +968,11 @@ function App() {
     if (e) e.preventDefault();
     window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
   };
+  const handleLogoClick = (e?: React.MouseEvent) => {
+    if (isFoodPage) return;
+    if (e) e.preventDefault();
+    window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+  };
   // ↓ CART STATE: Persisted to localStorage with backwards compatibility
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
@@ -1185,7 +1190,7 @@ function App() {
       </div>
       {/* ↓ HEADER: Logo, navigation, order button, bag */}
       <header className="header" id="home">
-        <Logo href={homeHref("home")} onClick={scrollToTop} />
+        <Logo href={homeHref("home")} onClick={handleLogoClick} />
         <nav aria-label="Main navigation" className="header-nav">
           <a href={homeHref("menu")} className="nav-item">
             <span className="nav-num">01</span>
@@ -1662,7 +1667,7 @@ function App() {
       <footer className="footer-artisanal">
         <div className="footer-inner">
           <div className="footer-brand-col">
-            <Logo footer href={homeHref("home")} onClick={scrollToTop} />
+            <Logo footer href={homeHref("home")} onClick={handleLogoClick} />
             <p className="footer-tagline">
               <span className="handwritten">
                 where food heals, coffee understands.
@@ -2120,7 +2125,7 @@ function App() {
             href={homeHref("home")}
             onClick={(e) => {
               setNavOpen(false);
-              scrollToTop(e);
+              handleLogoClick(e);
             }}
           />
           <nav className="mobile-nav-list">

@@ -3052,7 +3052,7 @@ main {
     margin: 0 0 10px;
     max-width: 94%;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
@@ -3062,6 +3062,7 @@ main {
     justify-content: space-between;
     width: 100%;
     margin: 0;
+    padding-right: 56px;
   }
   .story-details {
     display: flex;
@@ -3757,7 +3758,7 @@ main {
 }
 @media (max-width: 760px) {
   .floating-messenger {
-    bottom: 14px;
+    bottom: max(14px, env(safe-area-inset-bottom, 14px));
     right: 14px;
     width: 44px;
     height: 44px;
@@ -3935,12 +3936,16 @@ main {
   background: #f6f0e8;
 }
 .choice-row.order-type-row label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-width: 0;
   min-height: 44px;
   padding: 9px 10px;
   border: 1px solid transparent;
   border-radius: 999px;
   background: transparent;
+  outline: none !important;
   color: #5b493d;
   font-size: 11.5px;
   font-weight: 600;
@@ -3954,23 +3959,27 @@ main {
   border-color: #8c654626;
 }
 .choice-row.order-type-row label.selected {
-  background: #fffdfa;
-  border-color: #8c65465c;
+  background: #ffffff;
+  border-color: #8c6546;
   color: var(--accent);
-  box-shadow: 0 2px 5px rgba(43, 33, 28, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 5px rgba(43, 33, 28, 0.12);
 }
 .choice-row.order-type-row label:active {
   transform: translateY(1px);
 }
 .choice-row.order-type-row input {
-  width: 13px;
-  height: 13px;
-  flex: 0 0 auto;
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.order-type-row label:focus,
+.order-type-row label:focus-within {
+  outline: none !important;
 }
 .choice-row.order-type-row label:focus-within {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline: none !important;
 }
 
 /* CHECKOUT DETAILS: table, address, and pickup location */
@@ -4968,8 +4977,8 @@ main {
     min-height: 54px;
   }
   .floating-messenger {
-    right: max(14px, env(safe-area-inset-right, 0px));
-    bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+    right: 14px;
+    bottom: max(14px, env(safe-area-inset-bottom, 14px));
     width: 48px;
     height: 48px;
     min-width: 48px;
