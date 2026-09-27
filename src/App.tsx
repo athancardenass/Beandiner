@@ -263,6 +263,30 @@ const getMessengerUrl = () => {
   return "https://www.facebook.com/messages/t/100959311683531";
 };
 
+// Open external URL with webview/Electron fallback
+const openExternalUrl = (url: string) => {
+  try {
+    const win = window.open(url, "_blank", "noopener,noreferrer");
+    if (!win) {
+      const a = document.createElement("a");
+      a.href = url;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  } catch {
+    const a = document.createElement("a");
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+};
+
 const sendToMessenger = (
   items: CartItem[],
   customerName: string = "",
@@ -271,7 +295,7 @@ const sendToMessenger = (
 ) => {
   const message = formatOrderMessage(items, customerName, totalAmount, bundleDiscount);
   copyToClipboard(message);
-  window.open(getMessengerUrl(), "_blank", "noopener,noreferrer");
+  openExternalUrl(getMessengerUrl());
   return message;
 };
 // ↓ ICON COMPONENT: SVG icon set (arrow, bag, close, menu, plus, minus, play, check)
@@ -604,9 +628,12 @@ function ProductModal({
             <Icon name="bag" size={18} />
           </button>
         </div>
-        <button
-          type="button"
+        <a
+          href={getMessengerUrl()}
+          target="_blank"
+          rel="noopener noreferrer"
           className="button button-messenger-direct"
+          style={{ textDecoration: "none", textAlign: "center", display: "flex", justifyContent: "center" }}
           onClick={() => {
             const singleItem: CartItem = {
               key: `${product.id}-${size}-${milk}-${temperature}-${sweetness}-${iceLevel}`,
@@ -620,13 +647,14 @@ function ProductModal({
               price,
               name: product.name,
             };
-            const msg = sendToMessenger([singleItem], "", price * quantity, 0);
+            const msg = formatOrderMessage([singleItem], "", price * quantity, 0);
+            copyToClipboard(msg);
             onDirectOrder?.(msg);
-            onClose();
+            setTimeout(() => onClose(), 150);
           }}
         >
           Order Now via Messenger ↗
-        </button>
+        </a>
       </form>
     </Modal>
   );
@@ -1663,7 +1691,10 @@ function App() {
         <Modal
           label="Your order bag"
           className="bag-modal"
-          onClose={() => setBagOpen(false)}
+          onClose={() => {
+            setBagOpen(false);
+            setReceipt(false);
+          }}
         >
           <div className="bag-content">
             <span className="eyebrow">BEAN DINER · BAYAMBANG</span>
@@ -1692,25 +1723,28 @@ function App() {
                     </div>
                   )}
 
-                  <button
-                    type="button"
+                  <a
+                    href={getMessengerUrl()}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="button-copy-messenger"
+                    style={{ textDecoration: "none" }}
                     onClick={() => {
                       if (lastOrder) {
                         copyToClipboard(lastOrder);
                         setToast("✓ Order details copied! Opening Messenger...");
                       }
-                      window.open(getMessengerUrl(), "_blank", "noopener,noreferrer");
                     }}
                   >
                     <span>📋</span> (Copy this and open Messenger ↗)
-                  </button>
+                  </a>
                 </div>
 
                 <button
                   className="button button-continue-shopping"
                   onClick={() => {
                     setBagOpen(false);
+                    setReceipt(false);
                     scrollToMenu();
                   }}
                 >
