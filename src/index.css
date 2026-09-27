@@ -3062,7 +3062,6 @@ main {
     justify-content: space-between;
     width: 100%;
     margin: 0;
-    padding-right: 56px;
   }
   .story-details {
     display: flex;
@@ -3929,9 +3928,10 @@ main {
 
 /* ORDER TYPE: warm segmented selector shared by drink and bag checkout */
 .order-type-row {
-  gap: 5px;
-  padding: 4px;
-  border: 1px solid #8c654626;
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid #8c654630;
   border-radius: 999px;
   background: #f6f0e8;
 }
@@ -3939,17 +3939,20 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex: 1 1 0;
   min-width: 0;
-  min-height: 44px;
-  padding: 9px 10px;
+  min-height: 40px;
+  height: 40px;
+  padding: 0 6px;
   border: 1px solid transparent;
   border-radius: 999px;
   background: transparent;
   outline: none !important;
   color: #5b493d;
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 600;
   line-height: 1.25;
+  white-space: nowrap;
   text-align: center;
   transition: background-color 180ms ease, border-color 180ms ease,
     box-shadow 180ms ease, color 180ms ease, transform 180ms ease;
@@ -3962,7 +3965,7 @@ main {
   background: #ffffff;
   border-color: #8c6546;
   color: var(--accent);
-  box-shadow: 0 2px 5px rgba(43, 33, 28, 0.12);
+  box-shadow: 0 2px 6px rgba(43, 33, 28, 0.12);
 }
 .choice-row.order-type-row label:active {
   transform: translateY(1px);
@@ -4825,9 +4828,9 @@ main {
     touch-action: pan-x;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    padding: 2px 4px;
-    mask-image: none;
-    -webkit-mask-image: none;
+    padding: 2px 28px 2px 4px;
+    mask-image: linear-gradient(to right, black calc(100% - 32px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, black calc(100% - 32px), transparent 100%);
   }
   .flavor-tabs::-webkit-scrollbar {
     display: none;
@@ -4910,14 +4913,18 @@ main {
   }
   .choice-row.order-type-row {
     gap: 4px;
-    padding: 4px;
+    padding: 3px;
   }
   .choice-row.order-type-row label {
-    min-height: 52px;
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 40px;
+    height: 40px;
     gap: 4px;
-    padding: 8px 4px;
-    font-size: 10.5px;
+    padding: 0 4px;
+    font-size: 11px;
     line-height: 1.2;
+    white-space: nowrap;
   }
   .customize-form .choice-row:not(.order-type-row) label {
     min-height: 48px;
