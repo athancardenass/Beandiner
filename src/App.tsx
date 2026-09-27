@@ -248,6 +248,21 @@ const copyToClipboard = (text: string): boolean => {
   return copied;
 };
 
+// ↓ MESSENGER URL: Device-aware destination
+// Mobile uses m.me shortlink to deep-link to the Messenger app
+// Desktop MUST use facebook.com/messages/t/ because standalone messenger.com rejects Page inboxes with "This content isn't available right now"
+const getMessengerUrl = () => {
+  const isMobile =
+    typeof navigator !== "undefined" &&
+    /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent,
+    );
+  if (isMobile) {
+    return "https://m.me/100959311683531";
+  }
+  return "https://www.facebook.com/messages/t/100959311683531";
+};
+
 const sendToMessenger = (
   items: CartItem[],
   customerName: string = "",
@@ -256,7 +271,7 @@ const sendToMessenger = (
 ) => {
   const message = formatOrderMessage(items, customerName, totalAmount, bundleDiscount);
   copyToClipboard(message);
-  window.open("https://m.me/beandiner", "_blank", "noopener,noreferrer");
+  window.open(getMessengerUrl(), "_blank", "noopener,noreferrer");
   return message;
 };
 // ↓ ICON COMPONENT: SVG icon set (arrow, bag, close, menu, plus, minus, play, check)
@@ -1549,7 +1564,7 @@ function App() {
                 <small>Two crafts, one home</small>
               </a>
               <a
-                href="https://m.me/beandiner"
+                href={getMessengerUrl()}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="footer-pill footer-pill-fb"
@@ -1663,7 +1678,7 @@ function App() {
                 </p>
                 <a
                   className="button button-messenger-checkout"
-                  href="https://m.me/beandiner"
+                  href={getMessengerUrl()}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ display: "inline-flex", justifyContent: "center" }}
@@ -1949,7 +1964,7 @@ function App() {
       )}
       {/* ↓ FLOATING MESSENGER BUTTON: Direct chat with Bean Diner */}
       <a
-        href="https://m.me/beandiner"
+        href={getMessengerUrl()}
         target="_blank"
         rel="noopener noreferrer"
         className="floating-messenger"
