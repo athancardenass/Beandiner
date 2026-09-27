@@ -177,6 +177,8 @@ const formatOrderMessage = (
   customerName: string = "",
   totalAmount: number,
   bundleDiscount: number = 0,
+  orderType: "pickup" | "dine-in" | "delivery" = "pickup",
+  extraInfo: string = "",
 ) => {
   const lines = items.map((item) => {
     const p = products.find((p) => p.id === item.id);
@@ -201,15 +203,23 @@ const formatOrderMessage = (
     )}`;
   });
 
+  let orderTypeLine = "Order Type: For pick up\nPickup Location: Bean Diner · Gen. Antonio Luna St., Zone 2, Bayambang, Pangasinan";
+  if (orderType === "dine-in") {
+    const tableStr = extraInfo.replace(/^table\s*/i, "").trim();
+    orderTypeLine = `Order Type: Dine in${tableStr ? ` (Table ${tableStr})` : ""}`;
+  } else if (orderType === "delivery") {
+    orderTypeLine = `Order Type: Door to door (Delivery)${extraInfo ? `\nDelivery Address: ${extraInfo}` : ""}`;
+  }
+
   return [
     `Hello Bean Diner Bayambang! I would like to place an order:`,
     ``,
     ...lines,
     ``,
     bundleDiscount > 0 ? `Bundle Discount: -${money(bundleDiscount)}` : null,
+    orderTypeLine,
     `Total: ${money(totalAmount)}`,
     customerName ? `Name: ${customerName}` : null,
-    `Pickup Location: Bean Diner · Gen. Antonio Luna St., Zone 2, Bayambang, Pangasinan`,
   ]
     .filter(Boolean)
     .join("\n");
@@ -292,8 +302,10 @@ const sendToMessenger = (
   customerName: string = "",
   totalAmount: number,
   bundleDiscount: number = 0,
+  orderType: "pickup" | "dine-in" | "delivery" = "pickup",
+  extraInfo: string = "",
 ) => {
-  const message = formatOrderMessage(items, customerName, totalAmount, bundleDiscount);
+  const message = formatOrderMessage(items, customerName, totalAmount, bundleDiscount, orderType, extraInfo);
   copyToClipboard(message);
   openExternalUrl(getMessengerUrl());
   return message;
@@ -465,12 +477,18 @@ function ProductModal({
   onAdd: (item: CartItem) => void;
   onDirectOrder?: (msg: string) => void;
 }) {
+  const isIcedDrink = product.name.toLowerCase().includes("iced");
+  const isHotDrink = product.name.toLowerCase().includes("hot");
   const [size, setSize] = useState("16 oz");
   const [milk, setMilk] = useState("Regular");
-  const [temperature, setTemperature] = useState(product.hot ? "Hot" : "Iced");
+  const [temperature, setTemperature] = useState(
+    isIcedDrink ? "Iced" : isHotDrink ? "Hot" : product.hot ? "Hot" : "Iced"
+  );
   const [sweetness, setSweetness] = useState("100% Sweet");
   const [iceLevel, setIceLevel] = useState("Regular Ice");
   const [quantity, setQuantity] = useState(1);
+  const [orderType, setOrderType] = useState<"pickup" | "dine-in" | "delivery">("pickup");
+  const [extraInfo, setExtraInfo] = useState("");
   const hasMilk = true;
   const price =
     product.price + (size === "22 oz" ? 30 : 0) + (milk === "Oat" ? 35 : 0);
@@ -526,22 +544,39 @@ function ProductModal({
             ))}
           </div>
         </fieldset>
-        <fieldset>
-          <legend>Hot or iced?</legend>
-          <div className="choice-row">
-            {(product.hot ? ["Hot", "Iced"] : ["Iced", "Hot"]).map((v) => (
-              <label className={temperature === v ? "selected" : ""} key={v}>
-                <input
-                  type="radio"
-                  name="temperature"
-                  checked={temperature === v}
-                  onChange={() => setTemperature(v)}
-                />
-                {v}
-              </label>
-            ))}
+        {/* Temperature validation: If name has 'Iced', NO hot option! If name has 'Hot', NO iced option! */}
+        {!isIcedDrink && !isHotDrink && (
+          <fieldset>
+            <legend>Hot or iced?</legend>
+            <div className="choice-row">
+              {["Iced", "Hot"].map((v) => (
+                <label className={temperature === v ? "selected" : ""} key={v}>
+                  <input
+                    type="radio"
+                    name="temperature"
+                    checked={temperature === v}
+                    onChange={() => setTemperature(v)}
+                  />
+                  {v}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
+
+        {isIcedDrink && (
+          <div className="product-temp-badge">
+            <span className="ice-tag">❄ Iced Signature Drink</span>
+            <small>Specially prepared cold over ice for maximum flavor</small>
           </div>
-        </fieldset>
+        )}
+
+        {isHotDrink && (
+          <div className="product-temp-badge">
+            <span className="hot-tag">☕ Hot Artisan Roast</span>
+            <small>Freshly pulled espresso with steamed velvety milk</small>
+          </div>
+        )}
 
         {/* Sweetness Preference */}
         <fieldset>
@@ -561,7 +596,7 @@ function ProductModal({
           </div>
         </fieldset>
 
-        {/* Ice Level Preference */}
+        {/* Ice Level Preference: Only show when drink is Iced */}
         {temperature === "Iced" && (
           <fieldset>
             <legend>Ice level</legend>
@@ -579,6 +614,66 @@ function ProductModal({
               ))}
             </div>
           </fieldset>
+        )}
+
+        {/* Order Type: Pick up, Dine in, Door to door */}
+        <fieldset>
+          <legend>How would you like your order?</legend>
+          <div className="choice-row order-type-row">
+            {[
+              { id: "pickup", label: "For pick up", icon: "🛍️" },
+              { id: "dine-in", label: "Dine in", icon: "🍽️" },
+              { id: "delivery", label: "Door to door", icon: "🛵" },
+            ].map((t) => (
+              <label className={orderType === t.id ? "selected" : ""} key={t.id}>
+                <input
+                  type="radio"
+                  name="modalOrderType"
+                  checked={orderType === t.id}
+                  onChange={() => {
+                    setOrderType(t.id as any);
+                    setExtraInfo("");
+                  }}
+                />
+                <span>{t.icon} {t.label}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        {orderType === "dine-in" && (
+          <div className="order-extra-field">
+            <label htmlFor="modal-table-num">Table number (optional):</label>
+            <input
+              id="modal-table-num"
+              type="text"
+              placeholder="e.g. Table 3"
+              value={extraInfo}
+              onChange={(e) => setExtraInfo(e.target.value)}
+              maxLength={20}
+            />
+          </div>
+        )}
+
+        {orderType === "delivery" && (
+          <div className="order-extra-field">
+            <label htmlFor="modal-delivery-addr">Delivery address & landmark:</label>
+            <input
+              id="modal-delivery-addr"
+              type="text"
+              placeholder="e.g. Brgy. Zone 1, near Church"
+              value={extraInfo}
+              onChange={(e) => setExtraInfo(e.target.value)}
+              required
+              maxLength={120}
+            />
+          </div>
+        )}
+
+        {orderType === "pickup" && (
+          <div className="pickup-notice">
+            <small>📍 Pickup: Bean Diner · Gen. Antonio Luna St., Bayambang</small>
+          </div>
         )}
 
         {hasMilk && (
@@ -647,7 +742,14 @@ function ProductModal({
               price,
               name: product.name,
             };
-            const msg = formatOrderMessage([singleItem], "", price * quantity, 0);
+            const msg = formatOrderMessage(
+              [singleItem],
+              "",
+              price * quantity,
+              0,
+              orderType,
+              extraInfo,
+            );
             copyToClipboard(msg);
             onDirectOrder?.(msg);
             setTimeout(() => onClose(), 150);
@@ -862,6 +964,8 @@ function App() {
   const [receipt, setReceipt] = useState(false);
   const [toast, setToast] = useState("");
   const [lastOrder, setLastOrder] = useState("");
+  const [checkoutOrderType, setCheckoutOrderType] = useState<"pickup" | "dine-in" | "delivery">("pickup");
+  const [checkoutExtra, setCheckoutExtra] = useState("");
   const scrollToTop = (e?: React.MouseEvent) => {
     if (e) e.preventDefault();
     window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
@@ -1872,6 +1976,8 @@ function App() {
                       customerName,
                       subtotal - discount,
                       discount,
+                      checkoutOrderType,
+                      checkoutExtra,
                     );
                     setLastOrder(msg);
                     setToast(
@@ -1881,7 +1987,76 @@ function App() {
                     setCart([]);
                   }}
                 >
-                  <label htmlFor="order-name">Your name for pickup</label>
+                  {/* Order Type: Pick up, Dine in, Door to door */}
+                  <fieldset>
+                    <legend>Order type</legend>
+                    <div className="choice-row order-type-row">
+                      {[
+                        { id: "pickup", label: "For pick up", icon: "🛍️" },
+                        { id: "dine-in", label: "Dine in", icon: "🍽️" },
+                        { id: "delivery", label: "Door to door", icon: "🛵" },
+                      ].map((t) => (
+                        <label
+                          className={checkoutOrderType === t.id ? "selected" : ""}
+                          key={t.id}
+                        >
+                          <input
+                            type="radio"
+                            name="checkoutOrderType"
+                            checked={checkoutOrderType === t.id}
+                            onChange={() => {
+                              setCheckoutOrderType(t.id as any);
+                              setCheckoutExtra("");
+                            }}
+                          />
+                          <span>{t.icon} {t.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+
+                  {checkoutOrderType === "dine-in" && (
+                    <div className="order-extra-field">
+                      <label htmlFor="checkout-table">Table number (if seated):</label>
+                      <input
+                        id="checkout-table"
+                        name="table"
+                        placeholder="e.g. Table 4"
+                        value={checkoutExtra}
+                        onChange={(e) => setCheckoutExtra(e.target.value)}
+                        maxLength={20}
+                      />
+                    </div>
+                  )}
+
+                  {checkoutOrderType === "delivery" && (
+                    <div className="order-extra-field">
+                      <label htmlFor="checkout-address">Delivery address & landmark:</label>
+                      <input
+                        id="checkout-address"
+                        name="address"
+                        placeholder="Street, Barangay, and Landmark in Bayambang"
+                        value={checkoutExtra}
+                        onChange={(e) => setCheckoutExtra(e.target.value)}
+                        required
+                        maxLength={150}
+                      />
+                    </div>
+                  )}
+
+                  {checkoutOrderType === "pickup" && (
+                    <div className="pickup-notice">
+                      <small>📍 Pickup: Bean Diner · Gen. Antonio Luna St., Bayambang</small>
+                    </div>
+                  )}
+
+                  <label htmlFor="order-name">
+                    {checkoutOrderType === "dine-in"
+                      ? "Your name for table service"
+                      : checkoutOrderType === "delivery"
+                        ? "Recipient name for delivery"
+                        : "Your name for pickup"}
+                  </label>
                   <input
                     id="order-name"
                     name="name"
