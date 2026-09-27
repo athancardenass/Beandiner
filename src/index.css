@@ -2935,25 +2935,10 @@ main {
     display: none;
   }
   .hero-product-caption {
-    bottom: auto;
-    top: 510px;
-    left: 6%;
-    gap: 10px;
-  }
-  .hero-product-caption .eyebrow {
-    font-size: 6px;
-    letter-spacing: 1px;
-  }
-  .hero-product-caption p {
-    font-size: 10px;
-    margin-top: 3px;
-  }
-  .hero-product-caption p span {
-    font-size: 10px;
-    margin-left: 10px;
+    display: none;
   }
   .caption-line {
-    width: 25px;
+    display: none;
   }
   .scroll-cue {
     display: none;
@@ -3663,10 +3648,6 @@ main {
   .hero-product {
     height: 300px;
   }
-  .hero-product-caption {
-    left: 6%;
-    top: 510px;
-  }
   .product-image-button {
     height: 235px;
   }
@@ -3876,7 +3857,6 @@ main {
     font-size: 10px;
   }
   .hero-heading > .eyebrow,
-  .hero-product-caption .eyebrow,
   .story-top > .eyebrow,
   .story-copy > .eyebrow {
     font-size: 10px;
@@ -3890,12 +3870,6 @@ main {
   }
   .hero-ctas .text-link {
     min-height: 44px;
-    font-size: 12px;
-  }
-  .hero-product-caption {
-    top: 515px;
-  }
-  .hero-product-caption p {
     font-size: 12px;
   }
   .story-top > .text-link {
@@ -3949,9 +3923,6 @@ main {
 @media (max-width: 390px) {
   .menu-filters button {
     padding: 9px 8px;
-  }
-  .hero-product-caption .eyebrow {
-    letter-spacing: 0.7px;
   }
 }
 
@@ -4243,28 +4214,8 @@ main {
 }
 
 @media (max-width: 760px) {
-  .hero-product-caption .caption-line {
-    display: none;
-  }
   .hero-product-caption {
-    left: 6%;
-    gap: 0;
-  }
-  .hero-product-caption .eyebrow {
-    color: var(--accent-light);
-    font-size: 9px;
-    letter-spacing: 1.5px;
-    font-weight: 700;
-  }
-  .hero-product-caption p {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--beige);
-    margin-top: 2px;
-  }
-  .hero-product-caption p span {
-    color: var(--accent-light);
-    font-weight: 700;
+    display: none !important;
   }
 }
 /* Dedicated food menu: an editorial list that needs no substitute photography. */
@@ -4816,22 +4767,7 @@ main {
     font-size: 24px;
   }
   .hero-product-caption {
-    display: flex;
-    top: 514px;
-    left: 7%;
-    bottom: auto;
-  }
-  .hero-product-caption .caption-line {
-    display: none;
-  }
-  .hero-product-caption .eyebrow {
-    color: var(--accent-light);
-    font-size: 9px;
-    letter-spacing: 1px;
-  }
-  .hero-product-caption p {
-    color: var(--beige);
-    font-size: 12px;
+    display: none !important;
   }
   .story-stage {
     min-height: 640px;
