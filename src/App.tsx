@@ -12,6 +12,24 @@ import { dinerBites, type DinerBite } from "./dinerBites";
 const money = (n: number) => `₱${n.toLocaleString("en-PH")}`;
 const beanDinerMapsUrl =
   "https://www.google.com/maps/place/Bean+Diner/@15.8103457,120.4573329,17z/data=!4m14!1m7!3m6!1s0x339149ebf4721bcb:0xff2c7401d69cb887!2sBean+Diner!8m2!3d15.8103457!4d120.4573329!16s%2Fg%2F11vljpcbmt!3m5!1s0x339149ebf4721bcb:0xff2c7401d69cb887!8m2!3d15.8103457!4d120.4573329!16s%2Fg%2F11vljpcbmt?entry=ttu&g_ep=EgoyMDI2MDkyMi4wIKXMDSoASAFQAw%3D%3D";
+const wazeUrl = "https://waze.com/ul?q=Bean%20Diner%20Bayambang";
+type CheckoutPayment = "cash" | "gcash" | "maya";
+
+const getStoreStatus = () => {
+  const parts = new Intl.DateTimeFormat("en-PH", {
+    timeZone: "Asia/Manila",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date());
+  const hour = Number(parts.find((part) => part.type === "hour")?.value ?? 0);
+  const isOpen = hour >= 10 && hour < 21;
+
+  return {
+    isOpen,
+    text: isOpen ? "Open Now · Closes 9:00 PM" : "Closed Now · Opens 10:00 AM",
+  };
+};
 // ↓ UTILITY: Relative image path resolvers (supports dev server and file:// protocol)
 const image = (name: string) => {
   if (name === "hot") return "./images/optimized/hotroast.webp";
@@ -170,24 +188,30 @@ type CartItem = {
   price: number;
   name?: string;
   isFood?: boolean;
+  note?: string;
 };
 // ↓ HELPER: Send formatted order to Bean Diner Facebook Messenger
 const formatOrderMessage = (
   items: CartItem[],
-  customerName: string = "",
+  customerName: string,
+  customerPhone: string,
   totalAmount: number,
   bundleDiscount: number = 0,
   orderType: "pickup" | "dine-in" | "delivery" = "pickup",
   extraInfo: string = "",
+  payment: CheckoutPayment = "gcash",
 ) => {
   const lines = items.map((item) => {
     const p = products.find((p) => p.id === item.id);
     const b = dinerBites.find((b) => b.id === item.id);
     const title = p ? p.name : b ? b.name : item.name || "Item";
+    const noteSuffix = item.note?.trim()
+      ? ` - Note: "${item.note.trim()}"`
+      : "";
     if (item.isFood) {
-      return `• ${item.quantity}x ${title} (Chef's Comfort Kitchen Plate) - ${money(
-        item.price * item.quantity,
-      )}`;
+      return `• ${item.quantity}x ${title} (Chef's Comfort Kitchen Plate)${noteSuffix} - ${money(
+          item.price * item.quantity,
+        )}`;
     }
     const specs = [
       item.size,
@@ -198,9 +222,9 @@ const formatOrderMessage = (
     ]
       .filter(Boolean)
       .join(", ");
-    return `• ${item.quantity}x ${title} (${specs}) - ${money(
-      item.price * item.quantity,
-    )}`;
+    return `• ${item.quantity}x ${title} (${specs})${noteSuffix} - ${money(
+        item.price * item.quantity,
+      )}`;
   });
 
   let orderTypeLine = "Order Type: For pick up\nPickup Location: Bean Diner · Gen. Antonio Luna St., Zone 2, Bayambang, Pangasinan";
@@ -218,8 +242,10 @@ const formatOrderMessage = (
     ``,
     bundleDiscount > 0 ? `Bundle Discount: -${money(bundleDiscount)}` : null,
     orderTypeLine,
+    `Payment: ${payment === "gcash" ? "GCash" : payment === "maya" ? "Maya" : "Cash upon pickup/delivery"}`,
     `Total: ${money(totalAmount)}`,
     customerName ? `Name: ${customerName}` : null,
+    customerPhone ? `Contact: ${customerPhone}` : null,
   ]
     .filter(Boolean)
     .join("\n");
@@ -297,13 +323,24 @@ const openExternalUrl = (url: string) => {
 
 const sendToMessenger = (
   items: CartItem[],
-  customerName: string = "",
+  customerName: string,
+  customerPhone: string,
   totalAmount: number,
   bundleDiscount: number = 0,
   orderType: "pickup" | "dine-in" | "delivery" = "pickup",
   extraInfo: string = "",
+  payment: CheckoutPayment = "gcash",
 ) => {
-  const message = formatOrderMessage(items, customerName, totalAmount, bundleDiscount, orderType, extraInfo);
+  const message = formatOrderMessage(
+    items,
+    customerName,
+    customerPhone,
+    totalAmount,
+    bundleDiscount,
+    orderType,
+    extraInfo,
+    payment,
+  );
   copyToClipboard(message);
   openExternalUrl(getMessengerUrl());
   return message;
@@ -487,6 +524,7 @@ function ProductModal({
   const [quantity, setQuantity] = useState(1);
   const [orderType, setOrderType] = useState<"pickup" | "dine-in" | "delivery">("pickup");
   const [extraInfo, setExtraInfo] = useState("");
+  const [note, setNote] = useState("");
   const hasMilk = true;
   const price =
     product.price + (size === "22 oz" ? 30 : 0) + (milk === "Oat" ? 35 : 0);
@@ -505,8 +543,9 @@ function ProductModal({
         className="customize-form"
         onSubmit={(e) => {
           e.preventDefault();
+          const trimmedNote = note.trim();
           onAdd({
-            key: `${product.id}-${size}-${milk}-${temperature}-${sweetness}-${iceLevel}`,
+            key: `${product.id}-${size}-${milk}-${temperature}-${sweetness}-${iceLevel}${trimmedNote ? `-${trimmedNote}` : ""}`,
             id: product.id,
             size,
             milk,
@@ -516,6 +555,7 @@ function ProductModal({
             quantity,
             price,
             name: product.name,
+            note: trimmedNote || undefined,
           });
         }}
       >
@@ -525,6 +565,18 @@ function ProductModal({
         <span className="availability">
           Available at Antonio Luna St., Bayambang
         </span>
+        <div className="item-note-field">
+          <label htmlFor="item-note">
+            Special instructions / requests (optional)
+          </label>
+          <input
+            id="item-note"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="e.g. Less ice, extra espresso, separate syrup..."
+            maxLength={120}
+          />
+        </div>
         <fieldset>
           <legend>Make it your size</legend>
           <div className="choice-row">
@@ -728,8 +780,9 @@ function ProductModal({
           className="button button-messenger-direct"
           style={{ textDecoration: "none", textAlign: "center", display: "flex", justifyContent: "center" }}
           onClick={() => {
+            const trimmedNote = note.trim();
             const singleItem: CartItem = {
-              key: `${product.id}-${size}-${milk}-${temperature}-${sweetness}-${iceLevel}`,
+              key: `${product.id}-${size}-${milk}-${temperature}-${sweetness}-${iceLevel}${trimmedNote ? `-${trimmedNote}` : ""}`,
               id: product.id,
               size,
               milk,
@@ -739,9 +792,11 @@ function ProductModal({
               quantity,
               price,
               name: product.name,
+              note: trimmedNote || undefined,
             };
             const msg = formatOrderMessage(
               [singleItem],
+              "",
               "",
               price * quantity,
               0,
@@ -962,8 +1017,10 @@ function App() {
   const [receipt, setReceipt] = useState(false);
   const [toast, setToast] = useState("");
   const [lastOrder, setLastOrder] = useState("");
+  const [storeStatus, setStoreStatus] = useState(getStoreStatus);
   const [checkoutOrderType, setCheckoutOrderType] = useState<"pickup" | "dine-in" | "delivery">("pickup");
   const [checkoutExtra, setCheckoutExtra] = useState("");
+  const [checkoutPayment, setCheckoutPayment] = useState<CheckoutPayment>("gcash");
   const scrollToTop = (e?: React.MouseEvent) => {
     if (e) e.preventDefault();
     window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
@@ -1018,6 +1075,15 @@ function App() {
       ? "Diner Bites & Comfort Plates | Bean Diner"
       : "Bean Diner | Good Food. Great Coffee. Warm Vibes.";
   }, [isFoodPage]);
+  useEffect(() => {
+    const updateStoreStatus = () => setStoreStatus(getStoreStatus());
+    const interval = window.setInterval(updateStoreStatus, 60_000);
+    document.addEventListener("visibilitychange", updateStoreStatus);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", updateStoreStatus);
+    };
+  }, []);
   // ↓ HASH SCROLL ON MOUNT
   useEffect(() => {
     const hash = window.location.hash;
@@ -1180,13 +1246,20 @@ function App() {
       </a>
       {/* ↓ ANNOUNCEMENT BAR: Promotional banner */}
       <div className="announcement">
-        GOOD FOOD. GREAT COFFEE.{" "}
-        <span>
+        <span className="announcement-brand">GOOD FOOD. GREAT COFFEE.</span>
+        <span className="announcement-promo">
           Two Iced Spanish Lattes for {money(spanishLatteBundlePrice)}.
         </span>
         <a href={homeHref("together")}>
           Make it a coffee date <span>↗</span>
         </a>
+        <span
+          className={`store-status-badge announcement-store-status ${storeStatus.isOpen ? "is-open" : "is-closed"}`}
+          role="status"
+        >
+          <span className="store-status-dot" aria-hidden="true" />
+          {storeStatus.text}
+        </span>
       </div>
       {/* ↓ HEADER: Logo, navigation, order button, bag */}
       <header className="header" id="home">
@@ -1725,10 +1798,15 @@ function App() {
                 <div>
                   <strong>Diner Hours</strong>
                   <p>
-                    Mon–Fri: 9:00 AM – 10:00 PM
-                    <br />
-                    Sat–Sun: 11:00 AM – 10:00 PM
+                    Daily: 10:00 AM – 9:00 PM
                   </p>
+                  <span
+                    className={`store-status-badge footer-store-status ${storeStatus.isOpen ? "is-open" : "is-closed"}`}
+                    role="status"
+                  >
+                    <span className="store-status-dot" aria-hidden="true" />
+                    {storeStatus.text}
+                  </span>
                 </div>
               </div>
               <div className="info-row">
@@ -1742,14 +1820,22 @@ function App() {
                   </p>
                 </div>
               </div>
-              <div className="footer-actions">
+              <div className="footer-actions footer-directions">
                 <a
                   href={beanDinerMapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="button footer-map-btn"
                 >
-                  Open in Maps ↗
+                  Google Maps ↗
+                </a>
+                <a
+                  href={wazeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="button footer-map-btn"
+                >
+                  Waze ↗
                 </a>
               </div>
             </div>
@@ -1943,6 +2029,11 @@ function App() {
                         <div>
                           <h3>{title}</h3>
                           <p>{desc}</p>
+                          {item.note?.trim() && (
+                            <p className="cart-item-note">
+                              Note: "{item.note.trim()}"
+                            </p>
+                          )}
                           <div className="cart-item-bottom">
                             <div className="quantity">
                               <button
@@ -1997,14 +2088,20 @@ function App() {
                     const nameInput = form.elements.namedItem(
                       "name",
                     ) as HTMLInputElement;
+                    const phoneInput = form.elements.namedItem(
+                      "phone",
+                    ) as HTMLInputElement;
                     const customerName = nameInput?.value || "";
+                    const customerPhone = phoneInput?.value.trim() || "";
                     const msg = sendToMessenger(
                       cart,
                       customerName,
+                      customerPhone,
                       subtotal - discount,
                       discount,
                       checkoutOrderType,
                       checkoutExtra,
+                      checkoutPayment,
                     );
                     setLastOrder(msg);
                     setToast(
@@ -2077,6 +2174,36 @@ function App() {
                     </div>
                   )}
 
+                  <fieldset className="checkout-payment-fieldset">
+                    <legend>Payment method</legend>
+                    <div className="payment-choice-row">
+                      {([
+                        { id: "gcash", label: "💙 GCash" },
+                        { id: "maya", label: "💚 Maya" },
+                        { id: "cash", label: "💵 Cash (Pickup / COD)" },
+                      ] as const).map((payment) => (
+                        <label
+                          className={checkoutPayment === payment.id ? "selected" : ""}
+                          key={payment.id}
+                        >
+                          <input
+                            type="radio"
+                            name="checkoutPayment"
+                            value={payment.id}
+                            checked={checkoutPayment === payment.id}
+                            onChange={() => setCheckoutPayment(payment.id)}
+                          />
+                          <span>{payment.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <small className="payment-helper-note">
+                      {checkoutPayment === "cash"
+                        ? "Please prepare exact amount if possible upon pickup or delivery."
+                        : "QR code and account details will be sent in Messenger chat."}
+                    </small>
+                  </fieldset>
+
                   <label htmlFor="order-name">
                     {checkoutOrderType === "dine-in"
                       ? "Your name for table service"
@@ -2091,6 +2218,17 @@ function App() {
                     placeholder="Enter your name (e.g. Karl)"
                     required
                     maxLength={50}
+                  />
+                  <label htmlFor="order-phone">Contact number</label>
+                  <input
+                    id="order-phone"
+                    name="phone"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    placeholder="09XX-XXX-XXXX"
+                    required
+                    maxLength={20}
                   />
                   <button
                     className="button button-messenger-checkout"
