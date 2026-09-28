@@ -671,9 +671,9 @@ function ProductModal({
           <legend>How would you like your order?</legend>
           <div className="choice-row order-type-row">
             {[
-              { id: "pickup", label: "For pick up", icon: "🛍️" },
-              { id: "dine-in", label: "Dine in", icon: "🍽️" },
-              { id: "delivery", label: "Door to door", icon: "🛵" },
+              { id: "pickup", label: "For pick up" },
+              { id: "dine-in", label: "Dine in" },
+              { id: "delivery", label: "Door to door" },
             ].map((t) => (
               <label className={orderType === t.id ? "selected" : ""} key={t.id}>
                 <input
@@ -685,7 +685,7 @@ function ProductModal({
                     setExtraInfo("");
                   }}
                 />
-                <span>{t.icon} {t.label}</span>
+                <span>{t.label}</span>
               </label>
             ))}
           </div>
@@ -722,7 +722,7 @@ function ProductModal({
 
         {orderType === "pickup" && (
           <div className="pickup-notice">
-            <small>📍 Pickup: Bean Diner · Gen. Antonio Luna St., Bayambang</small>
+            <small>Pickup: Bean Diner · Gen. Antonio Luna St., Bayambang</small>
           </div>
         )}
 
@@ -1891,21 +1891,19 @@ function App() {
         >
           <div className="bag-content">
             <span className="eyebrow">BEAN DINER · BAYAMBANG</span>
-            <h2>{receipt ? "Order sent to Messenger!" : "Your order bag."}</h2>
+            <h2>{receipt ? "Your order is ready to send on Facebook!" : "Your order bag."}</h2>
             {receipt ? (
               <div className="receipt">
                 <Sun />
-                <h3>Order sent to Facebook!</h3>
+                <h3>Your order is ready to send on Facebook!</h3>
                 <p>
-                  Your complete order details have been copied to your
-                  clipboard, and Bean Diner's Messenger chat has been opened.
-                  Simply paste into the chat to finalize your pickup!
+                  Your complete order summary has been formatted and copied to your clipboard. Bean Diner's Messenger chat is open — simply paste into the chat to send!
                 </p>
                 {/* ↓ BORDERED CLIPBOARD CARD */}
                 <div className="receipt-clipboard-card">
                   <div className="clipboard-card-header">
                     <span className="clipboard-card-title">
-                      📋 Order Summary for Messenger
+                      Order Summary for Messenger
                     </span>
                     <span className="clipboard-badge">✓ Ready to send</span>
                   </div>
@@ -1929,7 +1927,7 @@ function App() {
                       }
                     }}
                   >
-                    <span>📋</span> (Copy this and open Messenger ↗)
+                    Copy this and open Messenger ↗
                   </a>
                   <a
                     href={FACEBOOK_PAGE_URL}
@@ -2116,9 +2114,9 @@ function App() {
                     <legend>Order type</legend>
                     <div className="choice-row order-type-row">
                       {[
-                        { id: "pickup", label: "For pick up", icon: "🛍️" },
-                        { id: "dine-in", label: "Dine in", icon: "🍽️" },
-                        { id: "delivery", label: "Door to door", icon: "🛵" },
+                        { id: "pickup", label: "For pick up" },
+                        { id: "dine-in", label: "Dine in" },
+                        { id: "delivery", label: "Door to door" },
                       ].map((t) => (
                         <label
                           className={checkoutOrderType === t.id ? "selected" : ""}
@@ -2133,7 +2131,7 @@ function App() {
                               setCheckoutExtra("");
                             }}
                           />
-                          <span>{t.icon} {t.label}</span>
+                          <span>{t.label}</span>
                         </label>
                       ))}
                     </div>
@@ -2170,7 +2168,7 @@ function App() {
 
                   {checkoutOrderType === "pickup" && (
                     <div className="pickup-notice">
-                      <small>📍 Pickup: Bean Diner · Gen. Antonio Luna St., Bayambang</small>
+                      <small>Pickup: Bean Diner · Gen. Antonio Luna St., Bayambang</small>
                     </div>
                   )}
 
@@ -2178,9 +2176,9 @@ function App() {
                     <legend>Payment method</legend>
                     <div className="payment-choice-row">
                       {([
-                        { id: "gcash", label: "💙 GCash" },
-                        { id: "maya", label: "💚 Maya" },
-                        { id: "cash", label: "💵 Cash (Pickup / COD)" },
+                        { id: "gcash", label: "GCash" },
+                        { id: "maya", label: "Maya" },
+                        { id: "cash", label: "Cash" },
                       ] as const).map((payment) => (
                         <label
                           className={checkoutPayment === payment.id ? "selected" : ""}
@@ -2197,11 +2195,6 @@ function App() {
                         </label>
                       ))}
                     </div>
-                    <small className="payment-helper-note">
-                      {checkoutPayment === "cash"
-                        ? "Please prepare exact amount if possible upon pickup or delivery."
-                        : "QR code and account details will be sent in Messenger chat."}
-                    </small>
                   </fieldset>
 
                   <label htmlFor="order-name">

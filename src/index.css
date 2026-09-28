@@ -2187,11 +2187,25 @@ main {
 .checkout-form {
   margin-top: 26px;
 }
+.checkout-form fieldset {
+  border: 0 !important;
+  margin: 0 0 14px 0 !important;
+  padding: 0 !important;
+}
+.checkout-form legend {
+  display: block !important;
+  margin-bottom: 8px !important;
+  color: #49372b !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  padding: 0 !important;
+}
 .checkout-form label {
   display: block;
-  font-size: 11px;
-  margin-bottom: 10px;
-  font-weight: 600;
+  margin: 12px 0 6px !important;
+  font-size: 11.5px !important;
+  font-weight: 650 !important;
+  color: #49372b !important;
 }
 .checkout-form input {
   width: 100%;
@@ -2201,6 +2215,7 @@ main {
   padding: 14px;
   font-size: 13px;
   color: var(--ink);
+  margin-bottom: 12px !important;
 }
 .checkout-form > .button {
   width: 100%;
@@ -3925,13 +3940,15 @@ main {
 /* ORDER TYPE: warm segmented selector shared by drink and bag checkout */
 .order-type-row {
   display: flex !important;
+  align-items: center !important;
   gap: 4px !important;
-  padding: 3px !important;
-  border: 1px solid rgba(140, 101, 70, 0.25) !important;
+  padding: 4px !important;
+  border: 1px solid rgba(140, 101, 70, 0.22) !important;
   border-radius: 999px !important;
-  background: #f6f0e8 !important;
-  margin: 6px 0 10px !important;
+  background: #f3ece2 !important;
+  margin: 8px 0 14px !important;
   box-sizing: border-box !important;
+  width: 100% !important;
 }
 .choice-row.order-type-row label,
 .order-type-row label {
@@ -3940,36 +3957,35 @@ main {
   justify-content: center !important;
   flex: 1 1 0 !important;
   min-width: 0 !important;
-  min-height: 38px !important;
-  height: 38px !important;
-  padding: 0 4px !important;
-  border: 1.5px solid transparent !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  margin: 0 !important;
+  padding: 0 8px !important;
+  border: 1px solid transparent !important;
   border-radius: 999px !important;
   background: transparent !important;
   outline: none !important;
   box-shadow: none !important;
-  color: #5b493d !important;
-  font-size: 11px !important;
+  color: #635043 !important;
+  font-size: 11.5px !important;
   font-weight: 600 !important;
-  line-height: 1.25 !important;
+  line-height: 1 !important;
   white-space: nowrap !important;
   text-align: center !important;
   cursor: pointer !important;
   box-sizing: border-box !important;
-  transition: background-color 160ms ease, border-color 160ms ease,
-    box-shadow 160ms ease, color 160ms ease, transform 160ms ease !important;
+  transition: all 160ms ease !important;
 }
 .choice-row.order-type-row label:hover,
 .order-type-row label:hover {
-  background: #fffaf4 !important;
-  border-color: rgba(140, 101, 70, 0.2) !important;
+  color: #3b2314 !important;
 }
 .choice-row.order-type-row label.selected,
 .order-type-row label.selected {
   background: #ffffff !important;
-  border-color: #8c6546 !important;
-  color: #3b2314 !important;
-  box-shadow: 0 2px 6px rgba(44, 24, 16, 0.14) !important;
+  border-color: rgba(140, 101, 70, 0.45) !important;
+  color: #321c10 !important;
+  box-shadow: 0 1px 3px rgba(44, 24, 16, 0.1) !important;
 }
 .choice-row.order-type-row label:active,
 .order-type-row label:active {
@@ -3993,7 +4009,7 @@ main {
 /* CHECKOUT DETAILS: table, address, and pickup location */
 .order-extra-field {
   gap: 8px;
-  margin: 12px 0 16px;
+  margin: 6px 0 14px !important;
 }
 .order-extra-field label {
   font-size: 12px;
@@ -4019,11 +4035,11 @@ main {
   box-shadow: 0 3px 10px rgba(120, 68, 47, 0.1);
 }
 .pickup-notice {
-  border: 1px solid #d8c3a2;
-  border-radius: 10px;
-  padding: 10px 13px;
-  background: #fbf4e7;
-  box-shadow: 0 2px 6px rgba(65, 44, 29, 0.045);
+  background: #f4ede3 !important;
+  border: 1px solid rgba(140, 101, 70, 0.22) !important;
+  border-radius: 10px !important;
+  padding: 9px 13px !important;
+  margin: 6px 0 14px !important;
 }
 .pickup-notice small {
   color: #584332;
@@ -5105,24 +5121,26 @@ main {
   align-items: center;
   justify-content: center;
   min-width: 0;
-  min-height: 52px;
-  margin: 0;
-  padding: 7px 5px;
-  border: 1px solid rgba(140, 101, 70, 0.34);
+  min-height: 42px;
+  margin: 0 !important;
+  padding: 6px 5px;
+  border: 1px solid rgba(140, 101, 70, 0.25);
   border-radius: 12px;
   background: #fbf5e9;
   color: #49372b;
   cursor: pointer;
-  font-size: 11px;
-  line-height: 1.3;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  line-height: 1.2;
   text-align: center;
+  white-space: nowrap;
   transition: background-color 160ms ease, border-color 160ms ease,
     box-shadow 160ms ease, transform 160ms ease;
 }
 .payment-choice-row label.selected {
   border-color: #8c6546;
-  background: #fffaf2;
-  color: var(--accent);
+  background: #ffffff;
+  color: #321c10;
   box-shadow: 0 2px 7px rgba(72, 48, 31, 0.1);
 }
 .payment-choice-row label:hover {
@@ -5142,15 +5160,7 @@ main {
   pointer-events: none;
 }
 .payment-choice-row span {
-  overflow-wrap: anywhere;
-}
-.payment-helper-note {
-  display: block !important;
-  margin: 9px 0 0 !important;
-  color: #746456;
-  font-size: 11px !important;
-  line-height: 1.5 !important;
-  text-align: left !important;
+  white-space: nowrap;
 }
 
 /* DIRECTIONS: two direct map launch buttons */
