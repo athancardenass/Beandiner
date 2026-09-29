@@ -4,6 +4,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type MouseEvent,
   type ReactNode,
 } from "react";
 import DinerBitesPage from "./DinerBitesPage";
@@ -42,6 +43,18 @@ const pageHref = (page: "home" | "diner-bites", anchor = "") => {
   else url.searchParams.delete("page");
   url.hash = anchor;
   return url.href;
+};
+
+const scrollToPageAnchor = () => {
+  const anchor = window.location.hash.slice(1);
+  const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ? "instant"
+    : "smooth";
+  if (!anchor || anchor === "home" || anchor === "top") {
+    window.scrollTo({ top: 0, left: 0, behavior });
+  } else {
+    document.getElementById(anchor)?.scrollIntoView({ behavior });
+  }
 };
 
 // ↓ TYPE: Product data shape
@@ -409,7 +422,7 @@ function Logo({
 }: {
   footer?: boolean;
   href?: string;
-  onClick?: (e: React.MouseEvent) => void;
+  onClick?: (e: MouseEvent<HTMLAnchorElement>) => void;
 }) {
   return (
     <a
@@ -1022,8 +1035,13 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
 }
 // ↓ APP COMPONENT: Root component with state, cart, and all sections
 function App() {
-  const isFoodPage =
-    new URLSearchParams(window.location.search).get("page") === "diner-bites";
+  const [currentPage, setCurrentPage] = useState<"home" | "diner-bites">(() =>
+    new URLSearchParams(window.location.search).get("page") === "diner-bites"
+      ? "diner-bites"
+      : "home",
+  );
+  const isFoodPage = currentPage === "diner-bites";
+  const navigationFrame = useRef(0);
   const foodHref = pageHref("diner-bites");
   const homeHref = (anchor: string) => pageHref("home", anchor);
   const [selected, setSelected] = useState<Product | null>(null);
@@ -1048,10 +1066,20 @@ function App() {
     if (e) e.preventDefault();
     window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
   };
-  const handleLogoClick = (e?: React.MouseEvent) => {
-    if (isFoodPage) return;
-    if (e) e.preventDefault();
-    window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+  const handlePageLink = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (
+      event.defaultPrevented || event.button !== 0 || event.metaKey ||
+      event.ctrlKey || event.shiftKey || event.altKey
+    ) return;
+    event.preventDefault();
+    const url = new URL(event.currentTarget.href);
+    if (url.href !== window.location.href) {
+      window.history.pushState(null, "", url);
+    }
+    setCurrentPage(url.searchParams.get("page") === "diner-bites" ? "diner-bites" : "home");
+    setNavOpen(false);
+    cancelAnimationFrame(navigationFrame.current);
+    navigationFrame.current = requestAnimationFrame(scrollToPageAnchor);
   };
   // ↓ CART STATE: Persisted to localStorage with backwards compatibility
   const [cart, setCart] = useState<CartItem[]>(() => {
@@ -1107,17 +1135,24 @@ function App() {
       document.removeEventListener("visibilitychange", updateStoreStatus);
     };
   }, []);
-  // ↓ HASH SCROLL ON MOUNT
+  // Keep browser history and in-page anchors in sync without remounting the cart.
   useEffect(() => {
-    const hash = window.location.hash;
-    if (hash && hash !== "#home" && hash !== "#top") {
-      const el = document.querySelector(hash);
-      if (el) {
-        setTimeout(() => {
-          el.scrollIntoView({ behavior: "smooth" });
-        }, 200);
-      }
-    }
+    const syncLocation = () => {
+      setCurrentPage(
+        new URLSearchParams(window.location.search).get("page") === "diner-bites"
+          ? "diner-bites"
+          : "home",
+      );
+      setNavOpen(false);
+      cancelAnimationFrame(navigationFrame.current);
+      navigationFrame.current = requestAnimationFrame(scrollToPageAnchor);
+    };
+    syncLocation();
+    window.addEventListener("popstate", syncLocation);
+    return () => {
+      window.removeEventListener("popstate", syncLocation);
+      cancelAnimationFrame(navigationFrame.current);
+    };
   }, []);
   // ↓ CART PERSISTENCE: Save cart to localStorage on change
   useEffect(() => {
@@ -1167,7 +1202,7 @@ function App() {
       cancelAnimationFrame(frame);
       observer.disconnect();
     };
-  }, []);
+  }, [currentPage]);
   // ↓ ADD TO CART: Merge duplicates, open bag, show toast
   const add = (item: CartItem) => {
     setCart((current) => {
@@ -1214,7 +1249,7 @@ function App() {
     setBagOpen(true);
     setToast(`${bite.name} added to your bag.`);
   };
-  const quantity = cart.reduce((n, i) => n + i.quantity, 0);
+  const cartCount = cart.reduce((n, i) => n + i.quantity, 0);
   const subtotal = cart.reduce((n, i) => n + i.price * i.quantity, 0);
   // ↓ BUNDLE DISCOUNT: Two Iced Spanish Lattes for ₱250
   const eligible = cart
@@ -1227,6 +1262,8 @@ function App() {
     )
     .reduce((n, i) => n + i.quantity, 0);
   const discount = Math.floor(eligible / 2) * spanishLatteBundleSavings;
+  const removeItem = (key: string) =>
+    setCart((items) => items.filter((item) => item.key !== key));
   const changeQuantity = (key: string, difference: number) =>
     setCart((items) =>
       items
@@ -1273,7 +1310,7 @@ function App() {
         <span className="announcement-promo">
           Two Iced Spanish Lattes for {money(spanishLatteBundlePrice)}.
         </span>
-        <a href={homeHref("together")}>
+        <a href={homeHref("together")} onClick={handlePageLink}>
           Make it a coffee date <span>↗</span>
         </a>
         <span
@@ -1286,14 +1323,15 @@ function App() {
       </div>
       {/* ↓ HEADER: Logo, navigation, order button, bag */}
       <header className="header" id="home">
-        <Logo href={homeHref("home")} onClick={handleLogoClick} />
+        <Logo href={homeHref("home")} onClick={handlePageLink} />
         <nav aria-label="Main navigation" className="header-nav">
-          <a href={homeHref("menu")} className="nav-item">
+          <a href={homeHref("menu")} onClick={handlePageLink} className="nav-item">
             <span className="nav-num">01</span>
             <span className="nav-label">Our drinks</span>
           </a>
           <a
             href={foodHref}
+            onClick={handlePageLink}
             className="nav-item"
             aria-current={isFoodPage ? "page" : undefined}
           >
@@ -1301,11 +1339,11 @@ function App() {
             <span className="nav-label">Diner bites</span>
             <span className="nav-badge">₱99</span>
           </a>
-          <a href={homeHref("story")} className="nav-item">
+          <a href={homeHref("story")} onClick={handlePageLink} className="nav-item">
             <span className="nav-num">03</span>
             <span className="nav-label">Our story</span>
           </a>
-          <a href={homeHref("together")} className="nav-item nav-together">
+          <a href={homeHref("together")} onClick={handlePageLink} className="nav-item nav-together">
             <span className="nav-num">04</span>
             <span className="nav-label">Better together</span>
             <span className="nav-coffee">✦</span>
@@ -1337,14 +1375,14 @@ function App() {
           </a>
           <button
             className="bag-button"
-            aria-label={`Open bag, ${quantity} items`}
+            aria-label={`Open bag, ${cartCount} items`}
             onClick={() => {
               setBagOpen(true);
               setReceipt(false);
             }}
           >
             <Icon name="bag" />
-            <span>{quantity}</span>
+            <span>{cartCount}</span>
           </button>
           <button
             className="icon-button mobile-menu"
@@ -1359,7 +1397,11 @@ function App() {
       </header>
       <main id="main">
         {isFoodPage ? (
-          <DinerBitesPage onAdd={addBite} drinksHref={homeHref("menu")} />
+          <DinerBitesPage
+            onAdd={addBite}
+            drinksHref={homeHref("menu")}
+            onNavigate={handlePageLink}
+          />
         ) : (
           <>
         {/* ↓ HERO SECTION: Main landing area with floating cup animation */}
@@ -1397,7 +1439,7 @@ function App() {
               >
                 Order for pickup <Icon name="arrow" />
               </a>
-              <a className="text-link" href={foodHref}>
+              <a className="text-link" href={foodHref} onClick={handlePageLink}>
                 Diner comfort bites <span>↘</span>
               </a>
             </div>
@@ -1626,7 +1668,7 @@ function App() {
             ))}
           </div>
           <div className="bites-preview-link">
-            <a className="button" href={foodHref}>
+            <a className="button" href={foodHref} onClick={handlePageLink}>
               Explore all diner bites <Icon name="arrow" size={18} />
             </a>
           </div>
@@ -1767,7 +1809,7 @@ function App() {
       <footer className="footer-artisanal">
         <div className="footer-inner">
           <div className="footer-brand-col">
-            <Logo footer href={homeHref("home")} onClick={handleLogoClick} />
+            <Logo footer href={homeHref("home")} onClick={handlePageLink} />
             <p className="footer-tagline">
               <span className="handwritten">
                 where food heals, coffee understands.
@@ -1786,15 +1828,15 @@ function App() {
           <div className="footer-nav-col">
             <span className="footer-heading">EXPLORE THE DINER</span>
             <div className="footer-pill-links">
-              <a href={homeHref("menu")} className="footer-pill">
+              <a href={homeHref("menu")} onClick={handlePageLink} className="footer-pill">
                 <span>Our drinks</span>
                 <small>Bestsellers & lattes</small>
               </a>
-              <a href={foodHref} className="footer-pill">
+              <a href={foodHref} onClick={handlePageLink} className="footer-pill">
                 <span>Diner bites</span>
                 <small>₱99 wings & comfort</small>
               </a>
-              <a href={homeHref("story")} className="footer-pill">
+              <a href={homeHref("story")} onClick={handlePageLink} className="footer-pill">
                 <span>Our story</span>
                 <small>Two crafts, one home</small>
               </a>
@@ -1925,7 +1967,7 @@ function App() {
           <div className="bag-content">
             <span className="eyebrow">BEAN DINER · BAYAMBANG</span>
             <h2 ref={bagHeadingRef} tabIndex={receipt ? -1 : undefined}>
-              {receipt ? "Your order is ready to send." : "Your order bag."}
+              {receipt ? "Your order is ready to send." : "Your Order"}
             </h2>
             {receipt ? (
               <div className="receipt">
@@ -2031,6 +2073,13 @@ function App() {
               </div>
             ) : (
               <>
+                <button
+                  type="button"
+                  className="button button-order-more"
+                  onClick={() => setBagOpen(false)}
+                >
+                  + Order More / Browse Menu
+                </button>
                 <div className="cart-items">
                   {cart.map((item) => {
                     const p = products.find((p) => p.id === item.id);
@@ -2097,6 +2146,14 @@ function App() {
                             </div>
                             <strong>{money(item.price * item.quantity)}</strong>
                           </div>
+                          <button
+                            type="button"
+                            className="cart-item-remove"
+                            onClick={() => removeItem(item.key)}
+                            aria-label={`Remove ${title} from bag`}
+                          >
+                            Remove
+                          </button>
                         </div>
                       </div>
                     );
@@ -2279,10 +2336,11 @@ function App() {
                   </small>
                 </form>
                 <button
-                  className="continue-shopping text-link"
+                  type="button"
+                  className="button button-order-more"
                   onClick={() => setBagOpen(false)}
                 >
-                  Keep exploring
+                  + Order More / Browse Menu
                 </button>
               </>
             )}
@@ -2298,10 +2356,7 @@ function App() {
         >
           <Logo
             href={homeHref("home")}
-            onClick={(e) => {
-              setNavOpen(false);
-              handleLogoClick(e);
-            }}
+            onClick={handlePageLink}
           />
           <nav className="mobile-nav-list">
             {[
@@ -2346,7 +2401,7 @@ function App() {
                 href={item.href}
                 target={item.isExternal ? "_blank" : undefined}
                 rel={item.isExternal ? "noopener noreferrer" : undefined}
-                onClick={() => setNavOpen(false)}
+                onClick={item.isExternal ? () => setNavOpen(false) : handlePageLink}
                 className={`mobile-nav-item ${item.isExternal ? "mobile-nav-fb" : ""}`}
               >
                 <div className="mobile-nav-meta">
@@ -2372,6 +2427,21 @@ function App() {
             <small>Gen. Antonio Luna St., Bayambang · Open daily</small>
           </div>
         </Modal>
+      )}
+      {cart.length > 0 && (
+        <button
+          type="button"
+          className="floating-bag-bubble"
+          onClick={() => {
+            setReceipt(false);
+            setBagOpen(true);
+          }}
+          aria-label={`View order bag with ${cartCount} items`}
+        >
+          <span className="floating-bag-badge">{cartCount}</span>
+          <span className="floating-bag-text">View Order Bag</span>
+          <span className="floating-bag-price">{money(subtotal - discount)}</span>
+        </button>
       )}
       {/* ↓ FLOATING MESSENGER BUTTON: Direct chat with Bean Diner */}
       <a

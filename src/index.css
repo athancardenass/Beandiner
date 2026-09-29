@@ -2188,6 +2188,25 @@ main {
   margin: 12px 0 28px;
   max-width: 360px;
 }
+.button-order-more {
+  width: 100%;
+  min-height: 48px;
+  margin: 0 0 24px;
+  padding: 14px 16px;
+  border: 1px solid #8c6546;
+  background: #fbf5e9;
+  color: var(--accent);
+  font-size: 13px;
+  text-align: center;
+  white-space: normal;
+}
+.button-order-more:hover {
+  background: #8c6546;
+  color: #fbf5e9;
+}
+.checkout-form + .button-order-more {
+  margin: 20px 0 0;
+}
 /* ↓ CART ITEMS: List of cart items */
 .cart-items {
   display: flex;
@@ -2207,7 +2226,33 @@ main {
 }
 .cart-item > div {
   flex: 1;
+  min-width: 0;
   padding: 7px 0;
+}
+.cart-item > img,
+.cart-item > .cart-food-icon {
+  flex: 0 0 88px;
+}
+.cart-item h3,
+.cart-item p {
+  overflow-wrap: anywhere;
+}
+.cart-item-remove {
+  min-width: 64px;
+  min-height: 44px;
+  padding: 8px 12px;
+  margin-top: 4px;
+  margin-bottom: 6px;
+  border-radius: var(--radius-control);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.cart-item-remove:hover {
+  background: #8c654610;
+  color: #973c32;
 }
 .cart-item h3 {
   font-size: 24px;
@@ -2219,6 +2264,8 @@ main {
 /* ↓ CART ITEM BOTTOM: Quantity + price row */
 .cart-item-bottom {
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   align-items: center;
   justify-content: space-between;
   margin-top: 12px;
@@ -3853,7 +3900,71 @@ main {
   transform: translateY(-3px) scale(1.03);
   box-shadow: 0 12px 30px rgba(0, 132, 255, 0.5);
 }
+.floating-bag-bubble {
+  position: fixed;
+  left: max(24px, env(safe-area-inset-left, 0px));
+  bottom: max(24px, env(safe-area-inset-bottom, 0px));
+  z-index: 91;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: calc(100vw - 220px);
+  min-height: 56px;
+  padding: 10px 18px 10px 10px;
+  border-radius: 999px;
+  background: #8c6546;
+  color: #fbf5e9;
+  box-shadow: 0 6px 20px #2b211c30;
+  font-size: 13px;
+  font-weight: 650;
+  transition: background 0.2s;
+}
+.floating-bag-bubble:hover {
+  background: var(--accent);
+}
+.floating-bag-badge {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 4px;
+  border-radius: 50%;
+  background: #fbf5e9;
+  color: #8c6546;
+}
+.floating-bag-text {
+  min-width: 0;
+}
+.floating-bag-price {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.floating-bag-bubble:focus-visible,
+.button-order-more:focus-visible,
+.cart-item-remove:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+body:has(.floating-bag-bubble) .footer-artisanal {
+  padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+}
 @media (max-width: 760px) {
+  .floating-bag-bubble {
+    left: max(14px, env(safe-area-inset-left, 0px));
+    right: calc(84px + env(safe-area-inset-right, 0px));
+    bottom: max(14px, env(safe-area-inset-bottom, 0px));
+    max-width: none;
+    min-height: 48px;
+    gap: 8px;
+    padding: 8px 12px 8px 8px;
+    font-size: 12px;
+  }
+  body:has(.floating-bag-bubble) .toast {
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
   .floating-messenger {
     bottom: max(14px, env(safe-area-inset-bottom, 14px));
     right: 14px;

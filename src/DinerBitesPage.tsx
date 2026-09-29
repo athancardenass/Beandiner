@@ -1,8 +1,10 @@
+import type { MouseEvent } from "react";
 import { dinerBites, type DinerBite } from "./dinerBites";
 
 type DinerBitesPageProps = {
   onAdd: (bite: DinerBite) => void;
   drinksHref: string;
+  onNavigate: (event: MouseEvent<HTMLAnchorElement>) => void;
 };
 
 const money = (amount: number) => `₱${amount.toLocaleString("en-PH")}`;
@@ -52,6 +54,7 @@ function FoodItem({
 export default function DinerBitesPage({
   onAdd,
   drinksHref,
+  onNavigate,
 }: DinerBitesPageProps) {
   return (
     <>
@@ -121,7 +124,7 @@ export default function DinerBitesPage({
           Something to <em>sip with that?</em>
         </h2>
         <p>Specialty brews, creamy Oatside lattes, and comforting diner sips.</p>
-        <a className="button" href={drinksHref}>
+        <a className="button" href={drinksHref} onClick={onNavigate}>
           Explore our drinks
         </a>
       </section>
