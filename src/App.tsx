@@ -284,40 +284,45 @@ const copyToClipboard = (text: string): boolean => {
   return copied;
 };
 
-// ↓ MESSENGER URL: Universal Facebook Page Messenger Destination
-// Uses https://www.facebook.com/messages/t/100959311683531 across ALL platforms (desktop and mobile 2020-2026).
-// CRITICAL: NEVER use m.me or standalone messenger.com for Facebook Business Pages, because Meta's standalone
-// messenger.com rejects Page inboxes with: "This content isn't available right now. When this happens, it's usually
-// because the owner only shared it with a small group of people, changed who can see it or it's been deleted."
-// facebook.com/messages/t/100959311683531 works reliably on mobile web, mobile simulators, desktop browsers,
-// and invokes the native Messenger app via Universal Links on real iOS/Android devices.
+// ↓ MESSENGER URL: Universal Mobile App Deep Link & Desktop Messenger Destination
+const MESSENGER_PAGE_ID = "100959311683531";
+const MESSENGER_USERNAME = "beandiner";
+
+const isMobileDevice = () => {
+  if (typeof navigator === "undefined") return false;
+  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || "");
+};
+
+// Returns native app deep link for mobile devices to invoke installed Messenger app directly,
+// avoiding the mobile browser login screen at messenger.com.
 const getMessengerUrl = () => {
-  return "https://www.facebook.com/messages/t/100959311683531";
+  if (isMobileDevice()) {
+    return `fb-messenger://user-thread/${MESSENGER_PAGE_ID}`;
+  }
+  return `https://www.facebook.com/messages/t/${MESSENGER_PAGE_ID}`;
 };
 
 const FACEBOOK_PAGE_URL = "https://www.facebook.com/beandiner";
 
-// Open external URL with webview/Electron fallback
-const openExternalUrl = (url: string) => {
-  try {
-    const win = window.open(url, "_blank", "noopener,noreferrer");
-    if (!win) {
-      const a = document.createElement("a");
-      a.href = url;
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
-  } catch {
-    const a = document.createElement("a");
-    a.href = url;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+// Open Messenger function: invokes native Messenger app on mobile with m.me web fallback
+const openMessengerApp = () => {
+  if (isMobileDevice()) {
+    const appUrl = `fb-messenger://user-thread/${MESSENGER_PAGE_ID}`;
+    const webFallback = `https://m.me/${MESSENGER_USERNAME}`;
+    
+    // Direct location assignment prompts the OS to open the Messenger application
+    window.location.href = appUrl;
+    
+    // Fallback if Messenger app is not installed
+    const start = Date.now();
+    setTimeout(() => {
+      if (document.visibilityState !== "hidden" && Date.now() - start < 2500) {
+        window.location.href = webFallback;
+      }
+    }, 1500);
+  } else {
+    const desktopUrl = `https://www.facebook.com/messages/t/${MESSENGER_PAGE_ID}`;
+    window.open(desktopUrl, "_blank", "noopener,noreferrer");
   }
 };
 
@@ -342,7 +347,7 @@ const sendToMessenger = (
     payment,
   );
   copyToClipboard(message);
-  openExternalUrl(getMessengerUrl());
+  openMessengerApp();
   return message;
 };
 // ↓ ICON COMPONENT: SVG icon set (arrow, bag, close, menu, plus, minus, play, check)
@@ -775,11 +780,11 @@ function ProductModal({
         </div>
         <a
           href={getMessengerUrl()}
-          target="_blank"
+          target={isMobileDevice() ? "_self" : "_blank"}
           rel="noopener noreferrer"
           className="button button-messenger-direct"
           style={{ textDecoration: "none", textAlign: "center", display: "flex", justifyContent: "center" }}
-          onClick={() => {
+          onClick={(e) => {
             const trimmedNote = note.trim();
             const singleItem: CartItem = {
               key: `${product.id}-${size}-${milk}-${temperature}-${sweetness}-${iceLevel}${trimmedNote ? `-${trimmedNote}` : ""}`,
@@ -805,6 +810,10 @@ function ProductModal({
             );
             copyToClipboard(msg);
             onDirectOrder?.(msg);
+            if (isMobileDevice()) {
+              e.preventDefault();
+              openMessengerApp();
+            }
             setTimeout(() => onClose(), 150);
           }}
         >
@@ -1773,9 +1782,15 @@ function App() {
               </a>
               <a
                 href={getMessengerUrl()}
-                target="_blank"
+                target={isMobileDevice() ? "_self" : "_blank"}
                 rel="noopener noreferrer"
                 className="footer-pill footer-pill-fb"
+                onClick={(e) => {
+                  if (isMobileDevice()) {
+                    e.preventDefault();
+                    openMessengerApp();
+                  }
+                }}
               >
                 <span>Chat on Messenger</span>
                 <small>Order & table inquiry</small>
@@ -1916,14 +1931,18 @@ function App() {
 
                   <a
                     href={getMessengerUrl()}
-                    target="_blank"
+                    target={isMobileDevice() ? "_self" : "_blank"}
                     rel="noopener noreferrer"
                     className="button-copy-messenger"
                     style={{ textDecoration: "none" }}
-                    onClick={() => {
+                    onClick={(e) => {
                       if (lastOrder) {
                         copyToClipboard(lastOrder);
                         setToast("✓ Order details copied! Opening Messenger...");
+                      }
+                      if (isMobileDevice()) {
+                        e.preventDefault();
+                        openMessengerApp();
                       }
                     }}
                   >
@@ -2332,10 +2351,16 @@ function App() {
       {/* ↓ FLOATING MESSENGER BUTTON: Direct chat with Bean Diner */}
       <a
         href={getMessengerUrl()}
-        target="_blank"
+        target={isMobileDevice() ? "_self" : "_blank"}
         rel="noopener noreferrer"
         className="floating-messenger"
         aria-label="Chat with Bean Diner on Facebook Messenger"
+        onClick={(e) => {
+          if (isMobileDevice()) {
+            e.preventDefault();
+            openMessengerApp();
+          }
+        }}
       >
         <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
           <path d="M12 2C6.48 2 2 6.03 2 11c0 2.87 1.5 5.43 3.84 7.02l-.65 2.45a.75.75 0 0 0 .97.9l2.84-1.22c.96.28 1.97.43 3 .43 5.52 0 10-4.03 10-9s-4.48-9-10-9zm1.06 12.15-2.58-2.75-5.04 2.75 5.54-5.88 2.64 2.75 4.98-2.75-5.54 5.88z" />
