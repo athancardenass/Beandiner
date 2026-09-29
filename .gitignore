@@ -1,4 +1,4 @@
-node_modules/.vite/
+node_modules/
 .vite/
 *.log
 .DS_Store
