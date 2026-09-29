@@ -1076,6 +1076,93 @@ main {
   border-bottom: 1px solid #2b211c25;
 }
 /* ↓ MENU FILTERS: Drink category filter buttons */
+.social-ordering-guide {
+  margin-bottom: 28px;
+  padding: 24px 0;
+  border-block: 1px solid #8c654640;
+}
+.social-ordering-guide > h3 {
+  margin: 0 0 20px;
+  font-family: var(--serif);
+  font-size: clamp(24px, 3vw, 30px);
+  font-weight: 400;
+  color: var(--accent);
+}
+.ordering-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  text-align: left;
+}
+.ordering-steps li {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+.ordering-steps li > div {
+  min-width: 0;
+}
+.ordering-step-number {
+  display: grid;
+  place-items: center;
+  flex: 0 0 32px;
+  height: 32px;
+  border: 1px solid #8c6546;
+  border-radius: 50%;
+  color: var(--accent);
+  background: #fbf5e9;
+  font-weight: 700;
+  font-size: 14px;
+  z-index: 1;
+}
+.ordering-steps h3 {
+  margin: 3px 0 6px;
+  font-family: "DM Sans", sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--accent);
+}
+.ordering-steps p {
+  margin: 0;
+  max-width: none;
+  color: #65564c;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.ordering-steps-handoff {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 380px;
+  margin: 0 auto 28px;
+}
+.ordering-steps-handoff li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 32px;
+  bottom: -24px;
+  left: 15px;
+  border-left: 1px solid #8c654660;
+}
+@media (max-width: 700px) {
+  .social-ordering-guide .ordering-steps {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+  .social-ordering-guide .ordering-steps li:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    top: 32px;
+    bottom: -20px;
+    left: 15px;
+    border-left: 1px solid #8c654660;
+  }
+}
 .menu-filters {
   display: flex;
   gap: 9px;
@@ -4184,6 +4271,50 @@ main {
   padding: 20px;
   box-shadow: 0 8px 22px rgba(44, 24, 16, 0.11),
     0 2px 5px rgba(44, 24, 16, 0.06);
+}
+.receipt {
+  padding-top: 0;
+}
+.receipt .receipt-intro {
+  margin-top: 0;
+  font-size: 14px;
+}
+.receipt .ordering-steps h3 {
+  font-size: 15px;
+}
+.receipt .ordering-steps p {
+  margin: 0;
+  max-width: none;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.receipt .clipboard-card-header {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.receipt .clipboard-preview-box {
+  overflow-wrap: anywhere;
+}
+.messenger-browser-fallback,
+.receipt .button-facebook-page-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 0;
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.receipt .button-continue-shopping {
+  min-height: 48px;
+  white-space: normal;
+  text-align: center;
+}
+.receipt .button-continue-shopping svg {
+  flex-shrink: 0;
 }
 .clipboard-preview-box {
   border: 1px dashed #b9a18d;

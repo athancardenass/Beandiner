@@ -286,70 +286,77 @@ const copyToClipboard = (text: string): boolean => {
 
 // ↓ MESSENGER URL: Universal Mobile App Deep Link & Desktop Messenger Destination
 const MESSENGER_PAGE_ID = "100959311683531";
-const MESSENGER_USERNAME = "beandiner";
 
 const isMobileDevice = () => {
   if (typeof navigator === "undefined") return false;
   return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || "");
 };
 
-// Returns native app deep link for mobile devices to invoke installed Messenger app directly,
-// avoiding the mobile browser login screen at messenger.com.
-const getMessengerUrl = () => {
-  if (isMobileDevice()) {
-    return `fb-messenger://user-thread/${MESSENGER_PAGE_ID}`;
-  }
-  return `https://www.facebook.com/messages/t/${MESSENGER_PAGE_ID}`;
-};
+// Every anchor keeps a safe web destination for new-tab and modified clicks.
+const getMessengerUrl = () =>
+  `https://www.facebook.com/messages/t/${MESSENGER_PAGE_ID}`;
 
 const FACEBOOK_PAGE_URL = "https://www.facebook.com/beandiner";
 
-// Open Messenger function: invokes native Messenger app on mobile with m.me web fallback
+let cancelMessengerFallback: (() => void) | undefined;
+
+// Only the native scheme may leave this tab. Web destinations always open separately.
 const openMessengerApp = () => {
+  cancelMessengerFallback?.();
   if (isMobileDevice()) {
     const appUrl = `fb-messenger://user-thread/${MESSENGER_PAGE_ID}`;
-    const webFallback = `https://m.me/${MESSENGER_USERNAME}`;
-    
-    // Direct location assignment prompts the OS to open the Messenger application
-    window.location.href = appUrl;
-    
-    // Fallback if Messenger app is not installed
-    const start = Date.now();
-    setTimeout(() => {
-      if (document.visibilityState !== "hidden" && Date.now() - start < 2500) {
-        window.location.href = webFallback;
+    const cleanup = () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pagehide", cleanup);
+      cancelMessengerFallback = undefined;
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") cleanup();
+    };
+    const timer = window.setTimeout(() => {
+      cleanup();
+      if (document.visibilityState === "visible") {
+        // If a browser blocks delayed popups, the receipt also offers a direct web link.
+        window.open(getMessengerUrl(), "_blank", "noopener,noreferrer");
       }
     }, 1500);
+    cancelMessengerFallback = cleanup;
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("pagehide", cleanup);
+    window.location.href = appUrl;
   } else {
-    const desktopUrl = `https://www.facebook.com/messages/t/${MESSENGER_PAGE_ID}`;
-    window.open(desktopUrl, "_blank", "noopener,noreferrer");
+    window.open(getMessengerUrl(), "_blank", "noopener,noreferrer");
   }
 };
 
-const sendToMessenger = (
-  items: CartItem[],
-  customerName: string,
-  customerPhone: string,
-  totalAmount: number,
-  bundleDiscount: number = 0,
-  orderType: "pickup" | "dine-in" | "delivery" = "pickup",
-  extraInfo: string = "",
-  payment: CheckoutPayment = "gcash",
-) => {
-  const message = formatOrderMessage(
-    items,
-    customerName,
-    customerPhone,
-    totalAmount,
-    bundleDiscount,
-    orderType,
-    extraInfo,
-    payment,
+function OrderingSteps({ handoff = false }: { handoff?: boolean }) {
+  const steps = handoff
+    ? [
+        ["Order Copied", "Details are saved to your clipboard"],
+        ["Open Chat", "Tap the button below to launch Messenger"],
+        ["Paste & Send", "Long-press the chat bar, tap Paste, and send"],
+      ]
+    : [
+        ["Choose Your Sips & Bites", "Explore signature iced roasts and comfort kitchen plates"],
+        ["Pick Order Mode", "For pick up, Dine in with table #, or Door to door delivery"],
+        ["Paste in Messenger", "Your order is auto-formatted; paste to chat with our crew"],
+      ];
+
+  return (
+    <ol className={`ordering-steps${handoff ? " ordering-steps-handoff" : ""}`} aria-label={handoff ? "Send your order in three steps" : "How social ordering works"}>
+      {steps.map(([title, description], index) => (
+        <li key={title}>
+          <span className="ordering-step-number" aria-hidden="true">{index + 1}</span>
+          <div>
+            <h3><span className="sr-only">{index + 1}. </span>{title}</h3>
+            <p>{description}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
   );
-  copyToClipboard(message);
-  openMessengerApp();
-  return message;
-};
+}
 // ↓ ICON COMPONENT: SVG icon set (arrow, bag, close, menu, plus, minus, play, check)
 function Icon({
   name,
@@ -780,7 +787,7 @@ function ProductModal({
         </div>
         <a
           href={getMessengerUrl()}
-          target={isMobileDevice() ? "_self" : "_blank"}
+          target="_blank"
           rel="noopener noreferrer"
           className="button button-messenger-direct"
           style={{ textDecoration: "none", textAlign: "center", display: "flex", justifyContent: "center" }}
@@ -810,7 +817,7 @@ function ProductModal({
             );
             copyToClipboard(msg);
             onDirectOrder?.(msg);
-            if (isMobileDevice()) {
+            if (isMobileDevice() && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
               e.preventDefault();
               openMessengerApp();
             }
@@ -1024,6 +1031,13 @@ function App() {
   const [navOpen, setNavOpen] = useState(false);
   const [filter, setFilter] = useState("All drinks");
   const [receipt, setReceipt] = useState(false);
+  const bagHeadingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (receipt) {
+      bagHeadingRef.current?.focus({ preventScroll: true });
+      bagHeadingRef.current?.closest("dialog")?.scrollTo({ top: 0 });
+    }
+  }, [receipt]);
   const [toast, setToast] = useState("");
   const [lastOrder, setLastOrder] = useState("");
   const [storeStatus, setStoreStatus] = useState(getStoreStatus);
@@ -1493,6 +1507,10 @@ function App() {
               Specialty brews, creamy Oatside lattes, and comforting diner sips.
             </p>
           </div>
+          <section className="social-ordering-guide" aria-labelledby="social-ordering-title">
+            <h3 id="social-ordering-title">How Social Ordering Works</h3>
+            <OrderingSteps />
+          </section>
           <div className="menu-toolbar">
             <div
               className="menu-filters"
@@ -1782,11 +1800,11 @@ function App() {
               </a>
               <a
                 href={getMessengerUrl()}
-                target={isMobileDevice() ? "_self" : "_blank"}
+                target="_blank"
                 rel="noopener noreferrer"
                 className="footer-pill footer-pill-fb"
                 onClick={(e) => {
-                  if (isMobileDevice()) {
+                  if (isMobileDevice() && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
                     e.preventDefault();
                     openMessengerApp();
                   }
@@ -1906,21 +1924,22 @@ function App() {
         >
           <div className="bag-content">
             <span className="eyebrow">BEAN DINER · BAYAMBANG</span>
-            <h2>{receipt ? "Your order is ready to send on Facebook!" : "Your order bag."}</h2>
+            <h2 ref={bagHeadingRef} tabIndex={receipt ? -1 : undefined}>
+              {receipt ? "Your order is ready to send." : "Your order bag."}
+            </h2>
             {receipt ? (
               <div className="receipt">
-                <Sun />
-                <h3>Your order is ready to send on Facebook!</h3>
-                <p>
-                  Your complete order summary has been formatted and copied to your clipboard. Bean Diner's Messenger chat is open — simply paste into the chat to send!
+                <p className="receipt-intro">
+                  Your order is copied. Open Messenger when you're ready, then paste and send it to our crew to confirm. Bean Diner stays open here.
                 </p>
+                <OrderingSteps handoff />
                 {/* ↓ BORDERED CLIPBOARD CARD */}
                 <div className="receipt-clipboard-card">
                   <div className="clipboard-card-header">
                     <span className="clipboard-card-title">
                       Order Summary for Messenger
                     </span>
-                    <span className="clipboard-badge">✓ Ready to send</span>
+                    <span className="clipboard-badge">Ready to send</span>
                   </div>
 
                   {lastOrder && (
@@ -1931,7 +1950,7 @@ function App() {
 
                   <a
                     href={getMessengerUrl()}
-                    target={isMobileDevice() ? "_self" : "_blank"}
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="button-copy-messenger"
                     style={{ textDecoration: "none" }}
@@ -1940,13 +1959,21 @@ function App() {
                         copyToClipboard(lastOrder);
                         setToast("✓ Order details copied! Opening Messenger...");
                       }
-                      if (isMobileDevice()) {
+                      if (isMobileDevice() && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
                         e.preventDefault();
                         openMessengerApp();
                       }
                     }}
                   >
                     Copy this and open Messenger ↗
+                  </a>
+                  <a
+                    href={getMessengerUrl()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="messenger-browser-fallback"
+                  >
+                    Open Messenger in browser <Icon name="arrow" size={16} />
                   </a>
                   <a
                     href={FACEBOOK_PAGE_URL}
@@ -1982,7 +2009,7 @@ function App() {
                     scrollToMenu();
                   }}
                 >
-                  Find another favorite <Icon name="arrow" />
+                  Back to Menu / Keep Exploring <Icon name="arrow" />
                 </button>
               </div>
             ) : cart.length === 0 ? (
@@ -2110,7 +2137,7 @@ function App() {
                     ) as HTMLInputElement;
                     const customerName = nameInput?.value || "";
                     const customerPhone = phoneInput?.value.trim() || "";
-                    const msg = sendToMessenger(
+                    const msg = formatOrderMessage(
                       cart,
                       customerName,
                       customerPhone,
@@ -2120,10 +2147,9 @@ function App() {
                       checkoutExtra,
                       checkoutPayment,
                     );
+                    copyToClipboard(msg);
                     setLastOrder(msg);
-                    setToast(
-                      "✓ Order details copied to clipboard! Paste into Messenger.",
-                    );
+                    setToast("✓ Order copied! Follow the guide below to send.");
                     setReceipt(true);
                     setCart([]);
                   }}
@@ -2246,11 +2272,10 @@ function App() {
                     className="button button-messenger-checkout"
                     type="submit"
                   >
-                    Send Order to Facebook Messenger
+                    Copy Order & See Sending Guide
                   </button>
                   <small>
-                    Copies your order summary &amp; opens Bean Diner's Messenger
-                    automatically!
+                    Copies your order summary and shows you how to send it in Messenger.
                   </small>
                 </form>
                 <button
@@ -2351,12 +2376,12 @@ function App() {
       {/* ↓ FLOATING MESSENGER BUTTON: Direct chat with Bean Diner */}
       <a
         href={getMessengerUrl()}
-        target={isMobileDevice() ? "_self" : "_blank"}
+        target="_blank"
         rel="noopener noreferrer"
         className="floating-messenger"
         aria-label="Chat with Bean Diner on Facebook Messenger"
         onClick={(e) => {
-          if (isMobileDevice()) {
+          if (isMobileDevice() && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
             e.preventDefault();
             openMessengerApp();
           }
