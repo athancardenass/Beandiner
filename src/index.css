@@ -2204,9 +2204,6 @@ main {
   background: #8c6546;
   color: #fbf5e9;
 }
-.checkout-form + .button-order-more {
-  margin: 20px 0 0;
-}
 /* ↓ CART ITEMS: List of cart items */
 .cart-items {
   display: flex;
@@ -3836,22 +3833,6 @@ main {
   }
 }
 /* ↓ MESSENGER BUTTONS: Direct Facebook Messenger CTA styling */
-.button-messenger-direct {
-  width: 100%;
-  margin-top: 10px;
-  background: #0084ff;
-  color: #ffffff;
-  border-color: #0084ff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 11px;
-}
-.button-messenger-direct:hover {
-  background: #0072db;
-  border-color: #0072db;
-}
 .button-messenger-checkout {
   width: 100%;
   background: #0084ff;
@@ -4360,21 +4341,6 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   border-radius: 999px;
   font-weight: 700;
 }
-.button-messenger-direct {
-  min-height: 48px;
-  margin-top: 11px;
-  border-radius: 999px;
-  font-weight: 700;
-  transition: transform 180ms ease, box-shadow 180ms ease,
-    background-color 180ms ease;
-}
-.button-messenger-direct:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 7px 16px rgba(0, 132, 255, 0.24);
-}
-.button-messenger-direct:active {
-  transform: translateY(0) scale(0.99);
-}
 
 /* RECEIPT: clear hierarchy and a comfortable order preview */
 .receipt-clipboard-card {
@@ -4406,7 +4372,6 @@ body:has(.floating-bag-bubble) .footer-artisanal {
 .receipt .clipboard-preview-box {
   overflow-wrap: anywhere;
 }
-.messenger-browser-fallback,
 .receipt .button-facebook-page-fallback {
   display: flex;
   align-items: center;
@@ -5195,7 +5160,6 @@ body:has(.floating-bag-bubble) .footer-artisanal {
     min-height: 52px;
     font-size: 11px;
   }
-  .button-messenger-direct,
   .button-messenger-checkout,
   .button-copy-messenger {
     min-height: 54px;

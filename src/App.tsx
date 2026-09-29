@@ -530,12 +530,10 @@ function ProductModal({
   product,
   onClose,
   onAdd,
-  onDirectOrder,
 }: {
   product: Product;
   onClose: () => void;
   onAdd: (item: CartItem) => void;
-  onDirectOrder?: (msg: string) => void;
 }) {
   const isIcedDrink = product.name.toLowerCase().includes("iced");
   const isHotDrink = product.name.toLowerCase().includes("hot");
@@ -547,8 +545,6 @@ function ProductModal({
   const [sweetness, setSweetness] = useState("100% Sweet");
   const [iceLevel, setIceLevel] = useState("Regular Ice");
   const [quantity, setQuantity] = useState(1);
-  const [orderType, setOrderType] = useState<"pickup" | "dine-in" | "delivery">("pickup");
-  const [extraInfo, setExtraInfo] = useState("");
   const [note, setNote] = useState("");
   const hasMilk = true;
   const price =
@@ -691,66 +687,6 @@ function ProductModal({
           </fieldset>
         )}
 
-        {/* Order Type: Pick up, Dine in, Door to door */}
-        <fieldset>
-          <legend>How would you like your order?</legend>
-          <div className="choice-row order-type-row">
-            {[
-              { id: "pickup", label: "For pick up" },
-              { id: "dine-in", label: "Dine in" },
-              { id: "delivery", label: "Door to door" },
-            ].map((t) => (
-              <label className={orderType === t.id ? "selected" : ""} key={t.id}>
-                <input
-                  type="radio"
-                  name="modalOrderType"
-                  checked={orderType === t.id}
-                  onChange={() => {
-                    setOrderType(t.id as any);
-                    setExtraInfo("");
-                  }}
-                />
-                <span>{t.label}</span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-
-        {orderType === "dine-in" && (
-          <div className="order-extra-field">
-            <label htmlFor="modal-table-num">Table number (optional):</label>
-            <input
-              id="modal-table-num"
-              type="text"
-              placeholder="e.g. Table 3"
-              value={extraInfo}
-              onChange={(e) => setExtraInfo(e.target.value)}
-              maxLength={20}
-            />
-          </div>
-        )}
-
-        {orderType === "delivery" && (
-          <div className="order-extra-field">
-            <label htmlFor="modal-delivery-addr">Delivery address & landmark:</label>
-            <input
-              id="modal-delivery-addr"
-              type="text"
-              placeholder="e.g. Brgy. Zone 1, near Church"
-              value={extraInfo}
-              onChange={(e) => setExtraInfo(e.target.value)}
-              required
-              maxLength={120}
-            />
-          </div>
-        )}
-
-        {orderType === "pickup" && (
-          <div className="pickup-notice">
-            <small>Pickup: Bean Diner · Gen. Antonio Luna St., Bayambang</small>
-          </div>
-        )}
-
         {hasMilk && (
           <fieldset>
             <legend>Your milk</legend>
@@ -798,47 +734,6 @@ function ProductModal({
             <Icon name="bag" size={18} />
           </button>
         </div>
-        <a
-          href={getMessengerUrl()}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="button button-messenger-direct"
-          style={{ textDecoration: "none", textAlign: "center", display: "flex", justifyContent: "center" }}
-          onClick={(e) => {
-            const trimmedNote = note.trim();
-            const singleItem: CartItem = {
-              key: `${product.id}-${size}-${milk}-${temperature}-${sweetness}-${iceLevel}${trimmedNote ? `-${trimmedNote}` : ""}`,
-              id: product.id,
-              size,
-              milk,
-              temperature,
-              sweetness,
-              iceLevel,
-              quantity,
-              price,
-              name: product.name,
-              note: trimmedNote || undefined,
-            };
-            const msg = formatOrderMessage(
-              [singleItem],
-              "",
-              "",
-              price * quantity,
-              0,
-              orderType,
-              extraInfo,
-            );
-            copyToClipboard(msg);
-            onDirectOrder?.(msg);
-            if (isMobileDevice() && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
-              e.preventDefault();
-              openMessengerApp();
-            }
-            setTimeout(() => onClose(), 150);
-          }}
-        >
-          Order Now via Messenger ↗
-        </a>
       </form>
     </Modal>
   );
@@ -1948,10 +1843,6 @@ function App() {
           product={selected}
           onClose={() => setSelected(null)}
           onAdd={add}
-          onDirectOrder={(msg) => {
-            setLastOrder(msg);
-            setToast("✓ Order details copied to clipboard! Paste in Messenger.");
-          }}
         />
       )}
       {/* ↓ BAG MODAL: Shopping cart drawer */}
@@ -2008,14 +1899,6 @@ function App() {
                     }}
                   >
                     Copy this and open Messenger ↗
-                  </a>
-                  <a
-                    href={getMessengerUrl()}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="messenger-browser-fallback"
-                  >
-                    Open Messenger in browser <Icon name="arrow" size={16} />
                   </a>
                   <a
                     href={FACEBOOK_PAGE_URL}
@@ -2335,13 +2218,6 @@ function App() {
                     Copies your order summary and shows you how to send it in Messenger.
                   </small>
                 </form>
-                <button
-                  type="button"
-                  className="button button-order-more"
-                  onClick={() => setBagOpen(false)}
-                >
-                  + Order More / Browse Menu
-                </button>
               </>
             )}
           </div>
