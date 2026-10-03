@@ -7,6 +7,8 @@ export type DinerBite = {
   tag: string;
   badge: string;
   sample?: boolean;
+  options?: string[];
+  optionLabel?: string;
 };
 
 export type FoodCategory = {
@@ -114,7 +116,9 @@ export const foodCategories: FoodCategory[] = [
         "description": "Toasted flour tortilla packed with melted cheese and seasoned meat, served with salsa.",
         "price": 195,
         "tag": "MELTY COMFORT",
-        "badge": "POPULAR"
+        "badge": "POPULAR",
+        "options": ["Beef", "Chicken"],
+        "optionLabel": "Choose filling"
       },
       {
         "id": "sweet-spicy-tofu",
@@ -195,7 +199,9 @@ export const foodCategories: FoodCategory[] = [
         "description": "Freshly fried potato fries generously dusted in your choice of flavor seasoning.",
         "price": 160,
         "tag": "FLAVORED FRIES",
-        "badge": "BEST VALUE"
+        "badge": "BEST VALUE",
+        "options": ["Cheese", "BBQ", "Sour Cream"],
+        "optionLabel": "Choose flavor seasoning"
       },
       {
         "id": "chicken-wings",
@@ -204,7 +210,9 @@ export const foodCategories: FoodCategory[] = [
         "description": "Crispy double-dredged chicken wings tossed in your choice of signature handcrafted sauce.",
         "price": 230,
         "tag": "DINER HERO",
-        "badge": "BEST SELLER"
+        "badge": "BEST SELLER",
+        "options": ["Soy Garlic", "Salted Egg", "Sriracha", "Buffalo", "Yangnyeom"],
+        "optionLabel": "Choose signature glaze"
       }
     ]
   },
@@ -240,7 +248,9 @@ export const foodCategories: FoodCategory[] = [
         "description": "Crispy bites wok-tossed in sweet and sour bell pepper pineapple reduction with rice.",
         "price": 195,
         "tag": "WOK COMFORT",
-        "badge": "POPULAR"
+        "badge": "POPULAR",
+        "options": ["Fish", "Chicken"],
+        "optionLabel": "Choose protein"
       },
       {
         "id": "creamy-gravy-tenders",
@@ -420,7 +430,9 @@ export const foodCategories: FoodCategory[] = [
         "description": "Fragrant Genovese sweet basil pesto with grilled chicken and aged shaved Parmesan.",
         "price": 230,
         "tag": "PESTO CRAFT",
-        "badge": "POPULAR"
+        "badge": "POPULAR",
+        "options": ["Oil base", "Cream base"],
+        "optionLabel": "Choose pasta base"
       },
       {
         "id": "chow-mein",
@@ -528,7 +540,9 @@ export const foodCategories: FoodCategory[] = [
         "description": "Fresh farm egg cooked to your preference.",
         "price": 35,
         "tag": "PROTEIN",
-        "badge": "ADD-ON"
+        "badge": "ADD-ON",
+        "options": ["Sunny Side Up", "Scrambled"],
+        "optionLabel": "Egg preparation style"
       },
       {
         "id": "addon-garlic-aioli",

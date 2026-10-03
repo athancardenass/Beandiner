@@ -234,7 +234,8 @@ const formatOrderMessage = (
       ? ` - Note: "${item.note.trim()}"`
       : "";
     if (item.isFood) {
-      return `• ${item.quantity}x ${title} (Chef's Comfort Kitchen Plate)${noteSuffix} - ${money(
+      const displayTitle = item.name || title;
+      return `• ${item.quantity}x ${displayTitle}${noteSuffix} - ${money(
           item.price * item.quantity,
         )}`;
     }
@@ -666,14 +667,14 @@ function ProductModal({
 
         {isIcedDrink && (
           <div className="product-temp-badge">
-            <span className="ice-tag">❄ Iced Signature Drink</span>
+            <span className="ice-tag">Iced Signature Drink</span>
             <small>Specially prepared cold over ice for maximum flavor</small>
           </div>
         )}
 
         {isHotDrink && (
           <div className="product-temp-badge">
-            <span className="hot-tag">☕ Hot Artisan Roast</span>
+            <span className="hot-tag">Hot Artisan Roast</span>
             <small>Freshly pulled espresso with steamed velvety milk</small>
           </div>
         )}
@@ -958,6 +959,128 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
   );
 }
 // ↓ APP COMPONENT: Root component with state, cart, and all sections
+// ↓ DINER BITE CUSTOMIZE MODAL: Flavor / glaze / option selection dialog
+function BiteCustomizeModal({
+  bite,
+  onClose,
+  onAdd,
+}: {
+  bite: DinerBite;
+  onClose: () => void;
+  onAdd: (item: CartItem) => void;
+}) {
+  const [selectedOption, setSelectedOption] = useState<string>(
+    bite.options?.[0] || "",
+  );
+  const [quantity, setQuantity] = useState(1);
+  const [note, setNote] = useState("");
+
+  const cleanName = bite.name.replace(/\s*\([^)]*\)/g, "").trim();
+  const price = bite.price || 0;
+
+  return (
+    <Modal
+      onClose={onClose}
+      label={`Customize ${cleanName}`}
+      className="product-modal bite-customize-modal"
+    >
+      <div className="customize-image bite-modal-header-hero">
+        <span className="eyebrow">{bite.tag}</span>
+        <h3 className="bite-modal-hero-title">{cleanName}</h3>
+        <span className="bite-modal-badge">{bite.badge}</span>
+      </div>
+      <form
+        className="customize-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const trimmedNote = note.trim();
+          onAdd({
+            key: `bite-${bite.id}-${selectedOption}${trimmedNote ? `-${trimmedNote}` : ""}`,
+            id: bite.id,
+            name: `${cleanName} (${selectedOption})`,
+            size: selectedOption,
+            temperature: "Hot & Fresh",
+            quantity,
+            price,
+            isFood: true,
+            note: trimmedNote || undefined,
+          });
+          onClose();
+        }}
+      >
+        <span className="eyebrow">{bite.subtitle}</span>
+        <h2>{cleanName}</h2>
+        <p>{bite.description}</p>
+        <span className="availability">
+          Freshly cooked to order at Antonio Luna St., Bayambang
+        </span>
+
+        {/* Flavor / Option choices */}
+        {bite.options && bite.options.length > 0 && (
+          <fieldset>
+            <legend>{bite.optionLabel || "Select your flavor"}</legend>
+            <div className="choice-row bite-options-row">
+              {bite.options.map((opt) => (
+                <label
+                  className={selectedOption === opt ? "selected" : ""}
+                  key={opt}
+                >
+                  <input
+                    type="radio"
+                    name="bite-option"
+                    checked={selectedOption === opt}
+                    onChange={() => setSelectedOption(opt)}
+                  />
+                  <span>{opt}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
+
+        {/* Special Instructions Note */}
+        <div className="item-note-field">
+          <label htmlFor="bite-item-note">
+            Special instructions / requests (optional)
+          </label>
+          <input
+            id="bite-item-note"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="e.g. Extra crispy, dip on the side, less seasoning..."
+            maxLength={120}
+          />
+        </div>
+
+        <div className="add-row">
+          <div className="quantity" role="group" aria-label="Quantity">
+            <button
+              type="button"
+              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+              disabled={quantity <= 1}
+              aria-label="Decrease quantity"
+            >
+              <Icon name="minus" size={16} />
+            </button>
+            <span aria-live="polite">{quantity}</span>
+            <button
+              type="button"
+              onClick={() => setQuantity((q) => Math.min(20, q + 1))}
+              disabled={quantity >= 20}
+              aria-label="Increase quantity"
+            >
+              <Icon name="plus" size={16} />
+            </button>
+          </div>
+          <button className="button" type="submit">
+            Add to bag <span>{money(price * quantity)}</span>
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 function App() {
   const [currentPage, setCurrentPage] = useState<AppPage>(() => {
     const p = new URLSearchParams(window.location.search).get("page");
@@ -972,6 +1095,7 @@ function App() {
   const beveragesHref = pageHref("beverages");
   const homeHref = (anchor: string) => pageHref("home", anchor);
   const [selected, setSelected] = useState<Product | null>(null);
+  const [customizingBite, setCustomizingBite] = useState<DinerBite | null>(null);
   const [bagOpen, setBagOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [filter, setFilter] = useState("All drinks");
@@ -1209,13 +1333,18 @@ function App() {
     setToast("Freshly brewed, added to your bag.");
   };
 
-  // ↓ ADD DINER BITE: Add comfort food item directly to bag
+  // ↓ ADD DINER BITE: Add comfort food item (or open customization if flavored)
   const addBite = (bite: DinerBite) => {
     if (bite.sample || bite.price === null) return;
+    if (bite.options && bite.options.length > 0) {
+      setCustomizingBite(bite);
+      return;
+    }
+    const cleanName = bite.name.replace(/\s*\([^)]*\)/g, "").trim();
     const item: CartItem = {
       key: `bite-${bite.id}`,
       id: bite.id,
-      name: bite.name,
+      name: cleanName,
       size: "Plate",
       milk: "None",
       temperature: "Hot & Fresh",
@@ -1235,7 +1364,7 @@ function App() {
     });
     setReceipt(false);
     setBagOpen(true);
-    setToast(`${bite.name} added to your bag.`);
+    setToast(`${cleanName} added to your bag.`);
   };
 
   // ↓ ADD BEVERAGE: Add coffee / drink item from dedicated beverages page
@@ -1998,6 +2127,27 @@ function App() {
           onAdd={add}
         />
       )}
+      {customizingBite && (
+        <BiteCustomizeModal
+          bite={customizingBite}
+          onClose={() => setCustomizingBite(null)}
+          onAdd={(item) => {
+            setCart((current) => {
+              const existing = current.find((i) => i.key === item.key);
+              return existing
+                ? current.map((i) =>
+                    i.key === item.key
+                      ? { ...i, quantity: Math.min(20, i.quantity + item.quantity) }
+                      : i,
+                  )
+                : [...current, item];
+            });
+            setReceipt(false);
+            setBagOpen(true);
+            setToast(`${item.name} added to your bag.`);
+          }}
+        />
+      )}
       {/* ↓ BAG MODAL: Shopping cart drawer */}
       {bagOpen && (
         <Modal
@@ -2124,7 +2274,9 @@ function App() {
                     const mod = [...beverageAddOns, ...beverageSubs].find((m) => m.id === item.id);
                     const title = p ? p.name : b ? b.name : bev ? bev.name : mod ? mod.name : item.name || "Item";
                     const desc = item.isFood
-                      ? "Chef's Comfort Kitchen Plate"
+                      ? item.size && item.size !== "Plate"
+                        ? `Flavor: ${item.size}`
+                        : "Chef's Comfort Kitchen Plate"
                       : bev
                         ? `${item.size || bev.defaultSize} · ${bev.hot ? "Hot" : "Over Iced"}`
                         : mod
