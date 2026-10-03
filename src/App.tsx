@@ -8,7 +8,15 @@ import {
   type ReactNode,
 } from "react";
 import DinerBitesPage from "./DinerBitesPage";
+import BeveragesPage from "./BeveragesPage";
 import { dinerBites, type DinerBite } from "./dinerBites";
+import {
+  allBeverages,
+  beverageAddOns,
+  beverageSubs,
+  type BeverageItem,
+  type BeverageModifier,
+} from "./beverages";
 // ↓ UTILITY: Philippine Peso currency formatter
 const money = (n: number) => `₱${n.toLocaleString("en-PH")}`;
 const beanDinerMapsUrl =
@@ -37,9 +45,11 @@ const image = (name: string) => {
   return `./images/optimized/${name}.webp`;
 };
 const menuImage = (name: string) => `./images/menu/${name}.webp`;
-const pageHref = (page: "home" | "diner-bites", anchor = "") => {
+type AppPage = "home" | "diner-bites" | "beverages";
+const pageHref = (page: AppPage, anchor = "") => {
   const url = new URL(window.location.href);
   if (page === "diner-bites") url.searchParams.set("page", "diner-bites");
+  else if (page === "beverages") url.searchParams.set("page", "beverages");
   else url.searchParams.delete("page");
   url.hash = anchor;
   return url.href;
@@ -217,12 +227,24 @@ const formatOrderMessage = (
   const lines = items.map((item) => {
     const p = products.find((p) => p.id === item.id);
     const b = dinerBites.find((b) => b.id === item.id);
-    const title = p ? p.name : b ? b.name : item.name || "Item";
+    const bev = allBeverages.find((bev) => bev.id === item.id);
+    const mod = [...beverageAddOns, ...beverageSubs].find((m) => m.id === item.id);
+    const title = p ? p.name : b ? b.name : bev ? bev.name : mod ? mod.name : item.name || "Item";
     const noteSuffix = item.note?.trim()
       ? ` - Note: "${item.note.trim()}"`
       : "";
     if (item.isFood) {
       return `• ${item.quantity}x ${title} (Chef's Comfort Kitchen Plate)${noteSuffix} - ${money(
+          item.price * item.quantity,
+        )}`;
+    }
+    if (bev) {
+      return `• ${item.quantity}x ${title} (${item.size || bev.defaultSize}, ${bev.hot ? "Hot" : "Over Iced"})${noteSuffix} - ${money(
+          item.price * item.quantity,
+        )}`;
+    }
+    if (mod) {
+      return `• ${item.quantity}x ${title} (Customization)${noteSuffix} - ${money(
           item.price * item.quantity,
         )}`;
     }
@@ -930,14 +952,17 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
 }
 // ↓ APP COMPONENT: Root component with state, cart, and all sections
 function App() {
-  const [currentPage, setCurrentPage] = useState<"home" | "diner-bites">(() =>
-    new URLSearchParams(window.location.search).get("page") === "diner-bites"
-      ? "diner-bites"
-      : "home",
-  );
+  const [currentPage, setCurrentPage] = useState<AppPage>(() => {
+    const p = new URLSearchParams(window.location.search).get("page");
+    if (p === "diner-bites") return "diner-bites";
+    if (p === "beverages") return "beverages";
+    return "home";
+  });
   const isFoodPage = currentPage === "diner-bites";
+  const isBeveragesPage = currentPage === "beverages";
   const navigationFrame = useRef(0);
   const foodHref = pageHref("diner-bites");
+  const beveragesHref = pageHref("beverages");
   const homeHref = (anchor: string) => pageHref("home", anchor);
   const [selected, setSelected] = useState<Product | null>(null);
   const [bagOpen, setBagOpen] = useState(false);
@@ -971,7 +996,10 @@ function App() {
     if (url.href !== window.location.href) {
       window.history.pushState(null, "", url);
     }
-    setCurrentPage(url.searchParams.get("page") === "diner-bites" ? "diner-bites" : "home");
+    const pageParam = url.searchParams.get("page");
+    if (pageParam === "diner-bites") setCurrentPage("diner-bites");
+    else if (pageParam === "beverages") setCurrentPage("beverages");
+    else setCurrentPage("home");
     setNavOpen(false);
     cancelAnimationFrame(navigationFrame.current);
     navigationFrame.current = requestAnimationFrame(scrollToPageAnchor);
@@ -991,7 +1019,10 @@ function App() {
                 (products.some((p) => p.id === item.id) ||
                   dinerBites.some(
                     (b) => b.id === item.id && !b.sample && b.price !== null,
-                  )) &&
+                  ) ||
+                  allBeverages.some((b) => b.id === item.id) ||
+                  beverageAddOns.some((m) => m.id === item.id) ||
+                  beverageSubs.some((m) => m.id === item.id)) &&
                 typeof item.key === "string" &&
                 Number.isFinite(item.price) &&
                 item.price > 0 &&
@@ -1019,8 +1050,10 @@ function App() {
   useEffect(() => {
     document.title = isFoodPage
       ? "Diner Bites & Comfort Plates | Bean Diner"
+      : isBeveragesPage
+      ? "Artisanal Brews & Specialty Sips | Bean Diner"
       : "Bean Diner | Good Food. Great Coffee. Warm Vibes.";
-  }, [isFoodPage]);
+  }, [isFoodPage, isBeveragesPage]);
   useEffect(() => {
     const updateStoreStatus = () => setStoreStatus(getStoreStatus());
     const interval = window.setInterval(updateStoreStatus, 60_000);
@@ -1033,11 +1066,10 @@ function App() {
   // Keep browser history and in-page anchors in sync without remounting the cart.
   useEffect(() => {
     const syncLocation = () => {
-      setCurrentPage(
-        new URLSearchParams(window.location.search).get("page") === "diner-bites"
-          ? "diner-bites"
-          : "home",
-      );
+      const pageParam = new URLSearchParams(window.location.search).get("page");
+      if (pageParam === "diner-bites") setCurrentPage("diner-bites");
+      else if (pageParam === "beverages") setCurrentPage("beverages");
+      else setCurrentPage("home");
       setNavOpen(false);
       cancelAnimationFrame(navigationFrame.current);
       navigationFrame.current = requestAnimationFrame(scrollToPageAnchor);
@@ -1144,6 +1176,39 @@ function App() {
     setBagOpen(true);
     setToast(`${bite.name} added to your bag.`);
   };
+
+  // ↓ ADD BEVERAGE: Add coffee / drink item from dedicated beverages page
+  const addBeverage = (
+    bev: BeverageItem,
+    size: string,
+    price: number,
+  ) => {
+    const item: CartItem = {
+      key: `bev-${bev.id}-${size}`,
+      id: bev.id,
+      name: `${bev.name} (${size})`,
+      size: size,
+      temperature: bev.hot ? "Hot" : "Over Iced",
+      quantity: 1,
+      price: price,
+      isFood: false,
+    };
+    add(item);
+  };
+
+  // ↓ ADD MODIFIER: Add add-on or milk substitution to bag
+  const addModifier = (mod: BeverageModifier, type: "Add-on" | "Sub") => {
+    const item: CartItem = {
+      key: `mod-${mod.id}`,
+      id: mod.id,
+      name: `${mod.name} (${type})`,
+      size: "Customization",
+      quantity: 1,
+      price: mod.price,
+      isFood: false,
+    };
+    add(item);
+  };
   const cartCount = cart.reduce((n, i) => n + i.quantity, 0);
   const subtotal = cart.reduce((n, i) => n + i.price * i.quantity, 0);
   // ↓ BUNDLE DISCOUNT: Two Iced Spanish Lattes for ₱250
@@ -1220,9 +1285,15 @@ function App() {
       <header className="header" id="home">
         <Logo href={homeHref("home")} onClick={handlePageLink} />
         <nav aria-label="Main navigation" className="header-nav">
-          <a href={homeHref("menu")} onClick={handlePageLink} className="nav-item">
+          <a
+            href={beveragesHref}
+            onClick={handlePageLink}
+            className="nav-item"
+            aria-current={isBeveragesPage ? "page" : undefined}
+          >
             <span className="nav-num">01</span>
-            <span className="nav-label">Our drinks</span>
+            <span className="nav-label">Beverages menu</span>
+            <span className="nav-badge">60+</span>
           </a>
           <a
             href={foodHref}
@@ -1234,12 +1305,16 @@ function App() {
             <span className="nav-label">Diner bites</span>
             <span className="nav-badge">₱99</span>
           </a>
-          <a href={homeHref("story")} onClick={handlePageLink} className="nav-item">
+          <a href={homeHref("menu")} onClick={handlePageLink} className="nav-item">
             <span className="nav-num">03</span>
+            <span className="nav-label">Top 6 signatures</span>
+          </a>
+          <a href={homeHref("story")} onClick={handlePageLink} className="nav-item">
+            <span className="nav-num">04</span>
             <span className="nav-label">Our story</span>
           </a>
           <a href={homeHref("together")} onClick={handlePageLink} className="nav-item nav-together">
-            <span className="nav-num">04</span>
+            <span className="nav-num">05</span>
             <span className="nav-label">Better together</span>
             <span className="nav-coffee">✦</span>
           </a>
@@ -1257,7 +1332,7 @@ function App() {
         <div className="header-actions">
           <a
             className="button header-order"
-            href={isFoodPage ? "#food-menu" : "#menu"}
+            href={isFoodPage ? "#food-menu" : isBeveragesPage ? "#drinks-menu" : "#menu"}
             onClick={(e) => {
               if (cart.length > 0) {
                 e.preventDefault();
@@ -1294,7 +1369,15 @@ function App() {
         {isFoodPage ? (
           <DinerBitesPage
             onAdd={addBite}
-            drinksHref={homeHref("menu")}
+            drinksHref={beveragesHref}
+            onNavigate={handlePageLink}
+          />
+        ) : isBeveragesPage ? (
+          <BeveragesPage
+            onAdd={addBeverage}
+            onAddModifier={addModifier}
+            foodHref={foodHref}
+            signatureHref={homeHref("menu")}
             onNavigate={handlePageLink}
           />
         ) : (
@@ -1416,7 +1499,7 @@ function App() {
           >
             <path
               d="M0 31C220 80 380 0 690 26s510 66 750-7v46H0Z"
-              fill="#fbf5e9"
+              fill="var(--cream, #FFF0D6)"
             />
           </svg>
         </section>
@@ -1515,6 +1598,11 @@ function App() {
                 </p>
               </article>
             ))}
+          </div>
+          <div className="bites-preview-link">
+            <a className="button button-outline" href={beveragesHref} onClick={handlePageLink}>
+              Explore beverages menu (60+ brews) <Icon name="arrow" size={18} />
+            </a>
           </div>
           <p className="menu-footnote">
             Every cup crafted with Benguet highland beans and creamy Oatside oat
@@ -1723,13 +1811,17 @@ function App() {
           <div className="footer-nav-col">
             <span className="footer-heading">EXPLORE THE DINER</span>
             <div className="footer-pill-links">
-              <a href={homeHref("menu")} onClick={handlePageLink} className="footer-pill">
-                <span>Our drinks</span>
-                <small>Bestsellers & lattes</small>
+              <a href={beveragesHref} onClick={handlePageLink} className="footer-pill">
+                <span>Beverages menu</span>
+                <small>60+ artisanal brews</small>
               </a>
               <a href={foodHref} onClick={handlePageLink} className="footer-pill">
                 <span>Diner bites</span>
                 <small>₱99 wings & comfort</small>
+              </a>
+              <a href={homeHref("menu")} onClick={handlePageLink} className="footer-pill">
+                <span>Top 6 signatures</span>
+                <small>Bestsellers & lattes</small>
               </a>
               <a href={homeHref("story")} onClick={handlePageLink} className="footer-pill">
                 <span>Our story</span>
@@ -1909,8 +2001,8 @@ function App() {
                       display: "block",
                       marginTop: "12px",
                       fontSize: "11.5px",
-                      fontWeight: 600,
-                      color: "#6b5443",
+                      fontWeight: 650,
+                      color: "var(--ink, #121212)",
                       textAlign: "center",
                       textDecoration: "underline",
                       cursor: "pointer",
@@ -1967,20 +2059,26 @@ function App() {
                   {cart.map((item) => {
                     const p = products.find((p) => p.id === item.id);
                     const b = dinerBites.find((b) => b.id === item.id);
-                    const title = p ? p.name : b ? b.name : item.name || "Item";
+                    const bev = allBeverages.find((bev) => bev.id === item.id);
+                    const mod = [...beverageAddOns, ...beverageSubs].find((m) => m.id === item.id);
+                    const title = p ? p.name : b ? b.name : bev ? bev.name : mod ? mod.name : item.name || "Item";
                     const desc = item.isFood
                       ? "Chef's Comfort Kitchen Plate"
-                      : [
-                          item.size,
-                          item.temperature,
-                          item.sweetness,
-                          item.temperature === "Iced" ? item.iceLevel : null,
-                          item.milk && item.milk !== "Regular"
-                            ? `${item.milk} milk`
-                            : null,
-                        ]
-                          .filter(Boolean)
-                          .join(" · ");
+                      : bev
+                        ? `${item.size || bev.defaultSize} · ${bev.hot ? "Hot" : "Over Iced"}`
+                        : mod
+                          ? "Barista Customization"
+                          : [
+                              item.size,
+                              item.temperature,
+                              item.sweetness,
+                              item.temperature === "Iced" ? item.iceLevel : null,
+                              item.milk && item.milk !== "Regular"
+                                ? `${item.milk} milk`
+                                : null,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ");
                     return (
                       <div className="cart-item" key={item.key}>
                         {p ? (
@@ -1993,13 +2091,14 @@ function App() {
                           <div
                             className="cart-food-icon"
                             style={{
-                              background: "#f2dfb8",
+                              background: item.isFood ? "var(--pine, #D49E77)" : "var(--black, #121212)",
+                              color: item.isFood ? "var(--black, #121212)" : "var(--cream, #FFF0D6)",
                               fontSize: "10px",
                               fontWeight: "800",
                               letterSpacing: "0.5px",
                             }}
                           >
-                            BITE
+                            {item.isFood ? "BITE" : "SIP"}
                           </div>
                         )}
                         <div>
@@ -2238,9 +2337,10 @@ function App() {
             {[
               {
                 num: "01",
-                label: "Our drinks",
-                sub: "Benguet highland coffee & Oatside lattes",
-                href: homeHref("menu"),
+                label: "Beverages menu (60+)",
+                sub: "Espresso, matcha, teas & cold frappes",
+                badge: "60+ BREWS",
+                href: beveragesHref,
               },
               {
                 num: "02",
@@ -2251,12 +2351,18 @@ function App() {
               },
               {
                 num: "03",
+                label: "Top 6 signatures",
+                sub: "Benguet highland coffee & Oatside lattes",
+                href: homeHref("menu"),
+              },
+              {
+                num: "04",
                 label: "Our story",
                 sub: "US Chef & Middle East Barista roots",
                 href: homeHref("story"),
               },
               {
-                num: "04",
+                num: "05",
                 label: "Better together",
                 sub:
                   "Two-cup coffee date bundle for " +
@@ -2265,7 +2371,7 @@ function App() {
                 href: homeHref("together"),
               },
               {
-                num: "05",
+                num: "06",
                 label: "Facebook Page ↗",
                 sub: "Community updates & direct messages",
                 href: "https://www.facebook.com/beandiner",

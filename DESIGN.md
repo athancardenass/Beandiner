@@ -1,7 +1,12 @@
 # Bean Diner storefront: art direction and implementation
 
 ## Current direction
-The page presents Bean Diner in Bayambang with a warm, expressive diner identity. The approved palette pairs deep espresso (`#2b211c`, `#3a2c24`) with warm beige (`#f2e7d7`, `#e8d8c4`), using toasted brown (`#78442f`) and caramel (`#d5a17d`) for emphasis. Facebook and Messenger keep their recognizable blue. DM Serif Display carries the larger editorial headings, DM Sans supports interface text, and Caveat is reserved for handwritten accents; Bricolage Grotesque adds weight to selected display labels. Fonts load from Google Fonts.
+The page presents Bean Diner in Bayambang with a modern, warm, coffee/diner-inspired brand identity. The client-approved palette features:
+- **Dirty Cream (`#FFF0D6`)** as the primary light background, light sections, cards, and light text on dark backgrounds.
+- **Warm Pine / Caramel (`#D49E77`, hover `#B9825F`)** as the primary CTA button fill, brand accents, highlights, active states, and visual emphasis.
+- **Warm Gray / Brown (`#6E6256`, light `#8A7D70`)** for secondary and muted body text, supporting UI, and subtle borders.
+- **Black (`#121212`, raised `#1c1c1c`)** as the dominant dark tone for header, hero, footer, major dark sections, and primary dark text.
+Facebook and Messenger keep their recognizable blue (`#0084FF`). DM Serif Display carries the larger editorial headings, DM Sans supports interface text, and Caveat is reserved for handwritten accents; Bricolage Grotesque adds weight to selected display labels. Fonts load from Google Fonts.
 
 The homepage keeps its hero, flavor story, drinks menu, a two-item diner bites preview, brand story, two-cup offer, and footer. A dedicated `?page=diner-bites` view presents four existing priced foods and 11 clearly labeled sample menu ideas in a photo-free editorial menu. Sample items have no listed price or ordering action until their real details are confirmed. The hero and offer still use drink photography; food items use names, descriptions, and badges without substitute images.
 

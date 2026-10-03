@@ -1,5 +1,5 @@
-import type { MouseEvent } from "react";
-import { dinerBites, type DinerBite } from "./dinerBites";
+import { useState, type MouseEvent } from "react";
+import { foodCategories, type DinerBite } from "./dinerBites";
 
 type DinerBitesPageProps = {
   onAdd: (bite: DinerBite) => void;
@@ -7,9 +7,8 @@ type DinerBitesPageProps = {
   onNavigate: (event: MouseEvent<HTMLAnchorElement>) => void;
 };
 
-const money = (amount: number) => `₱${amount.toLocaleString("en-PH")}`;
-const pricedBites = dinerBites.filter((bite) => !bite.sample);
-const sampleBites = dinerBites.filter((bite) => bite.sample);
+const money = (amount: number | null) =>
+  amount !== null ? `₱${amount.toLocaleString("en-PH")}` : "Price TBD";
 
 function FoodItem({
   bite,
@@ -56,6 +55,18 @@ export default function DinerBitesPage({
   drinksHref,
   onNavigate,
 }: DinerBitesPageProps) {
+  const [activeCategory, setActiveCategory] = useState<string>("all");
+
+  const displayedCategories =
+    activeCategory === "all"
+      ? foodCategories
+      : foodCategories.filter((cat) => cat.id === activeCategory);
+
+  const totalDishes = foodCategories.reduce(
+    (acc, cat) => acc + cat.items.length,
+    0
+  );
+
   return (
     <>
       <section className="food-page-hero" aria-labelledby="food-page-title">
@@ -65,7 +76,7 @@ export default function DinerBitesPage({
           </h1>
           <div className="food-page-hero-bottom">
             <p>
-              Crispy chicken wings, loaded nachos, and savory skillets.
+              Crispy chicken wings, loaded nachos, freshly pressed croffles, and hearty skillets.
               Student-budget approved, chef-crafted with real flavor.
             </p>
             <a className="button food-page-hero-link" href="#food-menu">
@@ -75,20 +86,73 @@ export default function DinerBitesPage({
         </div>
       </section>
 
-      <section className="food-page-menu" id="food-menu" aria-labelledby="food-menu-title">
+      <section
+        className="food-page-menu"
+        id="food-menu"
+        aria-labelledby="food-menu-title"
+      >
         <div className="food-page-menu-heading">
           <h2 id="food-menu-title">
             Find your <em>comfort.</em>
           </h2>
           <p>
-            The {pricedBites.length} priced dishes below can be added to your
-            bag for pickup.
+            {totalDishes} chef-prepared dishes across {foodCategories.length} categories,
+            crafted fresh to order on Antonio Luna Street.
           </p>
         </div>
 
-        <div className="food-page-grid">
-          {pricedBites.map((bite) => (
-            <FoodItem bite={bite} onAdd={onAdd} key={bite.id} />
+        {/* Category Pills Filter Bar */}
+        <div className="food-category-filters" role="tablist" aria-label="Food categories">
+          <button
+            type="button"
+            className={`food-category-pill ${activeCategory === "all" ? "active" : ""}`}
+            onClick={() => setActiveCategory("all")}
+          >
+            All Bites ({totalDishes})
+          </button>
+          {foodCategories.map((cat) => (
+            <button
+              type="button"
+              key={cat.id}
+              className={`food-category-pill ${activeCategory === cat.id ? "active" : ""}`}
+              onClick={() => setActiveCategory(cat.id)}
+            >
+              {cat.name} ({cat.items.length})
+            </button>
+          ))}
+        </div>
+
+        {/* Categories: EXACTLY ONE representative picture per category */}
+        <div className="food-categories-container">
+          {displayedCategories.map((cat) => (
+            <section
+              key={cat.id}
+              id={`cat-${cat.id}`}
+              className="food-category-block"
+              aria-labelledby={`heading-${cat.id}`}
+            >
+              {/* Dedicated category hero image banner */}
+              <div className="food-category-hero-frame">
+                <img
+                  src={cat.categoryImage}
+                  alt={cat.name}
+                  className="food-category-hero-image"
+                  loading="lazy"
+                />
+                <div className="food-category-hero-overlay">
+                  <span className="eyebrow">{cat.subtitle}</span>
+                  <h3 id={`heading-${cat.id}`}>{cat.name}</h3>
+                  <p>{cat.description}</p>
+                </div>
+              </div>
+
+              {/* Category items grid without individual photos */}
+              <div className="food-page-grid">
+                {cat.items.map((bite) => (
+                  <FoodItem bite={bite} onAdd={onAdd} key={bite.id} />
+                ))}
+              </div>
+            </section>
           ))}
         </div>
 
@@ -96,27 +160,6 @@ export default function DinerBitesPage({
           Freshly prepared to order on Antonio Luna Street. Dine in or take
           away!
         </p>
-      </section>
-
-      <section
-        className="food-page-samples"
-        aria-labelledby="food-page-samples-title"
-      >
-        <div className="food-page-samples-heading">
-          <h2 id="food-page-samples-title">
-            More bites to <em>imagine.</em>
-          </h2>
-          <p>
-            {sampleBites.length} sample menu ideas for this page. Prices and
-            availability have not been set, so these items cannot be ordered
-            yet.
-          </p>
-        </div>
-        <div className="food-page-grid food-page-sample-grid">
-          {sampleBites.map((bite) => (
-            <FoodItem bite={bite} onAdd={onAdd} key={bite.id} />
-          ))}
-        </div>
       </section>
 
       <section className="food-page-drinks" aria-labelledby="food-page-drinks-title">
