@@ -141,7 +141,9 @@ export default function DinerBitesPage({
                 />
                 <div className="food-category-hero-overlay">
                   <span className="eyebrow">{cat.subtitle}</span>
-                  <h3 id={`heading-${cat.id}`}>{cat.name}</h3>
+                  <h3 id={`heading-${cat.id}`} className="category-hero-title">
+                    {cat.name}
+                  </h3>
                   <p>{cat.description}</p>
                 </div>
               </div>

@@ -398,7 +398,7 @@ function Icon({
   size = 20,
 }: {
   name:
-    "arrow" | "bag" | "close" | "menu" | "plus" | "minus" | "play" | "check";
+    "arrow" | "bag" | "close" | "menu" | "plus" | "minus" | "play" | "check" | "alert-circle";
   size?: number;
 }) {
   const paths = {
@@ -419,6 +419,13 @@ function Icon({
     minus: <path d="M5 12h14" />,
     play: <path d="m9 5 11 7-11 7Z" />,
     check: <path d="m5 12 4 4L19 6" />,
+    "alert-circle": (
+      <>
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="8" x2="12" y2="12" strokeWidth="2" strokeLinecap="round" />
+        <circle cx="12" cy="16" r="1" fill="currentColor" stroke="none" />
+      </>
+    ),
   };
   return (
     <svg
@@ -982,6 +989,60 @@ function App() {
   const [checkoutOrderType, setCheckoutOrderType] = useState<"pickup" | "dine-in" | "delivery">("pickup");
   const [checkoutExtra, setCheckoutExtra] = useState("");
   const [checkoutPayment, setCheckoutPayment] = useState<CheckoutPayment>("gcash");
+  const [checkoutName, setCheckoutName] = useState("");
+  const [checkoutPhone, setCheckoutPhone] = useState("");
+  const [checkoutErrors, setCheckoutErrors] = useState<{
+    name?: string | null;
+    phone?: string | null;
+    address?: string | null;
+  }>({});
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+
+  const formatPhoneNumber = (val: string) => {
+    let cleaned = val.replace(/\D/g, "");
+    if (cleaned.startsWith("63") && cleaned.length > 2) {
+      cleaned = "0" + cleaned.slice(2);
+    }
+    cleaned = cleaned.slice(0, 11);
+
+    if (cleaned.length <= 4) {
+      return cleaned;
+    }
+    if (cleaned.length <= 7) {
+      return `${cleaned.slice(0, 4)}-${cleaned.slice(4)}`;
+    }
+    return `${cleaned.slice(0, 4)}-${cleaned.slice(4, 7)}-${cleaned.slice(7)}`;
+  };
+
+  const validateCustomerName = (val: string) => {
+    const trimmed = val.trim();
+    if (!trimmed) return "Please enter your name";
+    if (trimmed.length < 2) return "Name must be at least 2 characters";
+    if (!/^[a-zA-ZÀ-ÿ\s'-]+$/.test(trimmed))
+      return "Name can only contain letters, spaces, hyphens, and apostrophes";
+    return null;
+  };
+
+  const validateCustomerPhone = (val: string) => {
+    const digits = val.replace(/\D/g, "");
+    if (!digits) return "Please enter your contact number";
+    if (!(digits.length === 11 && digits.startsWith("09")))
+      return "Please enter an 11-digit mobile number (e.g. 09XX-XXX-XXXX)";
+    return null;
+  };
+
+  const validateDeliveryAddress = (val: string, orderType: string) => {
+    if (orderType !== "delivery") return null;
+    const trimmed = val.trim();
+    if (!trimmed) return "Please enter your delivery address & landmark";
+    if (trimmed.length < 8)
+      return "Address must be at least 8 characters with street, barangay & landmark";
+    return null;
+  };
+
+  const showNameError = focusedField !== "name" && Boolean(checkoutErrors.name);
+  const showPhoneError = focusedField !== "phone" && Boolean(checkoutErrors.phone);
+  const showAddressError = focusedField !== "address" && Boolean(checkoutErrors.address);
   const scrollToTop = (e?: React.MouseEvent) => {
     if (e) e.preventDefault();
     window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
@@ -2165,17 +2226,35 @@ function App() {
                 </div>
                 <form
                   className="checkout-form"
+                  noValidate
                   onSubmit={(e) => {
                     e.preventDefault();
-                    const form = e.currentTarget;
-                    const nameInput = form.elements.namedItem(
-                      "name",
-                    ) as HTMLInputElement;
-                    const phoneInput = form.elements.namedItem(
-                      "phone",
-                    ) as HTMLInputElement;
-                    const customerName = nameInput?.value || "";
-                    const customerPhone = phoneInput?.value.trim() || "";
+                    const currentAddressErr = validateDeliveryAddress(checkoutExtra, checkoutOrderType);
+                    const currentNameErr = validateCustomerName(checkoutName);
+                    const currentPhoneErr = validateCustomerPhone(checkoutPhone);
+
+                    setCheckoutErrors({
+                      name: currentNameErr,
+                      phone: currentPhoneErr,
+                      address: currentAddressErr,
+                    });
+                    setFocusedField(null);
+
+                    if (currentAddressErr) {
+                      document.getElementById("checkout-address")?.focus();
+                      return;
+                    }
+                    if (currentNameErr) {
+                      document.getElementById("order-name")?.focus();
+                      return;
+                    }
+                    if (currentPhoneErr) {
+                      document.getElementById("order-phone")?.focus();
+                      return;
+                    }
+
+                    const customerName = checkoutName.trim();
+                    const customerPhone = checkoutPhone.trim();
                     const msg = formatOrderMessage(
                       cart,
                       customerName,
@@ -2183,7 +2262,7 @@ function App() {
                       subtotal - discount,
                       discount,
                       checkoutOrderType,
-                      checkoutExtra,
+                      checkoutExtra.trim(),
                       checkoutPayment,
                     );
                     copyToClipboard(msg);
@@ -2191,6 +2270,10 @@ function App() {
                     setToast("✓ Order copied! Follow the guide below to send.");
                     setReceipt(true);
                     setCart([]);
+                    setCheckoutName("");
+                    setCheckoutPhone("");
+                    setCheckoutExtra("");
+                    setCheckoutErrors({});
                   }}
                 >
                   {/* Order Type: Pick up, Dine in, Door to door */}
@@ -2213,6 +2296,7 @@ function App() {
                             onChange={() => {
                               setCheckoutOrderType(t.id as any);
                               setCheckoutExtra("");
+                              setCheckoutErrors((prev) => ({ ...prev, address: null }));
                             }}
                           />
                           <span>{t.label}</span>
@@ -2237,16 +2321,34 @@ function App() {
 
                   {checkoutOrderType === "delivery" && (
                     <div className="order-extra-field">
-                      <label htmlFor="checkout-address">Delivery address & landmark:</label>
+                      <label htmlFor="checkout-address">Delivery address &amp; landmark:</label>
                       <input
                         id="checkout-address"
                         name="address"
+                        className={showAddressError ? "input-error" : ""}
                         placeholder="Street, Barangay, and Landmark in Bayambang"
                         value={checkoutExtra}
                         onChange={(e) => setCheckoutExtra(e.target.value)}
-                        required
+                        onFocus={() => {
+                          setFocusedField("address");
+                          setCheckoutErrors((prev) => ({ ...prev, address: null }));
+                        }}
+                        onBlur={() => {
+                          setFocusedField(null);
+                          setCheckoutErrors((prev) => ({
+                            ...prev,
+                            address: validateDeliveryAddress(checkoutExtra, checkoutOrderType),
+                          }));
+                        }}
+                        aria-invalid={showAddressError ? "true" : "false"}
+                        aria-describedby={showAddressError ? "checkout-address-error" : undefined}
                         maxLength={150}
                       />
+                      {showAddressError && (
+                        <span id="checkout-address-error" className="form-field-error" role="alert">
+                          <Icon name="alert-circle" size={14} /> {checkoutErrors.address}
+                        </span>
+                      )}
                     </div>
                   )}
 
@@ -2291,27 +2393,69 @@ function App() {
                   <input
                     id="order-name"
                     name="name"
-                    autoComplete="given-name"
-                    placeholder="Enter your name (e.g. Karl)"
-                    required
+                    className={showNameError ? "input-error" : ""}
+                    value={checkoutName}
+                    onChange={(e) => setCheckoutName(e.target.value)}
+                    onFocus={() => {
+                      setFocusedField("name");
+                      setCheckoutErrors((prev) => ({ ...prev, name: null }));
+                    }}
+                    onBlur={() => {
+                      setFocusedField(null);
+                      setCheckoutErrors((prev) => ({
+                        ...prev,
+                        name: validateCustomerName(checkoutName),
+                      }));
+                    }}
+                    aria-invalid={showNameError ? "true" : "false"}
+                    aria-describedby={showNameError ? "order-name-error" : undefined}
+                    autoComplete="name"
+                    placeholder="Karl"
                     maxLength={50}
                   />
+                  {showNameError && (
+                    <span id="order-name-error" className="form-field-error" role="alert">
+                      <Icon name="alert-circle" size={14} /> {checkoutErrors.name}
+                    </span>
+                  )}
+
                   <label htmlFor="order-phone">Contact number</label>
                   <input
                     id="order-phone"
                     name="phone"
                     type="tel"
-                    inputMode="tel"
+                    inputMode="numeric"
+                    className={showPhoneError ? "input-error" : ""}
+                    value={checkoutPhone}
+                    onChange={(e) => setCheckoutPhone(formatPhoneNumber(e.target.value))}
+                    onFocus={() => {
+                      setFocusedField("phone");
+                      setCheckoutErrors((prev) => ({ ...prev, phone: null }));
+                    }}
+                    onBlur={() => {
+                      setFocusedField(null);
+                      setCheckoutErrors((prev) => ({
+                        ...prev,
+                        phone: validateCustomerPhone(checkoutPhone),
+                      }));
+                    }}
+                    aria-invalid={showPhoneError ? "true" : "false"}
+                    aria-describedby={showPhoneError ? "order-phone-error" : undefined}
                     autoComplete="tel"
                     placeholder="09XX-XXX-XXXX"
-                    required
                     maxLength={20}
                   />
+                  {showPhoneError && (
+                    <span id="order-phone-error" className="form-field-error" role="alert">
+                      <Icon name="alert-circle" size={14} /> {checkoutErrors.phone}
+                    </span>
+                  )}
+
                   <button
                     className="button button-messenger-checkout"
                     type="submit"
                   >
-                    Copy Order & See Sending Guide
+                    Copy Order &amp; See Sending Guide
                   </button>
                   <small>
                     Copies your order summary and shows you how to send it in Messenger.

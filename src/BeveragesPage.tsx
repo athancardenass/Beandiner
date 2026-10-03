@@ -229,7 +229,9 @@ export default function BeveragesPage({
                       {cat.categoryImage ? "Category Special" : "Awaiting client photo"}
                     </span>
                   </div>
-                  <h3 id={`bev-heading-${cat.id}`}>{cat.name}</h3>
+                  <h3 id={`bev-heading-${cat.id}`} className="category-hero-title">
+                    {cat.name}
+                  </h3>
                   <p>{cat.description}</p>
                 </div>
               </div>
@@ -259,7 +261,9 @@ export default function BeveragesPage({
                     <span className="eyebrow">BARISTA CUSTOMIZATIONS</span>
                     <span className="bev-category-badge-note">Tailor Your Sip</span>
                   </div>
-                  <h3 id="bev-modifiers-heading">Add-Ons &amp; Substitutions</h3>
+                  <h3 id="bev-modifiers-heading" className="category-hero-title">
+                    Add-Ons &amp; Substitutions
+                  </h3>
                   <p>
                     Personalize your cup with extra espresso shots, creamy dessert toppings,
                     rich drizzle sauces, or plant-based dairy-free milk upgrades.
