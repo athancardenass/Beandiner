@@ -463,11 +463,11 @@ function Logo({
     >
       <div className="logo-badge-frame">
         <img
-          src="./favicon-badge.png"
+          src="./images/bean_diner_logo_transparent.png"
           alt="Bean Diner Logo"
           className="logo-badge-img"
-          width="50"
-          height="50"
+          width="42"
+          height="42"
         />
       </div>
       <div className="logo-brand-copy">
@@ -1875,7 +1875,7 @@ function App() {
               height="750"
             />
             <span className="photo-note handwritten">
-              where the food heals, the coffee understands
+              Good coffee tastes better when it’s shared. Tara, kape tayo sa Bean Diner.
             </span>
           </div>
           <div className="brand-copy reveal">

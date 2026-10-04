@@ -349,8 +349,8 @@ main {
   transform: translateY(-1px);
 }
 .logo-badge-frame {
-  width: 52px;
-  height: 52px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: var(--cream, #FFF0D6);
   border: 1.5px solid rgba(212, 158, 119, 0.45);
@@ -367,8 +367,8 @@ main {
   box-shadow: 0 4px 12px rgba(212, 158, 119, 0.35);
 }
 .logo-badge-img {
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   object-fit: contain;
   display: block;
 }
@@ -1560,24 +1560,33 @@ main {
   transform: none;
   backface-visibility: hidden;
   overflow: hidden;
-  border-radius: 3px;
+  border-radius: 18px;
   margin: 10px 0;
+  box-shadow: 0 12px 32px rgba(18, 18, 18, 0.14);
 }
 .brand-photo > img {
-  aspect-ratio: 1.05;
+  aspect-ratio: 4 / 3;
   object-fit: cover;
+  width: 100%;
+  height: auto;
+  display: block;
 }
-/* ↓ PHOTO NOTE: Handwritten overlay on photo */
+/* ↓ PHOTO NOTE: Pure handwritten text floating on photo (no background/padding) */
 .photo-note {
   position: absolute;
-  bottom: 81px;
-  left: 22px;
-  font-size: 30px;
-  color: var(--beige);
-  transform: rotate(-5deg);
-  padding: 7px 12px;
-  border-radius: 8px;
-  background: var(--espresso);
+  bottom: 24px;
+  left: 24px;
+  max-width: 460px;
+  font-size: clamp(20px, 2.2vw, 26px);
+  color: var(--cream, #FFF0D6);
+  transform: rotate(-2.5deg);
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.92), 0 1px 3px rgba(0, 0, 0, 0.95);
+  line-height: 1.25;
+  pointer-events: none;
 }
 /* ↓ BRAND COPY: Brand story text content */
 .brand-copy {
@@ -2963,26 +2972,28 @@ main {
     font-size: 9.5px;
   }
   .header {
-    height: 80px;
-    padding: 0 6%;
+    height: 84px;
+    padding: 0 clamp(12px, 3.5vw, 24px);
   }
   .logo {
-    gap: 9px;
+    gap: 10px;
+    flex-shrink: 0;
   }
   .logo-badge-frame {
-    width: 44px;
-    height: 44px;
+    width: 50px;
+    height: 50px;
   }
   .logo-badge-img {
-    width: 36px;
-    height: 36px;
+    width: 42px;
+    height: 42px;
   }
   .logo-title {
-    font-size: 24px;
+    font-size: 28px;
+    line-height: 1;
   }
   .logo-location {
-    font-size: 7px;
-    letter-spacing: 2.8px;
+    font-size: 8px;
+    letter-spacing: 3px;
   }
   .header nav {
     display: none;
@@ -3570,20 +3581,33 @@ main {
   }
   .brand-story {
     grid-template-columns: 1fr;
-    gap: 43px;
-    padding: 25px 7% 65px;
+    gap: 32px;
+    padding: 42px 6% 56px;
   }
   .brand-photo {
     max-width: 580px;
     margin: 0 auto;
     width: 100%;
+    border-radius: 16px;
   }
   .brand-photo > img {
-    aspect-ratio: 1.15;
+    aspect-ratio: 4 / 3;
+    border-radius: 16px;
   }
   .photo-note {
-    font-size: 29px;
-    bottom: 80px;
+    font-size: clamp(14.5px, 4.2vw, 19px);
+    bottom: 16px;
+    left: 14px;
+    right: auto;
+    max-width: calc(100% - 28px);
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    transform: rotate(-1.5deg);
+    line-height: 1.25;
+    white-space: normal;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95), 0 1px 3px rgba(0, 0, 0, 0.95);
   }
   .brand-copy > .eyebrow {
     font-size: 8px;
@@ -3826,12 +3850,34 @@ main {
 }
 /* ↓ RESPONSIVE: Small mobile (390px and below) */
 @media (max-width: 390px) {
+  .header {
+    padding: 0 10px;
+  }
+  .logo {
+    gap: 8px;
+  }
+  .logo-badge-frame {
+    width: 46px;
+    height: 46px;
+  }
+  .logo-badge-img {
+    width: 38px;
+    height: 38px;
+  }
+  .logo-title {
+    font-size: 25px;
+  }
+  .logo-location {
+    font-size: 7.5px;
+    letter-spacing: 2.2px;
+  }
   .header-actions {
-    gap: 11px;
+    gap: 8px;
   }
   .header-order {
-    padding: 10px 13px;
-    gap: 10px;
+    padding: 8px 10px;
+    font-size: 9.5px;
+    gap: 5px;
   }
   .hero h1 {
     font-size: 13.4vw;
