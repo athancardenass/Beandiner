@@ -30,6 +30,7 @@ export const beverageCategories: BeverageCategory[] = [
     "name": "Hot Beverage - Coffee Base",
     "subtitle": "STEAMING FRESHLY EXTRACTED BREWS",
     "description": "Bold espresso extractions served steaming hot with silky textured milk.",
+    "categoryImage": "./images/optimized/beverage-hot-coffee.webp",
     "items": [
       {
         "id": "hot-americano",
@@ -137,6 +138,7 @@ export const beverageCategories: BeverageCategory[] = [
     "name": "Hot Beverage - Hot Non-Coffee",
     "subtitle": "WARMING INFUSIONS & COMFORT CUPS",
     "description": "Cozy teas and rich soothing warm beverages made with natural botanicals.",
+    "categoryImage": "./images/optimized/beverage-hot-non-coffee.webp",
     "items": [
       {
         "id": "hot-matcha-latte",
@@ -234,6 +236,7 @@ export const beverageCategories: BeverageCategory[] = [
     "name": "Over Iced - Coffee Base Latte",
     "subtitle": "CHILLED ESPRESSO FAVORITES",
     "description": "Double espresso pulled over chilled fresh milk and crisp ice cubes.",
+    "categoryImage": "./images/optimized/beverage-over-iced-coffee.webp",
     "items": [
       {
         "id": "iced-americano",
@@ -361,6 +364,7 @@ export const beverageCategories: BeverageCategory[] = [
     "name": "Over Iced - Cloudy Coffee",
     "subtitle": "VELVETY COLD FOAM & SWEET CR\u00c8MES",
     "description": "Rich coffee drinks crowned with a thick, cloud-like cold cream topping.",
+    "categoryImage": "./images/optimized/beverage-over-iced-cloudy-coffee.webp",
     "items": [
       {
         "id": "pistachio-creme",
@@ -424,6 +428,7 @@ export const beverageCategories: BeverageCategory[] = [
     "name": "Over Iced - Matcha Mania",
     "subtitle": "AUTHENTIC JAPANESE GREEN TEA",
     "description": "Pure ceremonial matcha whisked smooth over chilled milks and fruit purees.",
+    "categoryImage": "./images/optimized/beverage-over-iced-matcha.webp",
     "items": [
       {
         "id": "iced-matcha-latte",
@@ -504,6 +509,7 @@ export const beverageCategories: BeverageCategory[] = [
     "name": "Over Iced - Non-Coffee Latte",
     "subtitle": "CREAMY FRUIT & CHOCOLATE MILKS",
     "description": "Comforting caffeine-free milk drinks crafted with real fruit purees and caramels.",
+    "categoryImage": "./images/optimized/beverage-over-iced-non-coffee.webp",
     "items": [
       {
         "id": "strawberry-milk",
@@ -560,6 +566,7 @@ export const beverageCategories: BeverageCategory[] = [
     "name": "Over Iced - Iced Tea",
     "subtitle": "NATURAL BOTANICAL FRUIT TEAS",
     "description": "Light, crisp, and revitalizing shaken iced teas brewed from natural botanicals.",
+    "categoryImage": "./images/optimized/beverage-over-iced-tea.webp",
     "items": [
       {
         "id": "peach-mango-tea",
@@ -612,6 +619,7 @@ export const beverageCategories: BeverageCategory[] = [
     "name": "Iced Blends - Coffee Base",
     "subtitle": "ICE-CRUSHED BLENDED FRAPPES",
     "description": "Rich espresso frappes blended thick with ice and decadent dessert toppings.",
+    "categoryImage": "./images/optimized/beverage-iced-blends-coffee.webp",
     "items": [
       {
         "id": "blend-latte",
@@ -675,6 +683,7 @@ export const beverageCategories: BeverageCategory[] = [
     "name": "Iced Blends - Non-Coffee",
     "subtitle": "CRUNCHY SWEET FRAPPES",
     "description": "Thick dessert frappes without caffeine, loaded with chocolates and cookies.",
+    "categoryImage": "./images/optimized/beverage-iced-blends-non-coffee.webp",
     "items": [
       {
         "id": "blend-strawberry-oreo",
@@ -738,6 +747,7 @@ export const beverageCategories: BeverageCategory[] = [
     "name": "Iced Blends - Milkshake",
     "subtitle": "THICK CREAMY SHAKES",
     "description": "Classic thick milkshakes churned with rich dairy cream and natural flavors.",
+    "categoryImage": "./images/optimized/beverage-iced-blends-milkshake.webp",
     "items": [
       {
         "id": "shake-strawberry",

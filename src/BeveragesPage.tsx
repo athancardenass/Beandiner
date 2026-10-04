@@ -252,10 +252,13 @@ export default function BeveragesPage({
               className="bev-category-block bev-modifiers-section"
               aria-labelledby="bev-modifiers-heading"
             >
-              <div className="bev-category-hero-frame no-image bev-modifiers-hero">
-                <div className="bev-category-hero-backdrop" aria-hidden="true">
-                  <span className="bev-backdrop-watermark">CUSTOMIZE</span>
-                </div>
+              <div className="bev-category-hero-frame has-image bev-modifiers-hero">
+                <img
+                  src="./images/optimized/beverage-addons.webp"
+                  alt="Coffee with espresso, milk, caramel, honey, cocoa, and cream add-ons"
+                  className="bev-category-hero-image"
+                  loading="lazy"
+                />
                 <div className="bev-category-hero-overlay">
                   <div className="bev-category-hero-meta">
                     <span className="eyebrow">BARISTA CUSTOMIZATIONS</span>
