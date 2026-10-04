@@ -461,8 +461,19 @@ function Logo({
       className={`logo ${footer ? "footer-logo" : ""}`}
       aria-label="Bean Diner home"
     >
-      bean diner<span className="logo-spark">✦</span>
-      {!footer && <small>BAYAMBANG</small>}
+      <div className="logo-badge-frame">
+        <img
+          src="./favicon-badge.png"
+          alt="Bean Diner Logo"
+          className="logo-badge-img"
+          width="50"
+          height="50"
+        />
+      </div>
+      <div className="logo-brand-copy">
+        <span className="logo-title">bean diner</span>
+        {!footer && <small className="logo-location">BAYAMBANG</small>}
+      </div>
     </a>
   );
 }
@@ -1821,14 +1832,17 @@ function App() {
                   <span className="bite-subtag">{bite.tag}</span>
                 </div>
                 <div className="bite-card-body">
-                  <h3>{bite.name}</h3>
                   <span className="bite-subheading">{bite.subtitle}</span>
+                  <h3>{bite.name}</h3>
                   <p>{bite.description}</p>
                 </div>
                 <div className="bite-card-footer">
-                  <strong>
-                    {bite.price === null ? "Price TBD" : money(bite.price)}
-                  </strong>
+                  <div className="bite-price-block">
+                    <span className="bite-price-label">Price</span>
+                    <strong>
+                      {bite.price === null ? "Price TBD" : money(bite.price)}
+                    </strong>
+                  </div>
                   <button
                     className="button button-small"
                     onClick={() => addBite(bite)}

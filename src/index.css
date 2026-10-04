@@ -335,35 +335,63 @@ main {
   z-index: 10;
   border-bottom: 1px solid rgba(255, 240, 214, 0.15);
 }
-/* ↓ LOGO: Serif brand mark with spark symbol */
+/* ↓ LOGO: High-end artisanal café branding with emblem seal and typography */
 .logo {
-  font-family: var(--serif);
-  font-size: 58px;
-  font-weight: 400;
-  letter-spacing: -5px;
-  color: var(--accent-light);
-  line-height: 0.7;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
   position: relative;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.logo:hover {
+  opacity: 0.94;
+  transform: translateY(-1px);
+}
+.logo-badge-frame {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--cream, #FFF0D6);
+  border: 1.5px solid rgba(212, 158, 119, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+  flex-shrink: 0;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.logo:hover .logo-badge-frame {
+  transform: scale(1.04);
+  box-shadow: 0 4px 12px rgba(212, 158, 119, 0.35);
+}
+.logo-badge-img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
   display: block;
-  padding-bottom: 13px;
 }
-.logo-spark {
-  font-family: sans-serif;
-  display: inline-block;
-  font-size: 22px;
-  letter-spacing: 0;
-  position: relative;
-  top: -25px;
-  left: 5px;
+.logo-brand-copy {
+  display: flex;
+  flex-direction: column;
 }
-.logo small {
+.logo-title {
+  font-family: var(--serif);
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--cream, #FFF0D6);
+  line-height: 1;
+}
+.logo-location {
   font-family: "DM Sans", sans-serif;
-  font-size: 7px;
-  letter-spacing: 4.2px;
-  position: absolute;
-  bottom: 0;
-  left: 16px;
-  font-weight: 600;
+  font-size: 8px;
+  letter-spacing: 3.5px;
+  font-weight: 750;
+  color: var(--pine, #D49E77);
+  margin-top: 3px;
+  text-transform: uppercase;
 }
 /* ↓ NAV: Main navigation links */
 .header-nav {
@@ -1386,21 +1414,19 @@ main {
 }
 .bite-card {
   background: var(--cream-card, #FFF8EB);
-  border: 1px solid rgba(110, 98, 86, 0.3);
-  border-radius: var(--radius-surface);
-  padding: 26px 22px;
+  border: 1.5px solid rgba(110, 98, 86, 0.28);
+  border-radius: 20px;
+  padding: 28px 24px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   min-height: 330px;
-  transition:
-    transform 0.3s ease,
-    box-shadow 0.3s ease,
-    border-color 0.3s ease;
+  transition: transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease;
+  position: relative;
 }
 .bite-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 24px rgba(18, 18, 18, 0.08);
+  box-shadow: 0 14px 30px rgba(18, 18, 18, 0.08);
   border-color: var(--pine-wood, #D49E77);
 }
 .bite-top-badge {
@@ -1408,41 +1434,57 @@ main {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 .bite-top-badge .product-badge {
   position: static;
-  border-bottom: 1px solid rgba(110, 98, 86, 0.4);
-  padding-bottom: 3px;
+  background: var(--black, #121212);
+  color: var(--cream, #FFF0D6);
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: none;
 }
 .bite-subtag {
   font-size: 10px;
-  font-weight: 650;
-  color: var(--accent);
-  letter-spacing: 0.8px;
+  font-weight: 700;
+  color: var(--black, #121212);
+  background: rgba(212, 158, 119, 0.16);
+  border: 1px solid rgba(212, 158, 119, 0.35);
+  padding: 3px 9px;
+  border-radius: 999px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 .bite-card-body {
   display: flex;
   flex-direction: column;
   flex: 1;
 }
-.bite-card-body h3 {
-  font-size: 23px;
-  letter-spacing: -0.01em;
-  color: var(--ink);
-  line-height: 1.2;
-  min-height: 54px;
-}
 .bite-subheading {
   display: block;
-  font-size: 10px;
-  letter-spacing: 1px;
+  font-size: 10.5px;
+  font-weight: 750;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: var(--muted);
-  margin: 4px 0 12px;
+  color: var(--pine-dark, #B9825F);
+  margin-bottom: 6px;
+}
+.bite-card-body h3 {
+  font-family: var(--serif);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--near-black, #121212);
+  line-height: 1.18;
+  margin: 0 0 10px;
+  min-height: unset;
 }
 .bite-card-body p {
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.6;
   color: var(--warm-gray, #6E6256);
   margin-bottom: 22px;
@@ -1453,17 +1495,28 @@ main {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border-top: 1px solid rgba(110, 98, 86, 0.25);
-  padding-top: 16px;
+  border-top: 1px solid rgba(110, 98, 86, 0.18);
+  padding-top: 18px;
   margin-top: auto;
   flex-wrap: wrap;
 }
-.bite-card-footer strong {
-  font-size: 19px;
-  font-family: "DM Sans", var(--serif), sans-serif;
+.bite-price-block {
+  display: flex;
+  flex-direction: column;
+}
+.bite-price-label {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--muted, #6E6256);
   font-weight: 700;
-  letter-spacing: 0.02em;
-  color: var(--ink);
+}
+.bite-card-footer strong {
+  font-family: var(--serif);
+  font-size: 24px;
+  font-weight: 750;
+  color: var(--near-black, #121212);
+  line-height: 1.1;
   flex-shrink: 0;
 }
 .button-small {
@@ -2914,18 +2967,22 @@ main {
     padding: 0 6%;
   }
   .logo {
-    font-size: clamp(34px, 8.5vw, 48px);
-    letter-spacing: -3px;
-    padding-bottom: 11px;
+    gap: 9px;
   }
-  .logo small {
-    font-size: 6px;
-    letter-spacing: 3.5px;
-    left: 13px;
+  .logo-badge-frame {
+    width: 44px;
+    height: 44px;
   }
-  .logo-spark {
-    font-size: 17px;
-    top: -21px;
+  .logo-badge-img {
+    width: 36px;
+    height: 36px;
+  }
+  .logo-title {
+    font-size: 24px;
+  }
+  .logo-location {
+    font-size: 7px;
+    letter-spacing: 2.8px;
   }
   .header nav {
     display: none;
@@ -3505,11 +3562,11 @@ main {
     padding: 18px 16px;
   }
   .bite-card-body h3 {
-    font-size: 20px;
+    font-size: 24px;
   }
   .bite-card-body p {
-    font-size: 11px;
-    margin-bottom: 16px;
+    font-size: 13.5px;
+    margin-bottom: 18px;
   }
   .brand-story {
     grid-template-columns: 1fr;
@@ -3832,13 +3889,13 @@ main {
     gap: 12px;
   }
   .bite-card {
-    padding: 16px 14px;
+    padding: 22px 20px;
   }
   .bite-card-footer {
-    padding-top: 12px;
+    padding-top: 16px;
   }
   .bite-card-footer strong {
-    font-size: 16px;
+    font-size: 22px;
   }
 }
 /* ↓ MESSENGER BUTTONS: Direct Facebook Messenger CTA styling */
