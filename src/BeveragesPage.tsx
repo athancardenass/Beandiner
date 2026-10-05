@@ -1,4 +1,4 @@
-import { useState, type MouseEvent } from "react";
+import { useMemo, useRef, useState, type MouseEvent } from "react";
 import {
   beverageCategories,
   beverageAddOns,
@@ -6,6 +6,18 @@ import {
   type BeverageItem,
   type BeverageModifier,
 } from "./beverages";
+import {
+  CategoryTabs,
+  FadeImage,
+  MenuResultsNote,
+  MenuSearch,
+  PlusIcon,
+  SEARCH_THRESHOLD,
+  StickyMenuBar,
+  matchesQuery,
+  normalizeQuery,
+  scrollListIntoView,
+} from "./ui/menu";
 
 type BeveragesPageProps = {
   onAdd: (bev: BeverageItem, size: string, price: number) => void;
@@ -80,11 +92,11 @@ function BeverageCard({
         </div>
         <button
           type="button"
-          className="button bev-add-btn"
+          className="button menu-add-btn"
           onClick={() => onAdd(bev, selectedSize, currentPrice)}
           aria-label={`Add ${bev.name} (${selectedSize}) to bag`}
         >
-          Add to bag
+          <PlusIcon size={14} /> Add to bag
         </button>
       </div>
     </article>
@@ -99,19 +111,62 @@ export default function BeveragesPage({
   onNavigate,
 }: BeveragesPageProps) {
   const [activeCategory, setActiveCategory] = useState<string>("all");
+  const [query, setQuery] = useState("");
+  const listRef = useRef<HTMLDivElement>(null);
 
   const totalDrinks = beverageCategories.reduce(
     (acc, cat) => acc + cat.items.length,
-    0
+    0,
+  );
+  const showSearch = totalDrinks > SEARCH_THRESHOLD;
+  const q = normalizeQuery(query);
+
+  const visibleCategories = useMemo(
+    () =>
+      beverageCategories
+        .filter((cat) => activeCategory === "all" || cat.id === activeCategory)
+        .map((cat) => ({
+          ...cat,
+          items: cat.items.filter((bev) =>
+            matchesQuery(q, bev.name, bev.description, bev.badge, cat.name),
+          ),
+        }))
+        .filter((cat) => cat.items.length > 0),
+    [activeCategory, q],
   );
 
-  const displayedCategories =
-    activeCategory === "all"
-      ? beverageCategories
-      : beverageCategories.filter((cat) => cat.id === activeCategory);
-
-  const showModifiers =
+  const modifiersInView =
     activeCategory === "all" || activeCategory === "modifiers";
+  const addOns = beverageAddOns.filter((m) => matchesQuery(q, m.name));
+  const subs = beverageSubs.filter((m) => matchesQuery(q, m.name));
+  const showModifiers =
+    modifiersInView && (addOns.length > 0 || subs.length > 0);
+
+  const drinkMatches = visibleCategories.reduce(
+    (n, cat) => n + cat.items.length,
+    0,
+  );
+  const modifierMatches = showModifiers ? addOns.length + subs.length : 0;
+  const resultCount = drinkMatches + modifierMatches;
+
+  const tabs = [
+    { id: "all", label: "All drinks", count: totalDrinks },
+    ...beverageCategories.map((cat) => ({
+      id: cat.id,
+      label: cat.name.replace(/^Hot Beverage - (Hot )?/, "Hot ").replace(" - ", ": "),
+      count: cat.items.length,
+    })),
+    {
+      id: "modifiers",
+      label: "Add-ons & subs",
+      count: beverageAddOns.length + beverageSubs.length,
+    },
+  ];
+
+  const changeCategory = (id: string) => {
+    setActiveCategory(id);
+    scrollListIntoView(listRef.current);
+  };
 
   return (
     <>
@@ -162,41 +217,48 @@ export default function BeveragesPage({
           </p>
         </div>
 
-        {/* Category Filter Tab Pills */}
-        <div
-          className="bev-category-filters"
-          role="tablist"
-          aria-label="Beverage categories"
-        >
-          <button
-            type="button"
-            className={`bev-category-pill ${activeCategory === "all" ? "active" : ""}`}
-            onClick={() => setActiveCategory("all")}
-          >
-            Beverages Menu ({totalDrinks})
-          </button>
-          {beverageCategories.map((cat) => (
-            <button
-              type="button"
-              key={cat.id}
-              className={`bev-category-pill ${activeCategory === cat.id ? "active" : ""}`}
-              onClick={() => setActiveCategory(cat.id)}
-            >
-              {cat.name} ({cat.items.length})
-            </button>
-          ))}
-          <button
-            type="button"
-            className={`bev-category-pill ${activeCategory === "modifiers" ? "active" : ""}`}
-            onClick={() => setActiveCategory("modifiers")}
-          >
-            Add-Ons &amp; Subs ({beverageAddOns.length + beverageSubs.length})
-          </button>
-        </div>
+        {/* Sticky Toolbar with Search and Category Tabs */}
+        <StickyMenuBar label="Beverage menu controls" className="bev-sticky">
+          {showSearch && (
+            <MenuSearch
+              value={query}
+              onChange={setQuery}
+              label="Search beverages"
+              placeholder="Search drinks or flavors..."
+            />
+          )}
+          <CategoryTabs
+            tabs={tabs}
+            active={activeCategory}
+            onChange={changeCategory}
+            label="Beverage categories"
+          />
+        </StickyMenuBar>
+
+        <MenuResultsNote query={q ? query : ""} count={resultCount} />
 
         {/* Categories: EXACTLY ONE representative picture or hero banner per category */}
-        <div className="bev-categories-container">
-          {displayedCategories.map((cat) => (
+        <div className="bev-categories-container" ref={listRef}>
+          {q && resultCount === 0 && (
+            <div className="menu-empty">
+              <h3>Nothing on the menu by that name.</h3>
+              <p>
+                Try a flavor like caramel, matcha or chocolate, or browse every
+                category.
+              </p>
+              <button
+                type="button"
+                className="button"
+                onClick={() => {
+                  setQuery("");
+                  setActiveCategory("all");
+                }}
+              >
+                Show all drinks
+              </button>
+            </div>
+          )}
+          {visibleCategories.map((cat) => (
             <section
               key={cat.id}
               id={`cat-${cat.id}`}
@@ -210,7 +272,7 @@ export default function BeveragesPage({
                 }`}
               >
                 {cat.categoryImage ? (
-                  <img
+                  <FadeImage
                     src={cat.categoryImage}
                     alt={cat.name}
                     className="bev-category-hero-image"
@@ -253,7 +315,7 @@ export default function BeveragesPage({
               aria-labelledby="bev-modifiers-heading"
             >
               <div className="bev-category-hero-frame has-image bev-modifiers-hero">
-                <img
+                <FadeImage
                   src="./images/optimized/beverage-addons.webp"
                   alt="Coffee with espresso, milk, caramel, honey, cocoa, and cream add-ons"
                   className="bev-category-hero-image"
@@ -279,10 +341,10 @@ export default function BeveragesPage({
                 <div className="bev-modifier-card">
                   <div className="bev-modifier-card-header">
                     <h4>Beverage Add-Ons</h4>
-                    <span className="bev-modifier-count">{beverageAddOns.length} options</span>
+                    <span className="bev-modifier-count">{addOns.length} options</span>
                   </div>
                   <ul className="bev-modifier-list">
-                    {beverageAddOns.map((addon) => (
+                    {addOns.map((addon) => (
                       <li key={addon.id} className="bev-modifier-row">
                         <div className="bev-modifier-info">
                           <span className="bev-modifier-name">{addon.name}</span>
@@ -290,11 +352,11 @@ export default function BeveragesPage({
                         </div>
                         <button
                           type="button"
-                          className="button button-small bev-modifier-add"
+                          className="button button-small bev-modifier-add menu-add-btn"
                           onClick={() => onAddModifier(addon, "Add-on")}
                           aria-label={`Add ${addon.name} to bag`}
                         >
-                          + Add
+                          <PlusIcon size={13} /> Add
                         </button>
                       </li>
                     ))}
@@ -305,10 +367,10 @@ export default function BeveragesPage({
                 <div className="bev-modifier-card">
                   <div className="bev-modifier-card-header">
                     <h4>Substitutions (Subs)</h4>
-                    <span className="bev-modifier-count">{beverageSubs.length} options</span>
+                    <span className="bev-modifier-count">{subs.length} options</span>
                   </div>
                   <ul className="bev-modifier-list">
-                    {beverageSubs.map((sub) => (
+                    {subs.map((sub) => (
                       <li key={sub.id} className="bev-modifier-row">
                         <div className="bev-modifier-info">
                           <span className="bev-modifier-name">{sub.name}</span>
@@ -316,11 +378,11 @@ export default function BeveragesPage({
                         </div>
                         <button
                           type="button"
-                          className="button button-small bev-modifier-add"
+                          className="button button-small bev-modifier-add menu-add-btn"
                           onClick={() => onAddModifier(sub, "Sub")}
                           aria-label={`Add substitution ${sub.name} to bag`}
                         >
-                          + Add
+                          <PlusIcon size={13} /> Add
                         </button>
                       </li>
                     ))}

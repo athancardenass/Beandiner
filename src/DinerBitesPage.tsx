@@ -1,5 +1,17 @@
-import { useState, type MouseEvent } from "react";
+import { useMemo, useRef, useState, type MouseEvent } from "react";
 import { foodCategories, type DinerBite } from "./dinerBites";
+import {
+  CategoryTabs,
+  FadeImage,
+  MenuResultsNote,
+  MenuSearch,
+  PlusIcon,
+  SEARCH_THRESHOLD,
+  StickyMenuBar,
+  matchesQuery,
+  normalizeQuery,
+  scrollListIntoView,
+} from "./ui/menu";
 
 type DinerBitesPageProps = {
   onAdd: (bite: DinerBite) => void;
@@ -37,11 +49,11 @@ function FoodItem({
             <strong>{money(bite.price)}</strong>
             <button
               type="button"
-              className="button"
+              className="button menu-add-btn"
               onClick={() => onAdd(bite)}
               aria-label={`Add ${bite.name} to bag`}
             >
-              Add to bag
+              <PlusIcon size={14} /> Add to bag
             </button>
           </>
         )}
@@ -56,16 +68,57 @@ export default function DinerBitesPage({
   onNavigate,
 }: DinerBitesPageProps) {
   const [activeCategory, setActiveCategory] = useState<string>("all");
-
-  const displayedCategories =
-    activeCategory === "all"
-      ? foodCategories
-      : foodCategories.filter((cat) => cat.id === activeCategory);
+  const [query, setQuery] = useState("");
+  const listRef = useRef<HTMLDivElement>(null);
 
   const totalDishes = foodCategories.reduce(
     (acc, cat) => acc + cat.items.length,
-    0
+    0,
   );
+  const showSearch = totalDishes > SEARCH_THRESHOLD;
+  const q = normalizeQuery(query);
+
+  const visibleCategories = useMemo(
+    () =>
+      foodCategories
+        .filter((cat) => activeCategory === "all" || cat.id === activeCategory)
+        .map((cat) => ({
+          ...cat,
+          items: cat.items.filter((bite) =>
+            matchesQuery(
+              q,
+              bite.name,
+              bite.subtitle,
+              bite.description,
+              bite.badge,
+              bite.tag,
+              cat.name,
+              ...(bite.options ?? []),
+            ),
+          ),
+        }))
+        .filter((cat) => cat.items.length > 0),
+    [activeCategory, q],
+  );
+
+  const resultCount = visibleCategories.reduce(
+    (n, cat) => n + cat.items.length,
+    0,
+  );
+
+  const tabs = [
+    { id: "all", label: "All bites", count: totalDishes },
+    ...foodCategories.map((cat) => ({
+      id: cat.id,
+      label: cat.name,
+      count: cat.items.length,
+    })),
+  ];
+
+  const changeCategory = (id: string) => {
+    setActiveCategory(id);
+    scrollListIntoView(listRef.current);
+  };
 
   return (
     <>
@@ -101,30 +154,48 @@ export default function DinerBitesPage({
           </p>
         </div>
 
-        {/* Category Pills Filter Bar */}
-        <div className="food-category-filters" role="tablist" aria-label="Food categories">
-          <button
-            type="button"
-            className={`food-category-pill ${activeCategory === "all" ? "active" : ""}`}
-            onClick={() => setActiveCategory("all")}
-          >
-            All Bites ({totalDishes})
-          </button>
-          {foodCategories.map((cat) => (
-            <button
-              type="button"
-              key={cat.id}
-              className={`food-category-pill ${activeCategory === cat.id ? "active" : ""}`}
-              onClick={() => setActiveCategory(cat.id)}
-            >
-              {cat.name} ({cat.items.length})
-            </button>
-          ))}
-        </div>
+        {/* Sticky Toolbar with Search and Category Tabs */}
+        <StickyMenuBar label="Food menu controls" className="food-sticky">
+          {showSearch && (
+            <MenuSearch
+              value={query}
+              onChange={setQuery}
+              label="Search diner bites"
+              placeholder="Search comfort plates or bites..."
+            />
+          )}
+          <CategoryTabs
+            tabs={tabs}
+            active={activeCategory}
+            onChange={changeCategory}
+            label="Food categories"
+          />
+        </StickyMenuBar>
+
+        <MenuResultsNote query={q ? query : ""} count={resultCount} />
 
         {/* Categories: EXACTLY ONE representative picture per category */}
-        <div className="food-categories-container">
-          {displayedCategories.map((cat) => (
+        <div className="food-categories-container" ref={listRef}>
+          {q && resultCount === 0 && (
+            <div className="menu-empty">
+              <h3>Nothing on the menu by that name.</h3>
+              <p>
+                Try searching for wings, fries, nachos, or pasta, or browse every
+                category.
+              </p>
+              <button
+                type="button"
+                className="button"
+                onClick={() => {
+                  setQuery("");
+                  setActiveCategory("all");
+                }}
+              >
+                Show all bites
+              </button>
+            </div>
+          )}
+          {visibleCategories.map((cat) => (
             <section
               key={cat.id}
               id={`cat-${cat.id}`}
@@ -133,7 +204,7 @@ export default function DinerBitesPage({
             >
               {/* Dedicated category hero image banner */}
               <div className="food-category-hero-frame">
-                <img
+                <FadeImage
                   src={cat.categoryImage}
                   alt={cat.name}
                   className="food-category-hero-image"

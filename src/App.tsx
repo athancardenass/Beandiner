@@ -17,6 +17,15 @@ import {
   type BeverageItem,
   type BeverageModifier,
 } from "./beverages";
+import {
+  CategoryTabs,
+  FadeImage,
+  PlusIcon,
+  StickyMenuBar,
+  scrollListIntoView,
+  useStickyHeaderOffset,
+} from "./ui/menu";
+
 // ↓ UTILITY: Philippine Peso currency formatter
 const money = (n: number) => `₱${n.toLocaleString("en-PH")}`;
 const beanDinerMapsUrl =
@@ -223,6 +232,8 @@ const formatOrderMessage = (
   orderType: "pickup" | "dine-in" | "delivery" = "pickup",
   extraInfo: string = "",
   payment: CheckoutPayment = "gcash",
+  pickupTime: string = "",
+  orderNote: string = "",
 ) => {
   const lines = items.map((item) => {
     const p = products.find((p) => p.id === item.id);
@@ -271,6 +282,9 @@ const formatOrderMessage = (
     orderTypeLine = `Order Type: Door to door (Delivery)${extraInfo ? `\nDelivery Address: ${extraInfo}` : ""}`;
   }
 
+  const timingLine = pickupTime ? `Preferred Timing: ${pickupTime}` : null;
+  const noteLine = orderNote?.trim() ? `Order Note: "${orderNote.trim()}"` : null;
+
   return [
     `Hello Bean Diner Bayambang! I would like to place an order:`,
     ``,
@@ -278,10 +292,12 @@ const formatOrderMessage = (
     ``,
     bundleDiscount > 0 ? `Bundle Discount: -${money(bundleDiscount)}` : null,
     orderTypeLine,
+    timingLine,
     `Payment: ${payment === "gcash" ? "GCash" : payment === "maya" ? "Maya" : "Cash upon pickup/delivery"}`,
     `Total: ${money(totalAmount)}`,
     customerName ? `Name: ${customerName}` : null,
     customerPhone ? `Contact: ${customerPhone}` : null,
+    noteLine,
   ]
     .filter(Boolean)
     .join("\n");
@@ -518,7 +534,7 @@ function Sun({ className = "" }: { className?: string }) {
     </svg>
   );
 }
-// ↓ MODAL COMPONENT: Base dialog with backdrop and close button
+// ↓ MODAL COMPONENT: Base dialog with backdrop, focus trap, Esc-to-close, and return focus
 function Modal({
   children,
   onClose,
@@ -531,24 +547,75 @@ function Modal({
   className?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
-    const el = ref.current!;
-    const previous = document.activeElement as HTMLElement;
-    el.showModal();
-    const old = document.body.style.overflow;
+    const el = ref.current;
+    if (!el) return;
+    const previous = document.activeElement as HTMLElement | null;
+    if (!el.open) {
+      try {
+        el.showModal();
+      } catch {
+        /* Dialog already open */
+      }
+    }
+    const oldOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        onCloseRef.current();
+        return;
+      }
+      if (e.key === "Tab") {
+        const nodes = Array.from(
+          el.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          )
+        ).filter((n) => n.offsetParent !== null);
+        if (nodes.length === 0) return;
+        const first = nodes[0];
+        const last = nodes[nodes.length - 1];
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+    };
+
+    el.addEventListener("keydown", handleKeyDown);
+
     return () => {
-      el.close();
-      document.body.style.overflow = old;
-      previous?.focus();
+      el.removeEventListener("keydown", handleKeyDown);
+      if (el.open) el.close();
+      document.body.style.overflow = oldOverflow;
+      if (previous && typeof previous.focus === "function") {
+        previous.focus();
+      }
     };
   }, []);
+
   return (
     <dialog
       ref={ref}
       aria-label={label}
+      aria-modal="true"
       className={`modal ${className}`}
-      onCancel={onClose}
+      onCancel={(e) => {
+        e.preventDefault();
+        onClose();
+      }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -566,15 +633,52 @@ function Modal({
     </dialog>
   );
 }
+// ↓ SEGMENTED: Radio group styled as a segmented control (arrow keys move selection)
+function Segmented({
+  legend,
+  name,
+  options,
+  value,
+  onChange,
+}: {
+  legend: string;
+  name: string;
+  options: { value: string; label: string; extra?: string }[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <fieldset className="segmented">
+      <legend>{legend}</legend>
+      <div className="segmented-track" style={{ "--seg-count": options.length } as CSSProperties}>
+        {options.map((o) => (
+          <label key={o.value} className={value === o.value ? "selected" : ""}>
+            <input
+              type="radio"
+              name={name}
+              value={o.value}
+              checked={value === o.value}
+              onChange={() => onChange(o.value)}
+            />
+            <span>{o.label}</span>
+            {o.extra && <small>{o.extra}</small>}
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
 // ↓ PRODUCT MODAL: Customize drink size, milk, temperature, quantity
 function ProductModal({
   product,
   onClose,
   onAdd,
+  bagOfferCups,
 }: {
   product: Product;
   onClose: () => void;
   onAdd: (item: CartItem) => void;
+  bagOfferCups: number;
 }) {
   const isIcedDrink = product.name.toLowerCase().includes("iced");
   const isHotDrink = product.name.toLowerCase().includes("hot");
@@ -590,6 +694,20 @@ function ProductModal({
   const hasMilk = true;
   const price =
     product.price + (size === "22 oz" ? 30 : 0) + (milk === "Oat" ? 35 : 0);
+
+  // Offer hint mirrors the cart rule: latte, 16 oz, regular milk, iced.
+  const isOfferDrink = product.id === spanishLatte.id;
+  const qualifies =
+    isOfferDrink && size === "16 oz" && milk === "Regular" && temperature === "Iced";
+  const cupsAfterAdd = bagOfferCups + (qualifies ? quantity : 0);
+  const offerHint = !isOfferDrink
+    ? ""
+    : !qualifies
+      ? `Two-cup offer (2 for ${money(spanishLatteBundlePrice)}) needs 16 oz, regular milk, iced.`
+      : cupsAfterAdd >= 2
+        ? `Two-cup offer applies: save ${money(spanishLatteBundleSavings * Math.floor(cupsAfterAdd / 2))} at checkout.`
+        : `Add one more cup for 2 for ${money(spanishLatteBundlePrice)}.`;
+
   return (
     <Modal
       onClose={onClose}
@@ -597,9 +715,7 @@ function ProductModal({
       className="product-modal"
     >
       <div className="customize-image" style={{ background: product.color }}>
-        <span className="eyebrow">BEAN DINER SPECIALTY</span>
-        <img src={image(product.id)} alt={product.name} />
-        <Sun />
+        <img src={image(product.id)} alt="" />
       </div>
       <form
         className="customize-form"
@@ -619,139 +735,104 @@ function ProductModal({
             name: product.name,
             note: trimmedNote || undefined,
           });
+          onClose();
         }}
       >
-        <span className="eyebrow">{product.short}</span>
-        <h2>{product.name}</h2>
-        <p>{product.description}</p>
-        <span className="availability">
-          Available at Antonio Luna St., Bayambang
-        </span>
+        <div className="customize-head">
+          <h2>{product.name}</h2>
+          <p className="customize-price">{money(product.price)}</p>
+        </div>
+        <p className="customize-desc">{product.description}</p>
+
+        {!isIcedDrink && !isHotDrink && (
+          <Segmented
+            legend="Hot or iced"
+            name="temperature"
+            value={temperature}
+            onChange={setTemperature}
+            options={[
+              { value: "Iced", label: "Iced" },
+              { value: "Hot", label: "Hot" },
+            ]}
+          />
+        )}
+        {(isIcedDrink || isHotDrink) && (
+          <p className="customize-fixed">
+            {isIcedDrink ? "Served iced" : "Served hot"}
+          </p>
+        )}
+
+        <Segmented
+          legend="Size"
+          name="size"
+          value={size}
+          onChange={setSize}
+          options={[
+            { value: "16 oz", label: "16 oz" },
+            { value: "22 oz", label: "22 oz", extra: "+₱30" },
+          ]}
+        />
+
+        {hasMilk && (
+          <Segmented
+            legend="Milk"
+            name="milk"
+            value={milk}
+            onChange={setMilk}
+            options={[
+              { value: "Regular", label: "Regular" },
+              { value: "Oat", label: "Oat", extra: "+₱35" },
+            ]}
+          />
+        )}
+
+        <Segmented
+          legend="Sweetness"
+          name="sweetness"
+          value={sweetness}
+          onChange={setSweetness}
+          options={[
+            { value: "100% Sweet", label: "100%" },
+            { value: "70% Sweet", label: "70%" },
+            { value: "50% Sweet", label: "50%" },
+            { value: "No Sugar", label: "None" },
+          ]}
+        />
+
+        {temperature === "Iced" && (
+          <Segmented
+            legend="Ice"
+            name="iceLevel"
+            value={iceLevel}
+            onChange={setIceLevel}
+            options={[
+              { value: "Regular Ice", label: "Regular" },
+              { value: "Less Ice", label: "Less" },
+            ]}
+          />
+        )}
+
         <div className="item-note-field">
-          <label htmlFor="item-note">
-            Special instructions / requests (optional)
-          </label>
+          <label htmlFor="item-note">Note for the barista (optional)</label>
           <input
             id="item-note"
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="e.g. Less ice, extra espresso, separate syrup..."
+            placeholder="e.g. separate syrup"
             maxLength={120}
           />
         </div>
-        <fieldset>
-          <legend>Make it your size</legend>
-          <div className="choice-row">
-            {["16 oz", "22 oz"].map((v) => (
-              <label className={size === v ? "selected" : ""} key={v}>
-                <input
-                  type="radio"
-                  name="size"
-                  checked={size === v}
-                  onChange={() => setSize(v)}
-                />
-                {v}
-                {v === "22 oz" && <small> +₱30</small>}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-        {/* Temperature validation: If name has 'Iced', NO hot option! If name has 'Hot', NO iced option! */}
-        {!isIcedDrink && !isHotDrink && (
-          <fieldset>
-            <legend>Hot or iced?</legend>
-            <div className="choice-row">
-              {["Iced", "Hot"].map((v) => (
-                <label className={temperature === v ? "selected" : ""} key={v}>
-                  <input
-                    type="radio"
-                    name="temperature"
-                    checked={temperature === v}
-                    onChange={() => setTemperature(v)}
-                  />
-                  {v}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-        )}
 
-        {isIcedDrink && (
-          <div className="product-temp-badge">
-            <span className="ice-tag">Iced Signature Drink</span>
-            <small>Specially prepared cold over ice for maximum flavor</small>
-          </div>
-        )}
+        <p
+          className={`offer-hint${qualifies ? " is-on" : ""}`}
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {offerHint}
+        </p>
 
-        {isHotDrink && (
-          <div className="product-temp-badge">
-            <span className="hot-tag">Hot Artisan Roast</span>
-            <small>Freshly pulled espresso with steamed velvety milk</small>
-          </div>
-        )}
-
-        {/* Sweetness Preference */}
-        <fieldset>
-          <legend>Sweetness level</legend>
-          <div className="choice-row">
-            {["100% Sweet", "70% Sweet", "50% Sweet", "No Sugar"].map((v) => (
-              <label className={sweetness === v ? "selected" : ""} key={v}>
-                <input
-                  type="radio"
-                  name="sweetness"
-                  checked={sweetness === v}
-                  onChange={() => setSweetness(v)}
-                />
-                {v}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-
-        {/* Ice Level Preference: Only show when drink is Iced */}
-        {temperature === "Iced" && (
-          <fieldset>
-            <legend>Ice level</legend>
-            <div className="choice-row">
-              {["Regular Ice", "Less Ice"].map((v) => (
-                <label className={iceLevel === v ? "selected" : ""} key={v}>
-                  <input
-                    type="radio"
-                    name="iceLevel"
-                    checked={iceLevel === v}
-                    onChange={() => setIceLevel(v)}
-                  />
-                  {v}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-        )}
-
-        {hasMilk && (
-          <fieldset>
-            <legend>Your milk</legend>
-            <div className="choice-row">
-              {["Regular", "Oat"].map((v) => (
-                <label className={milk === v ? "selected" : ""} key={v}>
-                  <input
-                    type="radio"
-                    name="milk"
-                    checked={milk === v}
-                    onChange={() => setMilk(v)}
-                  />
-                  {v}
-                  {v === "Oat" && <small> +₱35</small>}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-        )}
-        <small className="allergen">
-          Handcrafted fresh upon order at our Bayambang diner.
-        </small>
         <div className="add-row">
-          <div className="quantity">
+          <div className="quantity" role="group" aria-label="Quantity">
             <button
               type="button"
               onClick={() => setQuantity((q) => Math.max(1, q - 1))}
@@ -760,7 +841,7 @@ function ProductModal({
             >
               <Icon name="minus" size={16} />
             </button>
-            <output>{quantity}</output>
+            <output aria-live="polite">{quantity}</output>
             <button
               type="button"
               onClick={() => setQuantity((q) => Math.min(20, q + 1))}
@@ -771,8 +852,10 @@ function ProductModal({
             </button>
           </div>
           <button className="button" type="submit">
-            Add to bag <span>{money(price * quantity)}</span>
-            <Icon name="bag" size={18} />
+            Add {quantity > 1 ? `${quantity} ` : ""}to bag
+            <span className="add-row-price" aria-live="polite">
+              {money(price * quantity)}
+            </span>
           </button>
         </div>
       </form>
@@ -1028,25 +1111,13 @@ function BiteCustomizeModal({
 
         {/* Flavor / Option choices */}
         {bite.options && bite.options.length > 0 && (
-          <fieldset>
-            <legend>{bite.optionLabel || "Select your flavor"}</legend>
-            <div className="choice-row bite-options-row">
-              {bite.options.map((opt) => (
-                <label
-                  className={selectedOption === opt ? "selected" : ""}
-                  key={opt}
-                >
-                  <input
-                    type="radio"
-                    name="bite-option"
-                    checked={selectedOption === opt}
-                    onChange={() => setSelectedOption(opt)}
-                  />
-                  <span>{opt}</span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
+          <Segmented
+            legend={bite.optionLabel || "Select your flavor"}
+            name="bite-option"
+            value={selectedOption}
+            onChange={setSelectedOption}
+            options={bite.options.map((opt) => ({ value: opt, label: opt }))}
+          />
         )}
 
         {/* Special Instructions Note */}
@@ -1084,7 +1155,10 @@ function BiteCustomizeModal({
             </button>
           </div>
           <button className="button" type="submit">
-            Add to bag <span>{money(price * quantity)}</span>
+            Add {quantity > 1 ? `${quantity} ` : ""}to bag
+            <span className="add-row-price" aria-live="polite">
+              {money(price * quantity)}
+            </span>
           </button>
         </div>
       </form>
@@ -1093,6 +1167,7 @@ function BiteCustomizeModal({
 }
 
 function App() {
+  useStickyHeaderOffset();
   const [currentPage, setCurrentPage] = useState<AppPage>(() => {
     const p = new URLSearchParams(window.location.search).get("page");
     if (p === "diner-bites") return "diner-bites";
@@ -1121,6 +1196,10 @@ function App() {
   const [toast, setToast] = useState("");
   const [lastOrder, setLastOrder] = useState("");
   const [storeStatus, setStoreStatus] = useState(getStoreStatus);
+  const [checkoutStep, setCheckoutStep] = useState<"bag" | "details">("bag");
+  const [checkoutPickupTime, setCheckoutPickupTime] = useState("ASAP (~15-20 mins)");
+  const [checkoutCustomTime, setCheckoutCustomTime] = useState("");
+  const [checkoutNote, setCheckoutNote] = useState("");
   const [checkoutOrderType, setCheckoutOrderType] = useState<"pickup" | "dine-in" | "delivery">("pickup");
   const [checkoutExtra, setCheckoutExtra] = useState("");
   const [checkoutPayment, setCheckoutPayment] = useState<CheckoutPayment>("gcash");
@@ -1130,6 +1209,7 @@ function App() {
     name?: string | null;
     phone?: string | null;
     address?: string | null;
+    time?: string | null;
   }>({});
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
@@ -1178,6 +1258,7 @@ function App() {
   const showNameError = focusedField !== "name" && Boolean(checkoutErrors.name);
   const showPhoneError = focusedField !== "phone" && Boolean(checkoutErrors.phone);
   const showAddressError = focusedField !== "address" && Boolean(checkoutErrors.address);
+  const showTimeError = focusedField !== "customTime" && Boolean(checkoutErrors.time);
   const scrollToTop = (e?: React.MouseEvent) => {
     if (e) e.preventDefault();
     window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
@@ -1285,10 +1366,13 @@ function App() {
       /* Private browsing keeps the current session functional. */
     }
   }, [cart]);
-  // ↓ TOAST TIMER: Auto-dismiss toast after 3.2s
+  // ↓ TOAST TIMER: Auto-dismiss toast (longer when Undo is offered)
   useEffect(() => {
     if (!toast) return;
-    const id = setTimeout(() => setToast(""), 3200);
+    const id = setTimeout(() => {
+      setToast("");
+      setUndoCart(null);
+    }, toast.startsWith("Added ") ? 6000 : 3200);
     return () => clearTimeout(id);
   }, [toast]);
   // ↓ SCROLL EFFECTS: Hero parallax, progress bar, reveal-on-scroll
@@ -1326,8 +1410,26 @@ function App() {
       observer.disconnect();
     };
   }, [currentPage]);
-  // ↓ ADD TO CART: Merge duplicates, open bag, show toast
+  // ↓ ADD FEEDBACK: Bump bag icon, toast "Added <item>" with Undo snapshot
+  const cartRef = useRef(cart);
+  cartRef.current = cart;
+  const [undoCart, setUndoCart] = useState<CartItem[] | null>(null);
+  const [bagBump, setBagBump] = useState(0);
+  const announceAdd = (name: string) => {
+    setUndoCart([...cartRef.current]);
+    setBagBump((n) => n + 1);
+    setToast(`Added ${name.replace(/\s*\([^)]*\)\s*$/, "")}`);
+  };
+  const undoAdd = () => {
+    if (undoCart) {
+      setCart(undoCart);
+      setToast("Item removed from bag.");
+    }
+    setUndoCart(null);
+  };
+  // ↓ ADD TO CART: Merge duplicates, show toast
   const add = (item: CartItem) => {
+    announceAdd(item.name || "item");
     setCart((current) => {
       const existing = current.find((i) => i.key === item.key);
       return existing
@@ -1340,8 +1442,6 @@ function App() {
     });
     setSelected(null);
     setReceipt(false);
-    setBagOpen(true);
-    setToast("Freshly brewed, added to your bag.");
   };
 
   // ↓ ADD DINER BITE: Add comfort food item (or open customization if flavored)
@@ -1363,6 +1463,7 @@ function App() {
       price: bite.price,
       isFood: true,
     };
+    announceAdd(cleanName);
     setCart((current) => {
       const existing = current.find((i) => i.key === item.key);
       return existing
@@ -1374,8 +1475,6 @@ function App() {
         : [...current, item];
     });
     setReceipt(false);
-    setBagOpen(true);
-    setToast(`${cleanName} added to your bag.`);
   };
 
   // ↓ ADD BEVERAGE: Add coffee / drink item from dedicated beverages page
@@ -1545,11 +1644,13 @@ function App() {
             Order now <Icon name="arrow" size={17} />
           </a>
           <button
-            className="bag-button"
+            key={`header-bag-${bagBump}`}
+            className={`bag-button ${bagBump > 0 ? "bag-bump-animate" : ""}`}
             aria-label={`Open bag, ${cartCount} items`}
             onClick={() => {
               setBagOpen(true);
               setReceipt(false);
+              setCheckoutStep("bag");
             }}
           >
             <Icon name="bag" />
@@ -1732,27 +1833,27 @@ function App() {
             <h3 id="social-ordering-title">How Social Ordering Works</h3>
             <OrderingSteps />
           </section>
-          <div className="menu-toolbar">
-            <div
-              className="menu-filters"
-              role="group"
-              aria-label="Filter drinks"
-            >
-              {["All drinks", "Best sellers", "Coffee", "Not coffee"].map(
-                (f) => (
-                  <button
-                    key={f}
-                    className={filter === f ? "active" : ""}
-                    onClick={() => setFilter(f)}
-                    aria-pressed={filter === f}
-                  >
-                    {f}
-                  </button>
-                ),
-              )}
+          <StickyMenuBar label="Signature drink filters" className="home-sticky">
+            <div className="menu-toolbar">
+              <CategoryTabs
+                tabs={[
+                  { id: "All drinks", label: "All drinks", count: 6 },
+                  { id: "Best sellers", label: "Best sellers", count: 3 },
+                  { id: "Coffee", label: "Coffee", count: 4 },
+                  { id: "Not coffee", label: "Not coffee", count: 2 },
+                ]}
+                active={filter}
+                onChange={(tabId) => {
+                  setFilter(tabId as any);
+                  requestAnimationFrame(() =>
+                    scrollListIntoView(document.getElementById("drink-menu-products")),
+                  );
+                }}
+                label="Filter drinks"
+              />
+              <span className="menu-size">SIGNATURE 16 OZ CUPS</span>
             </div>
-            <span className="menu-size">SIGNATURE 16 OZ CUPS</span>
-          </div>
+          </StickyMenuBar>
           <div className="product-grid" id="drink-menu-products">
             {visibleProducts.map((p) => (
               <article className="product-card" key={p.id}>
@@ -1776,12 +1877,12 @@ function App() {
                               ? "chai!"
                               : "roast!"}
                   </span>
-                  <img
+                  <FadeImage
                     src={image(p.id)}
                     alt={p.name}
                     loading="lazy"
-                    width="300"
-                    height="420"
+                    width={300}
+                    height={420}
                   />
                   <span className="product-add">
                     <Icon name="plus" size={22} />
@@ -1797,6 +1898,16 @@ function App() {
                   {p.short}
                   <span>{p.hot ? "HOT" : "ICED"} / 16 OZ</span>
                 </p>
+                <div className="product-card-actions">
+                  <button
+                    type="button"
+                    className="button menu-add-btn"
+                    onClick={() => setSelected(p)}
+                    aria-label={`Customize ${p.name}`}
+                  >
+                    <PlusIcon size={14} /> Add
+                  </button>
+                </div>
               </article>
             ))}
           </div>
@@ -2126,11 +2237,23 @@ function App() {
           </a>
         </div>
       </footer>
-      {/* ↓ TOAST: Add-to-bag confirmation */}
+      {/* ↓ TOAST: Add-to-bag confirmation with Undo */}
       {toast && (
-        <div role="status" className="toast">
-          <Icon name="check" size={18} />
-          {toast}
+        <div role="status" className="toast toast-with-undo" aria-live="polite">
+          <div className="toast-message">
+            <Icon name="check" size={17} />
+            <span>{toast}</span>
+          </div>
+          {undoCart && (
+            <button
+              type="button"
+              className="toast-undo-btn"
+              onClick={undoAdd}
+              aria-label="Undo adding item to bag"
+            >
+              Undo
+            </button>
+          )}
         </div>
       )}
       {/* ↓ PRODUCT MODAL: Customize selected drink */}
@@ -2139,27 +2262,14 @@ function App() {
           product={selected}
           onClose={() => setSelected(null)}
           onAdd={add}
+          bagOfferCups={eligible}
         />
       )}
       {customizingBite && (
         <BiteCustomizeModal
           bite={customizingBite}
           onClose={() => setCustomizingBite(null)}
-          onAdd={(item) => {
-            setCart((current) => {
-              const existing = current.find((i) => i.key === item.key);
-              return existing
-                ? current.map((i) =>
-                    i.key === item.key
-                      ? { ...i, quantity: Math.min(20, i.quantity + item.quantity) }
-                      : i,
-                  )
-                : [...current, item];
-            });
-            setReceipt(false);
-            setBagOpen(true);
-            setToast(`${item.name} added to your bag.`);
-          }}
+          onAdd={add}
         />
       )}
       {/* ↓ BAG MODAL: Shopping cart drawer */}
@@ -2175,72 +2285,165 @@ function App() {
           <div className="bag-content">
             <span className="eyebrow">BEAN DINER · BAYAMBANG</span>
             <h2 ref={bagHeadingRef} tabIndex={receipt ? -1 : undefined}>
-              {receipt ? "Your order is ready to send." : "Your Order"}
+              {receipt
+                ? "Your order is ready to send."
+                : checkoutStep === "details"
+                  ? "Checkout Details"
+                  : "Your Order Bag"}
             </h2>
+
+            {/* Step indicator (Bag, Details, Send) */}
+            <nav className="checkout-step-nav" aria-label="Checkout progress">
+              <ol className="checkout-steps">
+                <li
+                  className={`checkout-step-item ${
+                    receipt
+                      ? "is-complete"
+                      : checkoutStep === "bag"
+                        ? "is-active"
+                        : "is-complete"
+                  }`}
+                >
+                  <button
+                    type="button"
+                    className="checkout-step-btn"
+                    onClick={() => {
+                      if (!receipt && cart.length > 0) setCheckoutStep("bag");
+                    }}
+                    disabled={receipt || checkoutStep === "bag"}
+                    aria-current={!receipt && checkoutStep === "bag" ? "step" : undefined}
+                  >
+                    <span className="checkout-step-num">1</span>
+                    <span className="checkout-step-label">Bag</span>
+                  </button>
+                </li>
+                <li className="checkout-step-divider" aria-hidden="true">
+                  <Icon name="arrow" size={13} />
+                </li>
+                <li
+                  className={`checkout-step-item ${
+                    receipt
+                      ? "is-complete"
+                      : checkoutStep === "details"
+                        ? "is-active"
+                        : ""
+                  }`}
+                >
+                  <button
+                    type="button"
+                    className="checkout-step-btn"
+                    onClick={() => {
+                      if (!receipt && cart.length > 0) setCheckoutStep("details");
+                    }}
+                    disabled={receipt || cart.length === 0 || checkoutStep === "details"}
+                    aria-current={!receipt && checkoutStep === "details" ? "step" : undefined}
+                  >
+                    <span className="checkout-step-num">2</span>
+                    <span className="checkout-step-label">Details</span>
+                  </button>
+                </li>
+                <li className="checkout-step-divider" aria-hidden="true">
+                  <Icon name="arrow" size={13} />
+                </li>
+                <li
+                  className={`checkout-step-item ${
+                    receipt ? "is-active" : ""
+                  }`}
+                >
+                  <span
+                    className="checkout-step-btn"
+                    aria-current={receipt ? "step" : undefined}
+                  >
+                    <span className="checkout-step-num">3</span>
+                    <span className="checkout-step-label">Send</span>
+                  </span>
+                </li>
+              </ol>
+            </nav>
+
             {receipt ? (
               <div className="receipt">
-                <p className="receipt-intro">
-                  Your order is copied. Open Messenger when you're ready, then paste and send it to our crew to confirm. Bean Diner stays open here.
-                </p>
-                <OrderingSteps handoff />
-                {/* ↓ BORDERED CLIPBOARD CARD */}
-                <div className="receipt-clipboard-card">
-                  <div className="clipboard-card-header">
-                    <span className="clipboard-card-title">
-                      Order Summary for Messenger
-                    </span>
-                    <span className="clipboard-badge">Ready to send</span>
+                <div className="receipt-diner-ticket">
+                  {/* Ticket Header */}
+                  <div className="receipt-ticket-header">
+                    <div className="receipt-brand-meta">
+                      <img
+                        src="./favicon-badge.png"
+                        alt="Bean Diner"
+                        className="receipt-brand-seal"
+                        width="36"
+                        height="36"
+                      />
+                      <div className="receipt-brand-text">
+                        <strong className="receipt-brand-name">Bean Diner Bayambang</strong>
+                        <span className="receipt-brand-sub">Gen. Antonio Luna Street · Official Order Ticket</span>
+                      </div>
+                    </div>
+                    <span className="receipt-status-pill">Ready to send</span>
                   </div>
 
+                  <div className="receipt-perforation" aria-hidden="true" />
+
+                  <p className="receipt-intro">
+                    Your order summary is ready and copied to your clipboard. Follow the 3 steps below and send it to our team in Messenger.
+                  </p>
+
+                  <OrderingSteps handoff />
+
+                  {/* Summary Box */}
                   {lastOrder && (
-                    <div className="clipboard-preview-box">
-                      {lastOrder}
+                    <div className="receipt-summary-box">
+                      <div className="receipt-summary-box-top">
+                        <span className="receipt-box-label">Order Summary for Messenger</span>
+                        <button
+                          type="button"
+                          className="receipt-copy-pill"
+                          onClick={() => {
+                            copyToClipboard(lastOrder);
+                            setToast("✓ Order details copied to clipboard!");
+                          }}
+                        >
+                          <Icon name="check" size={13} /> Copy Text
+                        </button>
+                      </div>
+                      <pre className="receipt-summary-text">{lastOrder}</pre>
                     </div>
                   )}
 
-                  <a
-                    href={getMessengerUrl()}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="button-copy-messenger"
-                    style={{ textDecoration: "none" }}
-                    onClick={(e) => {
-                      if (lastOrder) {
-                        copyToClipboard(lastOrder);
-                        setToast("✓ Order details copied! Opening Messenger...");
-                      }
-                      if (isMobileDevice() && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
-                        e.preventDefault();
-                        openMessengerApp();
-                      }
-                    }}
-                  >
-                    Copy this and open Messenger ↗
-                  </a>
-                  <a
-                    href={FACEBOOK_PAGE_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="button-facebook-page-fallback"
-                    style={{
-                      display: "block",
-                      marginTop: "12px",
-                      fontSize: "11.5px",
-                      fontWeight: 650,
-                      color: "var(--ink, #121212)",
-                      textAlign: "center",
-                      textDecoration: "underline",
-                      cursor: "pointer",
-                    }}
-                    onClick={() => {
-                      if (lastOrder) {
-                        copyToClipboard(lastOrder);
-                        setToast("✓ Order details copied! Opening Facebook Page...");
-                      }
-                    }}
-                  >
-                    Or open Bean Diner Facebook Page directly ↗
-                  </a>
+                  <div className="receipt-actions-group">
+                    <a
+                      href={getMessengerUrl()}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="button button-copy-messenger prominent"
+                      onClick={(e) => {
+                        if (lastOrder) {
+                          copyToClipboard(lastOrder);
+                          setToast("✓ Order details copied! Opening Messenger...");
+                        }
+                        if (isMobileDevice() && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+                          e.preventDefault();
+                          openMessengerApp();
+                        }
+                      }}
+                    >
+                      Copy Order &amp; Open Messenger ↗
+                    </a>
+                    <a
+                      href={FACEBOOK_PAGE_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="button button-facebook-fallback"
+                      onClick={() => {
+                        if (lastOrder) {
+                          copyToClipboard(lastOrder);
+                          setToast("✓ Order details copied! Opening Facebook Page...");
+                        }
+                      }}
+                    >
+                      Open Bean Diner Facebook Page Directly ↗
+                    </a>
+                  </div>
                 </div>
 
                 <button
@@ -2248,10 +2451,11 @@ function App() {
                   onClick={() => {
                     setBagOpen(false);
                     setReceipt(false);
+                    setCheckoutStep("bag");
                     scrollToMenu();
                   }}
                 >
-                  Back to Menu / Keep Exploring <Icon name="arrow" />
+                  Back to Menu / Order More <Icon name="arrow" />
                 </button>
               </div>
             ) : cart.length === 0 ? (
@@ -2271,7 +2475,7 @@ function App() {
                   Explore the menu <Icon name="arrow" />
                 </button>
               </div>
-            ) : (
+            ) : checkoutStep === "bag" ? (
               <>
                 <button
                   type="button"
@@ -2387,247 +2591,452 @@ function App() {
                   )}
                   <div className="cart-total">
                     <span>Total</span>
-                    <strong>{money(subtotal - discount)}</strong>
+                    <strong aria-live="polite">{money(subtotal - discount)}</strong>
                   </div>
                 </div>
-                <form
-                  className="checkout-form"
-                  noValidate
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    const currentAddressErr = validateDeliveryAddress(checkoutExtra, checkoutOrderType);
-                    const currentNameErr = validateCustomerName(checkoutName);
-                    const currentPhoneErr = validateCustomerPhone(checkoutPhone);
+                <div className="bag-actions-bar">
+                  <button
+                    type="button"
+                    className="button button-proceed-checkout"
+                    onClick={() => setCheckoutStep("details")}
+                  >
+                    Proceed to Details <Icon name="arrow" size={17} />
+                  </button>
+                </div>
+              </>
+            ) : (
+              /* Step 2: Details - Single compact form with visible order summary alongside */
+              <div className="checkout-split-layout">
+                <div className="checkout-form-column">
+                  <div className="checkout-step-header">
+                    <button
+                      type="button"
+                      className="button-back-to-bag"
+                      onClick={() => setCheckoutStep("bag")}
+                    >
+                      <span className="icon-back-arrow" aria-hidden="true">
+                        <Icon name="arrow" size={13} />
+                      </span>
+                      Back to Bag
+                    </button>
+                    <span className="checkout-form-title">Order Information</span>
+                  </div>
 
-                    setCheckoutErrors({
-                      name: currentNameErr,
-                      phone: currentPhoneErr,
-                      address: currentAddressErr,
-                    });
-                    setFocusedField(null);
+                  <form
+                    className="checkout-form checkout-form-compact"
+                    noValidate
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const currentAddressErr = validateDeliveryAddress(checkoutExtra, checkoutOrderType);
+                      const currentNameErr = validateCustomerName(checkoutName);
+                      const currentPhoneErr = validateCustomerPhone(checkoutPhone);
+                      const currentTimeErr =
+                        checkoutPickupTime === "Custom time" && !checkoutCustomTime.trim()
+                          ? "Please specify your preferred time"
+                          : null;
 
-                    if (currentAddressErr) {
-                      document.getElementById("checkout-address")?.focus();
-                      return;
-                    }
-                    if (currentNameErr) {
-                      document.getElementById("order-name")?.focus();
-                      return;
-                    }
-                    if (currentPhoneErr) {
-                      document.getElementById("order-phone")?.focus();
-                      return;
-                    }
+                      setCheckoutErrors({
+                        name: currentNameErr,
+                        phone: currentPhoneErr,
+                        address: currentAddressErr,
+                        time: currentTimeErr,
+                      });
+                      setFocusedField(null);
 
-                    const customerName = checkoutName.trim();
-                    const customerPhone = checkoutPhone.trim();
-                    const msg = formatOrderMessage(
-                      cart,
-                      customerName,
-                      customerPhone,
-                      subtotal - discount,
-                      discount,
-                      checkoutOrderType,
-                      checkoutExtra.trim(),
-                      checkoutPayment,
-                    );
-                    copyToClipboard(msg);
-                    setLastOrder(msg);
-                    setToast("✓ Order copied! Follow the guide below to send.");
-                    setReceipt(true);
-                    setCart([]);
-                    setCheckoutName("");
-                    setCheckoutPhone("");
-                    setCheckoutExtra("");
-                    setCheckoutErrors({});
-                  }}
-                >
-                  {/* Order Type: Pick up, Dine in, Door to door */}
-                  <fieldset>
-                    <legend>Order type</legend>
-                    <div className="choice-row order-type-row">
-                      {[
-                        { id: "pickup", label: "For pick up" },
-                        { id: "dine-in", label: "Dine in" },
-                        { id: "delivery", label: "Door to door" },
-                      ].map((t) => (
-                        <label
-                          className={checkoutOrderType === t.id ? "selected" : ""}
-                          key={t.id}
-                        >
-                          <input
-                            type="radio"
-                            name="checkoutOrderType"
-                            checked={checkoutOrderType === t.id}
-                            onChange={() => {
-                              setCheckoutOrderType(t.id as any);
-                              setCheckoutExtra("");
-                              setCheckoutErrors((prev) => ({ ...prev, address: null }));
-                            }}
-                          />
-                          <span>{t.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </fieldset>
+                      if (currentAddressErr) {
+                        document.getElementById("checkout-address")?.focus();
+                        return;
+                      }
+                      if (currentNameErr) {
+                        document.getElementById("order-name")?.focus();
+                        return;
+                      }
+                      if (currentTimeErr) {
+                        document.getElementById("checkout-custom-time")?.focus();
+                        return;
+                      }
+                      if (currentPhoneErr) {
+                        document.getElementById("order-phone")?.focus();
+                        return;
+                      }
 
-                  {checkoutOrderType === "dine-in" && (
-                    <div className="order-extra-field">
-                      <label htmlFor="checkout-table">Table number (if seated):</label>
+                      const customerName = checkoutName.trim();
+                      const customerPhone = checkoutPhone.trim();
+                      const resolvedTiming =
+                        checkoutPickupTime === "Custom time"
+                          ? checkoutCustomTime.trim()
+                          : checkoutPickupTime;
+
+                      const msg = formatOrderMessage(
+                        cart,
+                        customerName,
+                        customerPhone,
+                        subtotal - discount,
+                        discount,
+                        checkoutOrderType,
+                        checkoutExtra.trim(),
+                        checkoutPayment,
+                        resolvedTiming,
+                        checkoutNote.trim(),
+                      );
+                      copyToClipboard(msg);
+                      setLastOrder(msg);
+                      setToast("Order copied! Follow the guide below to send.");
+                      setReceipt(true);
+                      setCart([]);
+                      setCheckoutName("");
+                      setCheckoutPhone("");
+                      setCheckoutExtra("");
+                      setCheckoutNote("");
+                      setCheckoutCustomTime("");
+                      setCheckoutErrors({});
+                    }}
+                  >
+                    {/* Customer Name */}
+                    <div className="form-group">
+                      <label htmlFor="order-name">
+                        {checkoutOrderType === "dine-in"
+                          ? "Your name for table service"
+                          : checkoutOrderType === "delivery"
+                            ? "Recipient name for delivery"
+                            : "Your name for pickup"}
+                        <span className="required-star"> *</span>
+                      </label>
                       <input
-                        id="checkout-table"
-                        name="table"
-                        placeholder="e.g. Table 4"
-                        value={checkoutExtra}
-                        onChange={(e) => setCheckoutExtra(e.target.value)}
-                        maxLength={20}
-                      />
-                    </div>
-                  )}
-
-                  {checkoutOrderType === "delivery" && (
-                    <div className="order-extra-field">
-                      <label htmlFor="checkout-address">Delivery address &amp; landmark:</label>
-                      <input
-                        id="checkout-address"
-                        name="address"
-                        className={showAddressError ? "input-error" : ""}
-                        placeholder="Street, Barangay, and Landmark in Bayambang"
-                        value={checkoutExtra}
-                        onChange={(e) => setCheckoutExtra(e.target.value)}
+                        id="order-name"
+                        name="name"
+                        className={showNameError ? "input-error" : ""}
+                        value={checkoutName}
+                        onChange={(e) => setCheckoutName(e.target.value)}
                         onFocus={() => {
-                          setFocusedField("address");
-                          setCheckoutErrors((prev) => ({ ...prev, address: null }));
+                          setFocusedField("name");
+                          setCheckoutErrors((prev) => ({ ...prev, name: null }));
                         }}
                         onBlur={() => {
                           setFocusedField(null);
                           setCheckoutErrors((prev) => ({
                             ...prev,
-                            address: validateDeliveryAddress(checkoutExtra, checkoutOrderType),
+                            name: validateCustomerName(checkoutName),
                           }));
                         }}
-                        aria-invalid={showAddressError ? "true" : "false"}
-                        aria-describedby={showAddressError ? "checkout-address-error" : undefined}
-                        maxLength={150}
+                        aria-invalid={showNameError ? "true" : "false"}
+                        aria-describedby={showNameError ? "order-name-error" : undefined}
+                        autoComplete="name"
+                        placeholder="e.g. Karl Santos"
+                        maxLength={50}
                       />
-                      {showAddressError && (
-                        <span id="checkout-address-error" className="form-field-error" role="alert">
-                          <Icon name="alert-circle" size={14} /> {checkoutErrors.address}
+                      {showNameError && (
+                        <span id="order-name-error" className="form-field-error" role="alert">
+                          <Icon name="alert-circle" size={14} /> {checkoutErrors.name}
                         </span>
                       )}
                     </div>
-                  )}
 
-                  {checkoutOrderType === "pickup" && (
-                    <div className="pickup-notice">
-                      <small>Pickup: Bean Diner · Gen. Antonio Luna St., Bayambang</small>
-                    </div>
-                  )}
-
-                  <fieldset className="checkout-payment-fieldset">
-                    <legend>Payment method</legend>
-                    <div className="payment-choice-row">
-                      {([
-                        { id: "gcash", label: "GCash" },
-                        { id: "maya", label: "Maya" },
-                        { id: "cash", label: "Cash" },
-                      ] as const).map((payment) => (
-                        <label
-                          className={checkoutPayment === payment.id ? "selected" : ""}
-                          key={payment.id}
-                        >
+                    {/* Pickup / Preferred Time */}
+                    <fieldset className="checkout-fieldset">
+                      <legend>Pickup / Preferred timing</legend>
+                      <div className="timing-choice-row">
+                        {[
+                          "ASAP (~15-20 mins)",
+                          "In 30 mins",
+                          "In 1 hour",
+                          "Custom time",
+                        ].map((timeOption) => (
+                          <label
+                            key={timeOption}
+                            className={checkoutPickupTime === timeOption ? "selected" : ""}
+                          >
+                            <input
+                              type="radio"
+                              name="checkoutPickupTime"
+                              checked={checkoutPickupTime === timeOption}
+                              onChange={() => {
+                                setCheckoutPickupTime(timeOption);
+                                setCheckoutErrors((prev) => ({ ...prev, time: null }));
+                              }}
+                            />
+                            <span>{timeOption}</span>
+                          </label>
+                        ))}
+                      </div>
+                      {checkoutPickupTime === "Custom time" && (
+                        <div className="custom-time-field">
+                          <label htmlFor="checkout-custom-time">Specify time today:</label>
                           <input
-                            type="radio"
-                            name="checkoutPayment"
-                            value={payment.id}
-                            checked={checkoutPayment === payment.id}
-                            onChange={() => setCheckoutPayment(payment.id)}
+                            id="checkout-custom-time"
+                            name="customTime"
+                            className={showTimeError ? "input-error" : ""}
+                            placeholder="e.g. 2:45 PM or 5:30 PM"
+                            value={checkoutCustomTime}
+                            onChange={(e) => {
+                              setCheckoutCustomTime(e.target.value);
+                              setCheckoutErrors((prev) => ({ ...prev, time: null }));
+                            }}
+                            onFocus={() => {
+                              setFocusedField("customTime");
+                              setCheckoutErrors((prev) => ({ ...prev, time: null }));
+                            }}
+                            onBlur={() => {
+                              setFocusedField(null);
+                              if (!checkoutCustomTime.trim()) {
+                                setCheckoutErrors((prev) => ({
+                                  ...prev,
+                                  time: "Please specify your preferred time",
+                                }));
+                              }
+                            }}
+                            aria-invalid={showTimeError ? "true" : "false"}
+                            aria-describedby={showTimeError ? "checkout-time-error" : undefined}
+                            maxLength={30}
                           />
-                          <span>{payment.label}</span>
-                        </label>
-                      ))}
+                          {showTimeError && (
+                            <span id="checkout-time-error" className="form-field-error" role="alert">
+                              <Icon name="alert-circle" size={14} /> {checkoutErrors.time}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </fieldset>
+
+                    {/* Order Note */}
+                    <div className="form-group">
+                      <label htmlFor="order-note">
+                        Order note / special request <small>(optional)</small>
+                      </label>
+                      <input
+                        id="order-note"
+                        name="note"
+                        placeholder="e.g. separate syrup, extra napkins, less sweet"
+                        value={checkoutNote}
+                        onChange={(e) => setCheckoutNote(e.target.value)}
+                        maxLength={140}
+                      />
                     </div>
-                  </fieldset>
 
-                  <label htmlFor="order-name">
-                    {checkoutOrderType === "dine-in"
-                      ? "Your name for table service"
-                      : checkoutOrderType === "delivery"
-                        ? "Recipient name for delivery"
-                        : "Your name for pickup"}
-                  </label>
-                  <input
-                    id="order-name"
-                    name="name"
-                    className={showNameError ? "input-error" : ""}
-                    value={checkoutName}
-                    onChange={(e) => setCheckoutName(e.target.value)}
-                    onFocus={() => {
-                      setFocusedField("name");
-                      setCheckoutErrors((prev) => ({ ...prev, name: null }));
-                    }}
-                    onBlur={() => {
-                      setFocusedField(null);
-                      setCheckoutErrors((prev) => ({
-                        ...prev,
-                        name: validateCustomerName(checkoutName),
-                      }));
-                    }}
-                    aria-invalid={showNameError ? "true" : "false"}
-                    aria-describedby={showNameError ? "order-name-error" : undefined}
-                    autoComplete="name"
-                    placeholder="Karl"
-                    maxLength={50}
-                  />
-                  {showNameError && (
-                    <span id="order-name-error" className="form-field-error" role="alert">
-                      <Icon name="alert-circle" size={14} /> {checkoutErrors.name}
-                    </span>
-                  )}
+                    {/* Order Type */}
+                    <fieldset className="checkout-fieldset">
+                      <legend>Order type</legend>
+                      <div className="choice-row order-type-row">
+                        {[
+                          { id: "pickup", label: "For pick up" },
+                          { id: "dine-in", label: "Dine in" },
+                          { id: "delivery", label: "Door to door" },
+                        ].map((t) => (
+                          <label
+                            className={checkoutOrderType === t.id ? "selected" : ""}
+                            key={t.id}
+                          >
+                            <input
+                              type="radio"
+                              name="checkoutOrderType"
+                              checked={checkoutOrderType === t.id}
+                              onChange={() => {
+                                setCheckoutOrderType(t.id as any);
+                                setCheckoutExtra("");
+                                setCheckoutErrors((prev) => ({ ...prev, address: null }));
+                              }}
+                            />
+                            <span>{t.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
 
-                  <label htmlFor="order-phone">Contact number</label>
-                  <input
-                    id="order-phone"
-                    name="phone"
-                    type="tel"
-                    inputMode="numeric"
-                    className={showPhoneError ? "input-error" : ""}
-                    value={checkoutPhone}
-                    onChange={(e) => setCheckoutPhone(formatPhoneNumber(e.target.value))}
-                    onFocus={() => {
-                      setFocusedField("phone");
-                      setCheckoutErrors((prev) => ({ ...prev, phone: null }));
-                    }}
-                    onBlur={() => {
-                      setFocusedField(null);
-                      setCheckoutErrors((prev) => ({
-                        ...prev,
-                        phone: validateCustomerPhone(checkoutPhone),
-                      }));
-                    }}
-                    aria-invalid={showPhoneError ? "true" : "false"}
-                    aria-describedby={showPhoneError ? "order-phone-error" : undefined}
-                    autoComplete="tel"
-                    placeholder="09XX-XXX-XXXX"
-                    maxLength={20}
-                  />
-                  {showPhoneError && (
-                    <span id="order-phone-error" className="form-field-error" role="alert">
-                      <Icon name="alert-circle" size={14} /> {checkoutErrors.phone}
-                    </span>
-                  )}
+                    {checkoutOrderType === "dine-in" && (
+                      <div className="order-extra-field">
+                        <label htmlFor="checkout-table">Table number (if seated):</label>
+                        <input
+                          id="checkout-table"
+                          name="table"
+                          placeholder="e.g. Table 4"
+                          value={checkoutExtra}
+                          onChange={(e) => setCheckoutExtra(e.target.value)}
+                          maxLength={20}
+                        />
+                      </div>
+                    )}
 
-                  <button
-                    className="button button-messenger-checkout"
-                    type="submit"
-                  >
-                    Copy Order &amp; See Sending Guide
-                  </button>
-                  <small>
-                    Copies your order summary and shows you how to send it in Messenger.
-                  </small>
-                </form>
-              </>
+                    {checkoutOrderType === "delivery" && (
+                      <div className="order-extra-field">
+                        <label htmlFor="checkout-address">Delivery address &amp; landmark:</label>
+                        <input
+                          id="checkout-address"
+                          name="address"
+                          className={showAddressError ? "input-error" : ""}
+                          placeholder="Street, Barangay, and Landmark in Bayambang"
+                          value={checkoutExtra}
+                          onChange={(e) => setCheckoutExtra(e.target.value)}
+                          onFocus={() => {
+                            setFocusedField("address");
+                            setCheckoutErrors((prev) => ({ ...prev, address: null }));
+                          }}
+                          onBlur={() => {
+                            setFocusedField(null);
+                            setCheckoutErrors((prev) => ({
+                              ...prev,
+                              address: validateDeliveryAddress(checkoutExtra, checkoutOrderType),
+                            }));
+                          }}
+                          aria-invalid={showAddressError ? "true" : "false"}
+                          aria-describedby={showAddressError ? "checkout-address-error" : undefined}
+                          maxLength={150}
+                        />
+                        {showAddressError && (
+                          <span id="checkout-address-error" className="form-field-error" role="alert">
+                            <Icon name="alert-circle" size={14} /> {checkoutErrors.address}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {checkoutOrderType === "pickup" && (
+                      <div className="pickup-notice">
+                        <small>Pickup: Bean Diner · Gen. Antonio Luna St., Zone 2, Bayambang</small>
+                      </div>
+                    )}
+
+                    {/* Contact Number */}
+                    <div className="form-group">
+                      <label htmlFor="order-phone">
+                        Contact number <span className="required-star">*</span>
+                      </label>
+                      <input
+                        id="order-phone"
+                        name="phone"
+                        type="tel"
+                        inputMode="numeric"
+                        className={showPhoneError ? "input-error" : ""}
+                        value={checkoutPhone}
+                        onChange={(e) => setCheckoutPhone(formatPhoneNumber(e.target.value))}
+                        onFocus={() => {
+                          setFocusedField("phone");
+                          setCheckoutErrors((prev) => ({ ...prev, phone: null }));
+                        }}
+                        onBlur={() => {
+                          setFocusedField(null);
+                          setCheckoutErrors((prev) => ({
+                            ...prev,
+                            phone: validateCustomerPhone(checkoutPhone),
+                          }));
+                        }}
+                        aria-invalid={showPhoneError ? "true" : "false"}
+                        aria-describedby={showPhoneError ? "order-phone-error" : undefined}
+                        autoComplete="tel"
+                        placeholder="09XX-XXX-XXXX"
+                        maxLength={20}
+                      />
+                      {showPhoneError && (
+                        <span id="order-phone-error" className="form-field-error" role="alert">
+                          <Icon name="alert-circle" size={14} /> {checkoutErrors.phone}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Payment Method */}
+                    <fieldset className="checkout-payment-fieldset">
+                      <legend>Payment method</legend>
+                      <div className="payment-choice-row">
+                        {([
+                          { id: "gcash", label: "GCash" },
+                          { id: "maya", label: "Maya" },
+                          { id: "cash", label: "Cash" },
+                        ] as const).map((payment) => (
+                          <label
+                            className={checkoutPayment === payment.id ? "selected" : ""}
+                            key={payment.id}
+                          >
+                            <input
+                              type="radio"
+                              name="checkoutPayment"
+                              value={payment.id}
+                              checked={checkoutPayment === payment.id}
+                              onChange={() => setCheckoutPayment(payment.id)}
+                            />
+                            <span>{payment.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
+
+                    {/* Prominent Send Order via Messenger button */}
+                    <div className="checkout-actions-block">
+                      <button
+                        className="button button-messenger-checkout prominent"
+                        type="submit"
+                      >
+                        Send order via Messenger <Icon name="arrow" size={17} />
+                      </button>
+                      <small className="checkout-actions-hint">
+                        Copies your order summary and guides you to Facebook Messenger to confirm with our crew.
+                      </small>
+                    </div>
+                  </form>
+                </div>
+
+                {/* Visible Order Summary alongside form */}
+                <aside className="checkout-summary-column" aria-label="Visible Order Summary">
+                  <div className="checkout-summary-card">
+                    <div className="checkout-summary-header">
+                      <h3>Order Summary</h3>
+                      <button
+                        type="button"
+                        className="checkout-summary-edit-btn"
+                        onClick={() => setCheckoutStep("bag")}
+                      >
+                        Edit bag
+                      </button>
+                    </div>
+
+                    <div className="checkout-summary-items">
+                      {cart.map((item) => {
+                        const p = products.find((p) => p.id === item.id);
+                        const b = dinerBites.find((b) => b.id === item.id);
+                        const bev = allBeverages.find((bev) => bev.id === item.id);
+                        const mod = [...beverageAddOns, ...beverageSubs].find((m) => m.id === item.id);
+                        const title = p ? p.name : b ? b.name : bev ? bev.name : mod ? mod.name : item.name || "Item";
+                        return (
+                          <div key={item.key} className="checkout-summary-item">
+                            <div className="checkout-summary-item-left">
+                              <span className="checkout-summary-qty">{item.quantity}×</span>
+                              <div className="checkout-summary-meta">
+                                <span className="checkout-summary-name">{title}</span>
+                                <span className="checkout-summary-spec">
+                                  {item.isFood
+                                    ? item.size || "Plate"
+                                    : [item.size, item.temperature, item.sweetness].filter(Boolean).join(" · ")}
+                                </span>
+                              </div>
+                            </div>
+                            <span className="checkout-summary-price">{money(item.price * item.quantity)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="checkout-summary-totals">
+                      <div className="checkout-summary-row">
+                        <span>Subtotal ({cartCount} {cartCount === 1 ? "item" : "items"})</span>
+                        <span>{money(subtotal)}</span>
+                      </div>
+                      {discount > 0 && (
+                        <div className="checkout-summary-row savings">
+                          <span>Coffee-date savings</span>
+                          <span>−{money(discount)}</span>
+                        </div>
+                      )}
+                      <div className="checkout-summary-row total">
+                        <span>Total</span>
+                        <strong aria-live="polite">{money(subtotal - discount)}</strong>
+                      </div>
+                    </div>
+
+                    <div className="checkout-summary-badge">
+                      <Icon name="check" size={14} />
+                      <span>Bayambang crew confirms orders live in Messenger</span>
+                    </div>
+                  </div>
+                </aside>
+              </div>
             )}
           </div>
         </Modal>
@@ -2723,10 +3132,12 @@ function App() {
       {cart.length > 0 && (
         <button
           type="button"
-          className="floating-bag-bubble"
+          key={`float-bag-${bagBump}`}
+          className={`floating-bag-bubble ${bagBump > 0 ? "bag-bump-animate" : ""}`}
           onClick={() => {
             setReceipt(false);
             setBagOpen(true);
+            setCheckoutStep("bag");
           }}
           aria-label={`View order bag with ${cartCount} items`}
         >
