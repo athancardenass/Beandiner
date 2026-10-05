@@ -303,34 +303,58 @@ const formatOrderMessage = (
     .join("\n");
 };
 
-// ↓ BULLETPROOF CLIPBOARD COPY: Synchronous execCommand + Async navigator.clipboard
+// ↓ BULLETPROOF CLIPBOARD COPY: Synchronous execCommand inside active modal/container + Async navigator.clipboard
 const copyToClipboard = (text: string): boolean => {
+  if (!text) return false;
   let copied = false;
 
-  // 1. Synchronous fallback first: Executes immediately inside the user click gesture
-  // This bypasses browser permissions/shields (Brave, Safari) that block async clipboard API
+  // 1. Synchronous fallback: Executes immediately inside the user click/submit gesture.
+  // Critical fix: When dialog.showModal() is active, elements appended to document.body
+  // are marked inert by the browser, which silently breaks textarea.focus() and selection!
+  // Appending inside dialog[open] ensures the element is in the active focusable subtree.
   try {
+    const container =
+      document.querySelector<HTMLElement>("dialog[open]") ||
+      document.body;
+
     const textarea = document.createElement("textarea");
     textarea.value = text;
-    textarea.style.position = "fixed";
-    textarea.style.left = "-9999px";
-    textarea.style.top = "-9999px";
-    textarea.style.opacity = "0";
+    textarea.style.position = "absolute";
+    textarea.style.left = "0";
+    textarea.style.top = "0";
+    textarea.style.width = "1px";
+    textarea.style.height = "1px";
+    textarea.style.padding = "0";
+    textarea.style.border = "none";
+    textarea.style.outline = "none";
+    textarea.style.boxShadow = "none";
+    textarea.style.background = "transparent";
+    textarea.style.color = "transparent";
+    textarea.style.opacity = "0.01";
+    textarea.style.pointerEvents = "none";
+    textarea.style.zIndex = "-1";
+    textarea.style.fontSize = "16px";
     textarea.setAttribute("readonly", "");
-    document.body.appendChild(textarea);
-    textarea.focus();
+
+    container.appendChild(textarea);
+    textarea.focus({ preventScroll: true });
     textarea.select();
-    textarea.setSelectionRange(0, 99999);
+    textarea.setSelectionRange(0, text.length);
+
     copied = document.execCommand("copy");
-    document.body.removeChild(textarea);
+    container.removeChild(textarea);
   } catch {
     /* fallback handled below */
   }
 
-  // 2. Also trigger modern async navigator.clipboard as backup
+  // 2. Also trigger modern async navigator.clipboard as backup when available & allowed
   if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
-    navigator.clipboard.writeText(text).catch(() => {});
-    copied = true;
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        copied = true;
+      })
+      .catch(() => {});
   }
 
   return copied;
@@ -1186,15 +1210,18 @@ function App() {
   const [navOpen, setNavOpen] = useState(false);
   const [filter, setFilter] = useState("All drinks");
   const [receipt, setReceipt] = useState(false);
+  const [toast, setToast] = useState("");
+  const [lastOrder, setLastOrder] = useState("");
   const bagHeadingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     if (receipt) {
       bagHeadingRef.current?.focus({ preventScroll: true });
       bagHeadingRef.current?.closest("dialog")?.scrollTo({ top: 0 });
+      if (lastOrder) {
+        copyToClipboard(lastOrder);
+      }
     }
-  }, [receipt]);
-  const [toast, setToast] = useState("");
-  const [lastOrder, setLastOrder] = useState("");
+  }, [receipt, lastOrder]);
   const [storeStatus, setStoreStatus] = useState(getStoreStatus);
   const [checkoutStep, setCheckoutStep] = useState<"bag" | "details">("bag");
   const [checkoutPickupTime, setCheckoutPickupTime] = useState("ASAP (~15-20 mins)");
