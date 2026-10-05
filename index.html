@@ -8,7 +8,7 @@
     <!-- ↓ VIEWPORT: Responsive viewport meta tag -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- ↓ THEME COLOR: Browser chrome color (warm diner brown) -->
-    <meta name="theme-color" content="#2b211c" />
+    <meta name="theme-color" content="#121212" />
     <!-- ↓ DESCRIPTION: Meta description for SEO -->
     <meta
       name="description"
@@ -26,10 +26,30 @@
     />
     <!-- ↓ OG TYPE: Open Graph content type (website) -->
     <meta property="og:type" content="website" />
-    <!-- ↓ OG IMAGE: Open Graph share image -->
-    <meta property="og:image" content="./images/menu/caffe-latte.webp" />
+    <meta property="og:site_name" content="Bean Diner" />
+    <meta property="og:locale" content="en_PH" />
+    <!-- ↓ OG URL + IMAGE: Absolute URLs (replaced with VITE_SITE_URL at build time) -->
+    <link rel="canonical" href="__SITE_URL__/" />
+    <meta property="og:url" content="__SITE_URL__/" />
+    <meta property="og:image" content="__SITE_URL__/images/menu/diner-showcase.webp" />
+    <meta property="og:image:width" content="1448" />
+    <meta property="og:image:height" content="1086" />
+    <meta property="og:image:alt" content="Bean Diner coffee and comfort food" />
+    <!-- ↓ TWITTER CARD: Large image preview -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Bean Diner | Good Food. Great Coffee. Warm Vibes."
+    />
+    <meta
+      name="twitter:description"
+      content="Where the food heals and the coffee understands you. Bayambang, Pangasinan."
+    />
+    <meta name="twitter:image" content="__SITE_URL__/images/menu/diner-showcase.webp" />
     <!-- ↓ FAVICON: Browser tab icon -->
-    <link rel="icon" type="image/png" href="./images/bean_diner_logo_white.png" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
     <!-- ↓ PRECONNECT: Early connection to Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -37,6 +57,46 @@
     <link rel="preload" as="image" href="./images/optimized/latte.webp" />
     <!-- ↓ TITLE: Browser tab title -->
     <title>Bean Diner | Good Food. Great Coffee. Warm Vibes.</title>
+    <!-- ↓ STRUCTURED DATA: Local business info for Google (hours match the store-status badge) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": ["Restaurant", "CafeOrCoffeeShop"],
+        "name": "Bean Diner",
+        "description": "Comfort food, specialty coffee, and warm community vibes in Bayambang, Pangasinan.",
+        "url": "__SITE_URL__/",
+        "image": "__SITE_URL__/images/menu/diner-showcase.webp",
+        "telephone": "+639153995000",
+        "servesCuisine": ["Comfort food", "Coffee", "Filipino"],
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "Gen. Antonio Luna St., Zone 2",
+          "addressLocality": "Bayambang",
+          "addressRegion": "Pangasinan",
+          "addressCountry": "PH"
+        },
+        "geo": {
+          "@type": "GeoCoordinates",
+          "latitude": 15.8103457,
+          "longitude": 120.4573329
+        },
+        "openingHoursSpecification": {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday"
+          ],
+          "opens": "10:00",
+          "closes": "21:00"
+        },
+        "sameAs": ["https://www.facebook.com/beandiner"]
+      }
+    </script>
     <!-- ↓ END HEAD -->
   </head>
   <!-- ↓ BODY: Document body -->

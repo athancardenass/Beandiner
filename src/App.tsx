@@ -1357,6 +1357,14 @@ function App() {
       : isBeveragesPage
       ? "Artisanal Brews & Specialty Sips | Bean Diner"
       : "Bean Diner | Good Food. Great Coffee. Warm Vibes.";
+    const description = isFoodPage
+      ? "Crispy chicken wings, loaded nachos, rice plates, pasta, sandwiches, and warm croffles at Bean Diner in Bayambang, Pangasinan."
+      : isBeveragesPage
+      ? "Hot and iced coffee, matcha, chai, milkshakes, and plant-based add-ons at Bean Diner in Bayambang, Pangasinan."
+      : "Bean Diner in Bayambang, Pangasinan. Founded by a US-trained Chef & Middle East-skilled Barista. Comfort food, Oatside creations, Benguet highland coffee, and warm community vibes.";
+    document
+      .querySelector<HTMLMetaElement>('meta[name="description"]')
+      ?.setAttribute("content", description);
   }, [isFoodPage, isBeveragesPage]);
   useEffect(() => {
     const updateStoreStatus = () => setStoreStatus(getStoreStatus());

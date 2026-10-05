@@ -3,3 +3,8 @@ node_modules/
 *.log
 .DS_Store
 Thumbs.db
+
+# Local env and editor backups
+.env
+.env.local
+*.bak

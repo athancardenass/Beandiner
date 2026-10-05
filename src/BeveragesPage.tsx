@@ -287,9 +287,6 @@ export default function BeveragesPage({
                 <div className="bev-category-hero-overlay">
                   <div className="bev-category-hero-meta">
                     <span className="eyebrow">{cat.subtitle}</span>
-                    <span className="bev-category-badge-note">
-                      {cat.categoryImage ? "Category Special" : "Awaiting client photo"}
-                    </span>
                   </div>
                   <h3 id={`bev-heading-${cat.id}`} className="category-hero-title">
                     {cat.name}
