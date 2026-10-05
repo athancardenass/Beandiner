@@ -37,7 +37,7 @@ export function MenuSearch({
 }) {
   const id = useId();
   return (
-    <div className={`menu-search${value ? " has-value" : ""}`}>
+    <div className={`search menu-search${value ? " has-value" : ""}`}>
       <label htmlFor={id} className="sr-only">
         {label}
       </label>
@@ -177,9 +177,10 @@ export function StickyMenuBar({
       frame = 0;
       const top =
         parseFloat(
+          getComputedStyle(document.documentElement).getPropertyValue("--header-h") ||
           getComputedStyle(document.documentElement).getPropertyValue("--sticky-top"),
         ) || 0;
-      setStuck(node.getBoundingClientRect().top < top);
+      setStuck(node.getBoundingClientRect().top <= top + 1);
     };
     const schedule = () => {
       if (!frame) frame = requestAnimationFrame(check);
@@ -200,9 +201,9 @@ export function StickyMenuBar({
       <div
         role="region"
         aria-label={label}
-        className={`menu-sticky${stuck ? " is-stuck" : ""}${className ? ` ${className}` : ""}`}
+        className={`menu-toolbar menu-sticky${stuck ? " is-stuck" : ""}${className ? ` ${className}` : ""}`}
       >
-        {children}
+        <div className="menu-toolbar__inner">{children}</div>
       </div>
     </>
   );
@@ -241,7 +242,7 @@ export function CategoryTabs({
   }, [active]);
 
   return (
-    <div ref={rail} className={`menu-tabs${className ? ` ${className}` : ""}`} role="group" aria-label={label}>
+    <div ref={rail} className={`chips menu-tabs${className ? ` ${className}` : ""}`} role="group" aria-label={label}>
       {tabs.map((tab) => {
         const isActive = tab.id === active;
         return (
@@ -249,7 +250,7 @@ export function CategoryTabs({
             key={tab.id}
             type="button"
             data-tab={tab.id}
-            className={`menu-tab${isActive ? " active" : ""}`}
+            className={`chip menu-tab${isActive ? " active" : ""}`}
             aria-pressed={isActive}
             onClick={() => onChange(tab.id)}
           >
@@ -287,7 +288,9 @@ export function useStickyHeaderOffset() {
     const root = document.documentElement;
     const update = () => {
       const pinned = getComputedStyle(header).position === "sticky";
-      root.style.setProperty("--sticky-top", pinned ? `${header.offsetHeight}px` : "0px");
+      const h = pinned ? header.offsetHeight : 0;
+      root.style.setProperty("--sticky-top", `${h}px`);
+      root.style.setProperty("--header-h", `${h}px`);
     };
     update();
     const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(update) : null;

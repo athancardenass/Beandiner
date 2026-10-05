@@ -1834,7 +1834,7 @@ function App() {
             <OrderingSteps />
           </section>
           <StickyMenuBar label="Signature drink filters" className="home-sticky">
-            <div className="menu-toolbar">
+            <div className="menu-toolbar-signature-row">
               <CategoryTabs
                 tabs={[
                   { id: "All drinks", label: "All drinks", count: 6 },

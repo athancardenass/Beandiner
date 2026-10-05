@@ -38,6 +38,12 @@
   --accent: #D49E77;
   --accent-light: #D49E77;
   --accent-hover: #B9825F;
+
+  /* Sticky layout & toolbar dimensions */
+  --header-h: 0px;
+  --sticky-top: 0px;
+  --content-max: 1320px;
+  --content-padding: 16px;
   --ink: #121212;
   --muted: #6E6256;
   --soft-gray: #8A7D70;
@@ -135,9 +141,10 @@ img {
 svg {
   flex-shrink: 0;
 }
-/* ↓ MAIN: Clip overflow */
+/* ↓ MAIN: Clip horizontal overflow without breaking vertical sticky */
 main {
-  overflow: clip;
+  overflow-x: clip;
+  overflow-y: visible;
 }
 /* ↓ BUTTON: Primary CTA button style */
 .button {
@@ -332,7 +339,7 @@ main {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  z-index: 10;
+  z-index: 50;
   border-bottom: 1px solid rgba(255, 240, 214, 0.15);
 }
 /* ↓ LOGO: High-end artisanal café branding with emblem seal and typography */
@@ -1110,9 +1117,25 @@ main {
 }
 /* ↓ MENU SECTION: Product grid with filters */
 .menu-section {
-  padding: 105px 7% 120px;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 105px 0 120px;
   background: var(--beige);
   position: relative;
+  box-sizing: border-box;
+}
+
+.menu-section > .menu-heading,
+.menu-section > .social-ordering-guide,
+.menu-section > .product-grid,
+.menu-section > .bites-preview-link,
+.menu-section > .menu-footnote {
+  max-width: var(--content-max, 1320px);
+  margin-inline: auto;
+  padding-inline: var(--content-padding, 16px);
+  width: 100%;
+  box-sizing: border-box;
 }
 /* ↓ MENU HEADING: Section title and subtitle */
 .menu-heading {
@@ -1135,14 +1158,12 @@ main {
   margin-top: 13px;
 }
 /* ↓ MENU TOOLBAR: Filter buttons and size note */
-.menu-toolbar {
+.menu-toolbar-signature-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 48px;
-  margin-bottom: 30px;
-  padding-bottom: 24px;
-  border-bottom: 1px solid rgba(110, 98, 86, 0.3);
+  width: 100%;
+  gap: 16px;
 }
 /* ↓ MENU FILTERS: Drink category filter buttons */
 .social-ordering-guide {
@@ -3448,7 +3469,7 @@ main {
     display: none;
   }
   .menu-section {
-    padding: 66px 6% 55px;
+    padding: 66px 0 55px;
   }
   .menu-heading > .eyebrow {
     font-size: 8px;
@@ -3463,10 +3484,7 @@ main {
     font-size: 11px;
     margin-top: 13px;
   }
-  .menu-toolbar {
-    margin-top: 30px;
-    padding-bottom: 18px;
-    margin-bottom: 22px;
+  .menu-toolbar-signature-row {
     justify-content: flex-start;
   }
   .menu-filters {
@@ -4653,16 +4671,24 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   border-color: var(--pine-dark, #B9825F);
 }
 .food-page-menu {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
   background: var(--cream-deep, #F3DFC3);
-  padding: clamp(80px, 9vw, 125px) 7% 120px;
+  padding: clamp(60px, 8vw, 100px) 0 120px;
   scroll-margin-top: 90px;
+  box-sizing: border-box;
 }
 .food-page-menu-heading,
+.food-categories-container,
 .food-page-grid,
+.food-page-menu .menu-results,
 .food-page-menu-note {
-  max-width: 1320px;
-  margin-left: auto;
-  margin-right: auto;
+  max-width: var(--content-max, 1320px);
+  margin-inline: auto;
+  padding-inline: var(--content-padding, 16px);
+  width: 100%;
+  box-sizing: border-box;
 }
 .food-page-menu-heading {
   display: flex;
@@ -5008,7 +5034,7 @@ body:has(.floating-bag-bubble) .footer-artisanal {
     font-size: 13px;
   }
   .food-page-menu {
-    padding: 76px 6% 62px;
+    padding: 60px 0 62px;
   }
   .food-page-menu-heading {
     align-items: start;
@@ -5346,7 +5372,7 @@ body:has(.floating-bag-bubble) .footer-artisanal {
     scroll-snap-align: start;
   }
   .menu-section {
-    padding-inline: 5%;
+    padding-inline: 0;
   }
   .product-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -5800,15 +5826,28 @@ body:has(.floating-bag-bubble) .footer-artisanal {
 }
 
 .bev-page-menu {
-  padding: clamp(60px, 8vw, 100px) clamp(20px, 6vw, 80px);
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: clamp(50px, 7vw, 90px) 0 100px;
   background: var(--cream);
-  max-width: 1400px;
-  margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .bev-page-menu-heading {
-  max-width: 750px;
-  margin-bottom: 30px;
+  max-width: var(--content-max, 1320px);
+  margin: 0 auto 28px;
+  padding-inline: var(--content-padding, 16px);
+  box-sizing: border-box;
+}
+
+.bev-categories-container,
+.bev-page-menu .menu-results,
+.bev-page-menu-note {
+  max-width: var(--content-max, 1320px);
+  margin-inline: auto;
+  padding-inline: var(--content-padding, 16px);
+  box-sizing: border-box;
 }
 
 .bev-page-menu-heading .eyebrow {
@@ -6506,45 +6545,71 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   margin: 0;
 }
 
-/* Sticky bar: search + category rail */
+/* FULL-WIDTH STICKY MENU TOOLBAR */
 .menu-sticky-sentinel {
   height: 1px;
   margin-bottom: -1px;
 }
 
+.menu-toolbar,
 .menu-sticky {
   position: sticky;
-  top: var(--sticky-top, 76px);
-  z-index: 30;
+  top: var(--header-h, var(--sticky-top, 0px));
+  z-index: 40;
+  width: 100%;
+  margin: 0;
+  padding: 12px 0;
+  background: rgba(255, 244, 224, 0.75);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+          backdrop-filter: blur(14px) saturate(160%);
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 16px rgba(18, 18, 18, 0.03);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.menu-toolbar.bev-sticky,
+.menu-sticky.bev-sticky {
+  background: rgba(255, 244, 224, 0.78);
+}
+
+.menu-toolbar.food-sticky,
+.menu-sticky.food-sticky {
+  background: rgba(243, 223, 195, 0.82);
+}
+
+.menu-toolbar.home-sticky,
+.menu-sticky.home-sticky {
+  background: rgba(255, 240, 214, 0.78);
+}
+
+.menu-toolbar.is-stuck,
+.menu-sticky.is-stuck {
+  box-shadow: 0 4px 20px rgba(18, 18, 18, 0.08);
+  border-bottom-color: rgba(0, 0, 0, 0.12);
+}
+
+.menu-toolbar__inner {
+  max-width: var(--content-max, 1320px);
+  margin-inline: auto;
+  padding-inline: var(--content-padding, 16px);
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin: 0 0 28px;
-  padding: 12px 0;
-  background: var(--beige, #FFF0D6);
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.menu-sticky::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 1px;
-  background: rgba(110, 98, 86, 0.22);
-  opacity: 0;
-  transition: opacity 0.2s ease-out;
+.menu-toolbar-signature-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
 }
 
-.menu-sticky.is-stuck {
-  box-shadow: 0 8px 24px -8px rgba(18, 18, 18, 0.12);
-}
-
-.menu-sticky.is-stuck::after {
-  opacity: 1;
-}
-
-/* Category rail: clean one row, horizontal scrolling without mask cutoff */
+/* Category Chips / Tabs */
+.chips,
 .menu-tabs {
   display: flex;
   flex-wrap: nowrap;
@@ -6553,17 +6618,21 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
-  scroll-snap-type: x proximity;
   scrollbar-width: none;
-  padding: 6px 4px 8px;
-  margin: 0 -4px;
-  width: 100%;
+  margin-inline: -16px;
+  padding-inline: 16px;
+  scroll-padding-inline: 16px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  width: auto;
 }
 
+.chips::-webkit-scrollbar,
 .menu-tabs::-webkit-scrollbar {
   display: none;
 }
 
+.chip,
 .menu-tab {
   flex: 0 0 auto;
   display: inline-flex;
@@ -6851,18 +6920,7 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   color: var(--warm-gray);
 }
 
-.home-sticky {
-  position: static !important;
-  margin: 0 0 24px;
-  padding: 10px 0;
-  box-shadow: none !important;
-}
-
-.home-sticky::after {
-  display: none !important;
-}
-
-.home-sticky .menu-toolbar {
+.home-sticky .menu-toolbar-signature-row {
   margin: 0;
   padding: 0;
   border: none;
@@ -6874,7 +6932,7 @@ body:has(.floating-bag-bubble) .footer-artisanal {
 }
 
 @media (max-width: 640px) {
-  .home-sticky .menu-toolbar {
+  .home-sticky .menu-toolbar-signature-row {
     flex-direction: row;
     align-items: center;
     justify-content: flex-start;
