@@ -172,26 +172,44 @@ export function StickyMenuBar({
   useEffect(() => {
     const node = sentinel.current;
     if (!node) return;
-    let frame = 0;
-    const check = () => {
-      frame = 0;
+    const root = document.documentElement;
+    let observer: IntersectionObserver | null = null;
+    let rootMargin = "";
+    let active = true;
+    const update = () => {
+      if (!active) return;
+      const style = getComputedStyle(root);
       const top =
         parseFloat(
-          getComputedStyle(document.documentElement).getPropertyValue("--header-h") ||
-          getComputedStyle(document.documentElement).getPropertyValue("--sticky-top"),
+          style.getPropertyValue("--header-h") || style.getPropertyValue("--sticky-top"),
         ) || 0;
-      setStuck(node.getBoundingClientRect().top <= top + 1);
+      // Include below-fold positions so direct scroll jumps still cross the threshold.
+      const nextMargin = `-${top + 1}px 0px ${root.scrollHeight}px 0px`;
+      if (observer && nextMargin === rootMargin) return;
+      observer?.disconnect();
+      rootMargin = nextMargin;
+      const nextObserver = new IntersectionObserver(
+        ([entry]) => {
+          if (!active || observer !== nextObserver) return;
+          setStuck(entry.boundingClientRect.top < (entry.rootBounds?.top ?? top + 1));
+        },
+        { rootMargin, threshold: 1 },
+      );
+      observer = nextObserver;
+      observer.observe(node);
     };
-    const schedule = () => {
-      if (!frame) frame = requestAnimationFrame(check);
-    };
-    check();
-    window.addEventListener("scroll", schedule, { passive: true });
-    window.addEventListener("resize", schedule);
+    update();
+    const resizeObserver = new ResizeObserver(update);
+    resizeObserver.observe(root);
+    const styleObserver = new MutationObserver(update);
+    styleObserver.observe(root, { attributes: true, attributeFilter: ["style"] });
+    window.addEventListener("resize", update);
     return () => {
-      if (frame) cancelAnimationFrame(frame);
-      window.removeEventListener("scroll", schedule);
-      window.removeEventListener("resize", schedule);
+      active = false;
+      observer?.disconnect();
+      resizeObserver.disconnect();
+      styleObserver.disconnect();
+      window.removeEventListener("resize", update);
     };
   }, []);
 

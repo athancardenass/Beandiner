@@ -64,11 +64,33 @@ const pageHref = (page: AppPage, anchor = "") => {
   return url.href;
 };
 
-const scrollToPageAnchor = () => {
-  const anchor = window.location.hash.slice(1);
-  const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+const clickScrollBehavior = (): ScrollBehavior =>
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches
     ? "instant"
     : "smooth";
+
+const handleAnchorLink = (event: MouseEvent<HTMLAnchorElement>) => {
+  if (
+    event.defaultPrevented || event.button !== 0 || event.metaKey ||
+    event.ctrlKey || event.shiftKey || event.altKey
+  ) return;
+  const url = new URL(event.currentTarget.href);
+  const target = document.getElementById(url.hash.slice(1));
+  if (!target) return;
+  event.preventDefault();
+  if (url.href !== window.location.href) window.history.pushState(null, "", url);
+  const hadTabIndex = target.hasAttribute("tabindex");
+  if (!hadTabIndex) target.tabIndex = -1;
+  target.focus({ preventScroll: true });
+  if (!hadTabIndex) {
+    target.addEventListener("blur", () => target.removeAttribute("tabindex"), { once: true });
+  }
+  target.scrollIntoView({ behavior: clickScrollBehavior() });
+};
+
+const scrollToPageAnchor = (animate = false) => {
+  const anchor = window.location.hash.slice(1);
+  const behavior = animate ? clickScrollBehavior() : "instant";
   if (!anchor || anchor === "home" || anchor === "top") {
     window.scrollTo({ top: 0, left: 0, behavior });
   } else {
@@ -909,7 +931,7 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
           activeBtn.clientWidth / 2;
         container.scrollTo({
           left: Math.max(0, targetScroll),
-          behavior: "smooth",
+          behavior: "instant",
         });
       }
     }
@@ -918,45 +940,73 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
     const el = section.current!;
     const stageEl = stage.current!;
     const media = matchMedia("(prefers-reduced-motion: reduce)");
+    const cups = Array.from(stageEl.querySelectorAll<HTMLElement>(".story-product"));
+    const bean = stageEl.querySelector<HTMLElement>(".story-bean");
+    const ice = stageEl.querySelector<HTMLElement>(".story-ice");
+    const leaf = stageEl.querySelector<HTMLElement>(".story-leaf");
+    let sectionTop = 0;
+    let sectionHeight = 0;
+    let viewportHeight = innerHeight;
+    let previousProgress = -1;
     let frame = 0;
     const update = () => {
       frame = 0;
-      const rect = el.getBoundingClientRect();
-      if (rect.bottom < 0 || rect.top > innerHeight) return;
+      const top = sectionTop - scrollY;
+      if (top + sectionHeight < 0 || top > viewportHeight) return;
       const p = Math.max(
         0,
-        Math.min(
-          5,
-          (-rect.top / Math.max(1, el.offsetHeight - innerHeight)) * 5,
-        ),
+        Math.min(5, (-top / Math.max(1, sectionHeight - viewportHeight)) * 5),
       );
+      if (p === previousProgress) return;
+      previousProgress = p;
       const index = Math.round(p);
       if (index !== activeRef.current) {
         activeRef.current = index;
         setActive(index);
       }
-      stageEl.scrollLeft = 0;
-      stageEl.style.setProperty("--progress", `${p}`);
-      stageEl
-        .querySelectorAll<HTMLElement>(".story-product")
-        .forEach((cup, i) => {
-          const d = i - p;
-          const reduced = media.matches;
-          cup.style.transform = reduced
-            ? "none"
-            : `translate3d(${d * 90}%,${Math.abs(d) * 28}%,0) rotate(${d * 27 - 5}deg) scale(${1 - Math.min(Math.abs(d) * 0.15, 0.35)})`;
-          cup.style.opacity = `${Math.max(0, 1 - Math.abs(d) * 1.35)}`;
-        });
+      const reduced = media.matches;
+      cups.forEach((cup, i) => {
+        const d = i - p;
+        const opacity = `${Math.max(0, 1 - Math.abs(d) * 1.35)}`;
+        const promotion = !reduced && opacity !== "0" ? "transform, opacity" : "auto";
+        if (cup.style.willChange !== promotion) cup.style.willChange = promotion;
+        if (cup.style.opacity !== opacity) cup.style.opacity = opacity;
+        if (reduced) cup.style.transform = "none";
+        else if (opacity !== "0") {
+          cup.style.transform = `translate3d(${d * 90}%,${Math.abs(d) * 28}%,0) rotate(${d * 27 - 5}deg) scale(${1 - Math.min(Math.abs(d) * 0.15, 0.35)})`;
+        }
+      });
+      if (bean) bean.style.transform = reduced ? "none" : `translate3d(${p * -10}px,0,0) rotate(${p * 100}deg)`;
+      if (ice) ice.style.transform = reduced ? "none" : `translate3d(0,${p * 10}px,0) rotate(${p * 65}deg)`;
+      if (leaf) leaf.style.transform = reduced ? "none" : `rotate(${p * -35}deg)`;
     };
     const request = () => {
       if (!frame) frame = requestAnimationFrame(update);
     };
+    const measure = () => {
+      sectionTop = el.getBoundingClientRect().top + scrollY;
+      sectionHeight = el.offsetHeight;
+      viewportHeight = innerHeight;
+      request();
+    };
+    const motionChanged = () => {
+      previousProgress = -1;
+      request();
+    };
+    const resizeObserver = new ResizeObserver(measure);
+    resizeObserver.observe(el);
+    resizeObserver.observe(document.body);
+    const heroElement = document.querySelector(".hero");
+    if (heroElement) resizeObserver.observe(heroElement);
     window.addEventListener("scroll", request, { passive: true });
-    window.addEventListener("resize", request);
-    update();
+    window.addEventListener("resize", measure);
+    media.addEventListener("change", motionChanged);
+    measure();
     return () => {
       window.removeEventListener("scroll", request);
-      window.removeEventListener("resize", request);
+      window.removeEventListener("resize", measure);
+      media.removeEventListener("change", motionChanged);
+      resizeObserver.disconnect();
       cancelAnimationFrame(frame);
     };
   }, []);
@@ -968,9 +1018,7 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
       ((el.offsetHeight - innerHeight) * index) / 5;
     window.scrollTo({
       top: y + 1,
-      behavior: matchMedia("(prefers-reduced-motion: reduce)").matches
-        ? "instant"
-        : "smooth",
+      behavior: clickScrollBehavior(),
     });
   };
   const product = products[active];
@@ -988,7 +1036,7 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
       >
         <div className="story-top">
           <span className="eyebrow">CRAFTED FOR EVERY KIND OF MOOD</span>
-          <a className="text-link" href="#menu">
+          <a className="text-link" href="#menu" onClick={handleAnchorLink}>
             Skip to the menu <Icon name="arrow" size={18} />
           </a>
         </div>
@@ -1288,7 +1336,7 @@ function App() {
   const showTimeError = focusedField !== "customTime" && Boolean(checkoutErrors.time);
   const scrollToTop = (e?: React.MouseEvent) => {
     if (e) e.preventDefault();
-    window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, left: 0, behavior: clickScrollBehavior() });
   };
   const handlePageLink = (event: MouseEvent<HTMLAnchorElement>) => {
     if (
@@ -1306,7 +1354,7 @@ function App() {
     else setCurrentPage("home");
     setNavOpen(false);
     cancelAnimationFrame(navigationFrame.current);
-    navigationFrame.current = requestAnimationFrame(scrollToPageAnchor);
+    navigationFrame.current = requestAnimationFrame(() => scrollToPageAnchor(true));
   };
   // ↓ CART STATE: Persisted to localStorage with backwards compatibility
   const [cart, setCart] = useState<CartItem[]>(() => {
@@ -1384,7 +1432,7 @@ function App() {
       else setCurrentPage("home");
       setNavOpen(false);
       cancelAnimationFrame(navigationFrame.current);
-      navigationFrame.current = requestAnimationFrame(scrollToPageAnchor);
+      navigationFrame.current = requestAnimationFrame(() => scrollToPageAnchor());
     };
     syncLocation();
     window.addEventListener("popstate", syncLocation);
@@ -1414,18 +1462,38 @@ function App() {
   useEffect(() => {
     let frame = 0;
     const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+    const heading = hero.current?.querySelector<HTMLElement>("h1");
+    const cup = hero.current?.querySelector<HTMLElement>(".hero-product-wrap");
+    let viewportHeight = innerHeight;
+    let maxScroll = 1;
     const paint = () => {
       frame = 0;
       const y = scrollY;
-      if (hero.current && !reduced.matches && y < innerHeight * 1.5)
-        hero.current.style.setProperty("--scroll", `${y}`);
+      if (reduced.matches) {
+        if (heading) heading.style.transform = "none";
+        if (cup) cup.style.transform = "none";
+      } else if (y < viewportHeight * 1.5) {
+        if (heading) heading.style.transform = `translate3d(${y * -0.08}px,${y * -0.06}px,0)`;
+        if (cup) cup.style.transform = `translate3d(${y * 0.1}px,${y * -0.12}px,0) rotate(${y * 0.017}deg)`;
+      }
       if (progress.current)
-        progress.current.style.transform = `scaleX(${y / Math.max(1, document.documentElement.scrollHeight - innerHeight)})`;
+        progress.current.style.transform = `scaleX(${Math.min(1, Math.max(0, y / maxScroll))})`;
     };
     const handle = () => {
       if (!frame) frame = requestAnimationFrame(paint);
     };
+    const measure = () => {
+      viewportHeight = innerHeight;
+      maxScroll = Math.max(1, document.documentElement.scrollHeight - viewportHeight);
+      handle();
+    };
+    const resizeObserver = new ResizeObserver(measure);
+    resizeObserver.observe(document.body);
+    resizeObserver.observe(document.documentElement);
     window.addEventListener("scroll", handle, { passive: true });
+    window.addEventListener("resize", measure);
+    reduced.addEventListener("change", handle);
+    measure();
     document.documentElement.classList.add("js-ready");
     const observer = new IntersectionObserver(
       (entries) => {
@@ -1441,6 +1509,9 @@ function App() {
     document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
     return () => {
       window.removeEventListener("scroll", handle);
+      window.removeEventListener("resize", measure);
+      reduced.removeEventListener("change", handle);
+      resizeObserver.disconnect();
       cancelAnimationFrame(frame);
       observer.disconnect();
     };
@@ -1572,7 +1643,7 @@ function App() {
   const scrollToMenu = () => {
     document
       .querySelector(isFoodPage ? "#food-menu" : "#menu")
-      ?.scrollIntoView({ behavior: "smooth" });
+      ?.scrollIntoView({ behavior: clickScrollBehavior() });
   };
   // ↓ PRODUCT FILTER: All drinks, Best sellers, Coffee, Not coffee
   const visibleProducts = products.filter(
@@ -1749,7 +1820,7 @@ function App() {
                     e.preventDefault();
                     setBagOpen(true);
                     setReceipt(false);
-                  }
+                  } else handleAnchorLink(e);
                 }}
               >
                 Order for pickup <Icon name="arrow" />
@@ -1822,7 +1893,7 @@ function App() {
               </p>
             </div>
           </div>
-          <a className="scroll-cue" href="#flavors">
+          <a className="scroll-cue" href="#flavors" onClick={handleAnchorLink}>
             <span>↓</span> A good day starts with a scroll
           </a>
           <div className="hero-bottom-note">
@@ -2128,7 +2199,7 @@ function App() {
             <br />
             <em>Another cup?</em>
           </h2>
-          <a href="#menu" className="button">
+          <a href="#menu" className="button" onClick={handleAnchorLink}>
             Explore the menu <Icon name="arrow" />
           </a>
           <Ingredient kind="cherry" className="final-cherry" />

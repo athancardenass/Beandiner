@@ -56,9 +56,9 @@
 * {
   box-sizing: border-box;
 }
-/* ↓ HTML: Smooth scroll behavior */
+/* ↓ HTML: Native scrolling; click handlers opt into smooth navigation. */
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
   scroll-padding-top: 24px;
 }
 /* ↓ BODY: Reset margin */
@@ -537,7 +537,6 @@ main {
 }
 /* ↓ HERO: Main landing section with floating cup */
 .hero {
-  --scroll: 0;
   position: relative;
   isolation: isolate;
   background: var(--espresso);
@@ -587,11 +586,6 @@ main {
   letter-spacing: -7px;
   color: var(--beige);
   margin-top: 21px;
-  transform: translate3d(
-    calc(var(--scroll) * -0.08px),
-    calc(var(--scroll) * -0.06px),
-    0
-  );
 }
 /* ↓ HERO COPY: Subheadline and CTAs */
 .hero-copy {
@@ -634,13 +628,6 @@ main {
   width: 38%;
   max-width: 510px;
   z-index: 3;
-  transform: translate3d(
-      calc(var(--scroll) * 0.1px),
-      calc(var(--scroll) * -0.12px),
-      0
-    )
-    rotate(calc(var(--scroll) * 0.017deg));
-  filter: drop-shadow(15px 30px 17px #536d5230);
   pointer-events: none;
 }
 /* ↓ HERO PRODUCT: Floating cup image */
@@ -648,7 +635,13 @@ main {
   width: 100%;
   height: 560px;
   object-fit: contain;
+  filter: drop-shadow(15px 30px 12px #536d5230);
   animation: cup-float 7s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .hero-product {
+    will-change: transform;
+  }
 }
 /* ↓ HAPPY STAMP: Rotating circular stamp with text */
 .happy-stamp {
@@ -909,7 +902,6 @@ main {
   overflow: hidden;
   isolation: isolate;
   transition: background-color 0.65s;
-  --progress: 0;
 }
 /* ↓ STORY TOP: Header with eyebrow and skip link */
 .story-top {
@@ -1004,8 +996,7 @@ main {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  will-change: transform, opacity;
-  filter: drop-shadow(17px 22px 18px #363e2d24);
+  filter: drop-shadow(17px 22px 12px #363e2d24);
   z-index: 3;
 }
 /* ↓ STORY BEAN: Floating bean in story */
@@ -1013,8 +1004,6 @@ main {
   width: 66px;
   left: 3%;
   top: 11%;
-  transform: translateX(calc(var(--progress) * -10px))
-    rotate(calc(var(--progress) * 100deg));
   z-index: 4;
 }
 /* ↓ STORY ICE: Floating ice in story */
@@ -1022,8 +1011,6 @@ main {
   width: 90px;
   right: -2%;
   top: 5%;
-  transform: translateY(calc(var(--progress) * 10px))
-    rotate(calc(var(--progress) * 65deg));
   z-index: 1;
 }
 /* ↓ STORY LEAF: Floating leaf in story */
@@ -1031,7 +1018,6 @@ main {
   width: 155px;
   right: -2%;
   bottom: 2%;
-  transform: rotate(calc(var(--progress) * -35deg));
   z-index: 4;
 }
 /* ↓ INGREDIENT NOTES: Ingredient list with handwritten title */
@@ -3248,7 +3234,7 @@ main {
     pointer-events: none;
   }
   .story-product {
-    filter: drop-shadow(12px 16px 16px rgba(54, 62, 45, 0.16));
+    filter: drop-shadow(12px 16px 10px rgba(54, 62, 45, 0.16));
   }
   .story-bean {
     width: 36px;
@@ -6583,6 +6569,30 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   background: rgba(255, 240, 214, 0.78);
 }
 
+@media (min-width: 821px) {
+  .menu-toolbar,
+  .menu-sticky {
+    background: rgba(255, 244, 224, 0.96);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .menu-toolbar.bev-sticky,
+  .menu-sticky.bev-sticky {
+    background: rgba(255, 244, 224, 0.96);
+  }
+
+  .menu-toolbar.food-sticky,
+  .menu-sticky.food-sticky {
+    background: rgba(243, 223, 195, 0.96);
+  }
+
+  .menu-toolbar.home-sticky,
+  .menu-sticky.home-sticky {
+    background: rgba(255, 240, 214, 0.96);
+  }
+}
+
 .menu-toolbar.is-stuck,
 .menu-sticky.is-stuck {
   box-shadow: 0 4px 20px rgba(18, 18, 18, 0.08);
@@ -6883,6 +6893,52 @@ body:has(.floating-bag-bubble) .footer-artisanal {
 .product-card {
   display: flex;
   flex-direction: column;
+}
+
+/* Remember rendered card heights while deferring offscreen descendants. */
+.product-card,
+.bev-item-card,
+.food-page-item {
+  content-visibility: auto;
+}
+
+.product-card:focus-within,
+.bev-item-card:focus-within,
+.food-page-item:focus-within {
+  content-visibility: visible;
+}
+
+.product-card {
+  contain-intrinsic-block-size: auto 529px;
+}
+
+.bev-item-card {
+  contain-intrinsic-block-size: auto 269px;
+}
+
+.food-page-item {
+  contain-intrinsic-block-size: auto 332px;
+}
+
+.food-page-sample-grid .food-page-item {
+  contain-intrinsic-block-size: auto 262px;
+}
+
+@media (max-width: 1100px) {
+  .product-card {
+    contain-intrinsic-block-size: auto 470px;
+  }
+}
+
+@media (max-width: 820px) {
+  .product-card {
+    contain-intrinsic-block-size: auto 383px;
+  }
+
+  .food-page-item,
+  .food-page-sample-grid .food-page-item {
+    contain-intrinsic-block-size: auto 242px;
+  }
 }
 
 .product-image-button {
