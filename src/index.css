@@ -7968,7 +7968,7 @@ body:has(.floating-bag-bubble) .footer-artisanal {
 @media (max-width: 600px) {
   .story-stage {
     top: var(--header-h, 80px);
-    height: calc(100svh - var(--header-h, 80px));
+    height: calc(var(--visible-viewport-height, 100svh) - var(--header-h, 80px));
     min-height: 0;
     box-sizing: border-box;
     display: grid;
@@ -8095,7 +8095,7 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   .story-stage {
     top: var(--header-h, 44px);
     min-height: 0;
-    height: calc(100svh - var(--header-h, 44px));
+    height: calc(var(--visible-viewport-height, 100svh) - var(--header-h, 44px));
     display: grid;
     box-sizing: border-box;
     grid-template-columns: minmax(0, 28fr) minmax(0, 72fr);
