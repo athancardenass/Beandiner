@@ -107,14 +107,21 @@ type Product = {
   note: string;
   description: string;
   price: number;
+  defaultSize?: string;
+  sizePrices?: { size: string; price: number }[];
   color: string;
   word: string;
   ingredients: string[];
   type: "Coffee" | "Not coffee";
   hot?: boolean;
+  fixedTemperature?: "Iced" | "Hot";
+  allowMilkCustomization?: boolean;
   badge?: string;
+  tabLabel?: string;
   photo: string;
 };
+const productImage = (product: Product) =>
+  product.photo.startsWith("./") ? product.photo : image(product.id);
 // ↓ DATA: Six signature drink products matching Bean Diner sample photos
 const products: Product[] = [
   {
@@ -226,10 +233,132 @@ const products: Product[] = [
   },
 ];
 
+type FeaturedDrinkPresentation = {
+  menuId: string;
+  name?: string;
+  short: string;
+  note: string;
+  color: string;
+  word: string;
+  ingredients: string[];
+  photo: string;
+  tabLabel: string;
+};
+const createFeaturedDrink = ({
+  menuId,
+  name,
+  short,
+  note,
+  color,
+  word,
+  ingredients,
+  photo,
+  tabLabel,
+}: FeaturedDrinkPresentation): Product => {
+  const menuItem = allBeverages.find((item) => item.id === menuId);
+  if (!menuItem) throw new Error(`Missing featured drink in beverages menu: ${menuId}`);
+  const sizePrices = Object.entries(menuItem.prices).map(([size, price]) => ({
+    size: size.replace(/(\d+)oz/i, "$1 oz"),
+    price,
+  }));
+  const defaultSize = menuItem.defaultSize.replace(/(\d+)oz/i, "$1 oz");
+
+  return {
+    id: menuItem.id,
+    name: name ?? menuItem.name,
+    short,
+    note,
+    description: menuItem.description,
+    price: menuItem.prices[menuItem.defaultSize],
+    defaultSize,
+    sizePrices,
+    color,
+    word,
+    ingredients,
+    type: menuItem.type === "Coffee" ? "Coffee" : "Not coffee",
+    hot: menuItem.hot,
+    fixedTemperature: "Iced",
+    allowMilkCustomization: false,
+    badge: menuItem.badge,
+    tabLabel,
+    photo,
+  };
+};
+const heroSelectorProducts: Product[] = [
+  createFeaturedDrink({
+    menuId: "butterfly-pea-tea",
+    short: "Butterfly pea tea, natural honey & fresh lemon",
+    note: "Violet tea brightened with honey and fresh lemon.",
+    color: "#e4e0ee",
+    word: "Citrus bloom.",
+    ingredients: ["Butterfly pea tea", "Natural honey", "Fresh lemon juice"],
+    photo: "./images/hero-drinks/drink-01-honey-lemon.webp",
+    tabLabel: "Honey Lemon",
+  }),
+  createFeaturedDrink({
+    menuId: "strawberry-milk",
+    short: "Real strawberry puree & cold fresh milk",
+    note: "Sweet strawberry layered with creamy chilled milk.",
+    color: "#f6d9dd",
+    word: "Berry cloud.",
+    ingredients: ["Real strawberry puree", "Cold fresh milk", "Creamy finish"],
+    photo: "./images/hero-drinks/drink-02-strawberry-milk.webp",
+    tabLabel: "Strawberry",
+  }),
+  createFeaturedDrink({
+    menuId: "shake-oreo",
+    name: "Oreo Milkshake",
+    short: "Thick cookies & cream with Oreo pieces",
+    note: "A creamy shake packed with dark Oreo cookie crunch.",
+    color: "#d8c8ba",
+    word: "Cookie crush.",
+    ingredients: ["Oreo cookie pieces", "Creamy milkshake", "Dark cookie crunch"],
+    photo: "./images/hero-drinks/drink-03-oreo-milkshake.webp",
+    tabLabel: "Oreo Shake",
+  }),
+  createFeaturedDrink({
+    menuId: "blend-double-dutch",
+    short: "Double chocolate, vanilla bean & espresso",
+    note: "A thick chocolate frappe with chips in every sip.",
+    color: "#edcbb5",
+    word: "Double chocolate.",
+    ingredients: ["Double chocolate", "Vanilla bean", "Chocolate chips & espresso"],
+    photo: "./images/hero-drinks/drink-04-double-dutch.webp",
+    tabLabel: "Double Dutch",
+  }),
+  createFeaturedDrink({
+    menuId: "blend-choco-pistachio",
+    short: "Dark chocolate & Mediterranean pistachio",
+    note: "A rich chocolate frappe blended with pistachio paste.",
+    color: "#e7ccbd",
+    word: "Nutty cocoa.",
+    ingredients: ["Dark chocolate", "Mediterranean pistachio", "Creamy frappe"],
+    photo: "./images/hero-drinks/drink-05-choco-pistachio.webp",
+    tabLabel: "Choco Pistachio",
+  }),
+  createFeaturedDrink({
+    menuId: "iced-matcha-latte",
+    short: "Ceremonial Japanese matcha & chilled milk",
+    note: "Earthy ceremonial matcha whisked smooth over ice.",
+    color: "#dce4b8",
+    word: "Matcha moment.",
+    ingredients: ["Ceremonial green tea", "Chilled milk", "Smooth earthy finish"],
+    photo: "./images/hero-drinks/drink-06-matcha-latte.webp",
+    tabLabel: "Matcha Latte",
+  }),
+];
+const allProducts = [...products, ...heroSelectorProducts];
+const findProduct = (id: string) => allProducts.find((product) => product.id === id);
+
 const spanishLatte = products.find((product) => product.id === "latte")!;
 const spanishLatteBundlePrice = 250;
 const spanishLatteBundleSavings =
   spanishLatte.price * 2 - spanishLatteBundlePrice;
+const saltedCaramelHeaderDrink = allBeverages.find(
+  (beverage) => beverage.id === "iced-salted-caramel",
+)!;
+const saltedCaramelHeaderPrice =
+  saltedCaramelHeaderDrink.prices[saltedCaramelHeaderDrink.defaultSize];
 // ↓ TYPE: Shopping cart item shape
 type CartItem = {
   key: string;
@@ -259,7 +388,7 @@ const formatOrderMessage = (
   orderNote: string = "",
 ) => {
   const lines = items.map((item) => {
-    const p = products.find((p) => p.id === item.id);
+    const p = findProduct(item.id);
     const b = dinerBites.find((b) => b.id === item.id);
     const bev = allBeverages.find((bev) => bev.id === item.id);
     const mod = [...beverageAddOns, ...beverageSubs].find((m) => m.id === item.id);
@@ -727,20 +856,26 @@ function ProductModal({
   onAdd: (item: CartItem) => void;
   bagOfferCups: number;
 }) {
-  const isIcedDrink = product.name.toLowerCase().includes("iced");
-  const isHotDrink = product.name.toLowerCase().includes("hot");
-  const [size, setSize] = useState("16 oz");
+  const isIcedDrink = product.fixedTemperature === "Iced" || product.name.toLowerCase().includes("iced");
+  const isHotDrink = product.fixedTemperature === "Hot" || product.name.toLowerCase().includes("hot");
+  const fixedTemperature = product.fixedTemperature ?? (isIcedDrink ? "Iced" : isHotDrink ? "Hot" : product.hot ? "Hot" : undefined);
+  const sizeOptions = product.sizePrices ?? [
+    { size: "16 oz", price: product.price },
+    { size: "22 oz", price: product.price + 30 },
+  ];
+  const [size, setSize] = useState(product.defaultSize ?? sizeOptions[0].size);
   const [milk, setMilk] = useState("Regular");
   const [temperature, setTemperature] = useState(
-    isIcedDrink ? "Iced" : isHotDrink ? "Hot" : product.hot ? "Hot" : "Iced"
+    fixedTemperature ?? "Iced"
   );
   const [sweetness, setSweetness] = useState("100% Sweet");
   const [iceLevel, setIceLevel] = useState("Regular Ice");
   const [quantity, setQuantity] = useState(1);
   const [note, setNote] = useState("");
-  const hasMilk = true;
+  const hasMilk = product.allowMilkCustomization ?? true;
   const price =
-    product.price + (size === "22 oz" ? 30 : 0) + (milk === "Oat" ? 35 : 0);
+    (sizeOptions.find((option) => option.size === size)?.price ?? product.price) +
+    (hasMilk && milk === "Oat" ? 35 : 0);
 
   // Offer hint mirrors the cart rule: latte, 16 oz, regular milk, iced.
   const isOfferDrink = product.id === spanishLatte.id;
@@ -762,7 +897,7 @@ function ProductModal({
       className="product-modal"
     >
       <div className="customize-image" style={{ background: product.color }}>
-        <img src={image(product.id)} alt="" />
+        <img src={productImage(product)} alt="" />
       </div>
       <form
         className="customize-form"
@@ -787,11 +922,11 @@ function ProductModal({
       >
         <div className="customize-head">
           <h2>{product.name}</h2>
-          <p className="customize-price">{money(product.price)}</p>
+          <p className="customize-price">{money(price)}</p>
         </div>
         <p className="customize-desc">{product.description}</p>
 
-        {!isIcedDrink && !isHotDrink && (
+        {!fixedTemperature && (
           <Segmented
             legend="Hot or iced"
             name="temperature"
@@ -803,22 +938,30 @@ function ProductModal({
             ]}
           />
         )}
-        {(isIcedDrink || isHotDrink) && (
+        {fixedTemperature && (
           <p className="customize-fixed">
-            {isIcedDrink ? "Served iced" : "Served hot"}
+            {fixedTemperature === "Iced" ? "Served iced" : "Served hot"}
           </p>
         )}
 
-        <Segmented
-          legend="Size"
-          name="size"
-          value={size}
-          onChange={setSize}
-          options={[
-            { value: "16 oz", label: "16 oz" },
-            { value: "22 oz", label: "22 oz", extra: "+₱30" },
-          ]}
-        />
+        {sizeOptions.length > 1 ? (
+          <Segmented
+            legend="Size"
+            name="size"
+            value={size}
+            onChange={setSize}
+            options={sizeOptions.map((option, index) => ({
+              value: option.size,
+              label: option.size,
+              extra:
+                index > 0 && option.price > sizeOptions[0].price
+                  ? `+${money(option.price - sizeOptions[0].price)}`
+                  : undefined,
+            }))}
+          />
+        ) : (
+          <p className="customize-fixed">Size: {sizeOptions[0].size}</p>
+        )}
 
         {hasMilk && (
           <Segmented
@@ -910,6 +1053,32 @@ function ProductModal({
   );
 }
 // ↓ SCROLL STORY: Horizontal scroll-driven product showcase
+const heroStoryImages = [
+  {
+    src: "./images/hero-drinks/drink-01-honey-lemon.webp",
+    alt: "Honey Lemon Butterfly Pea drink",
+  },
+  {
+    src: "./images/hero-drinks/drink-02-strawberry-milk.webp",
+    alt: "Strawberry Milk drink",
+  },
+  {
+    src: "./images/hero-drinks/drink-03-oreo-milkshake.webp",
+    alt: "Oreo Milkshake",
+  },
+  {
+    src: "./images/hero-drinks/drink-04-double-dutch.webp",
+    alt: "Double Dutch drink",
+  },
+  {
+    src: "./images/hero-drinks/drink-05-choco-pistachio.webp",
+    alt: "Choco Pistachio drink",
+  },
+  {
+    src: "./images/hero-drinks/drink-06-matcha-latte.webp",
+    alt: "Matcha Latte drink",
+  },
+] as const;
 function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
   const section = useRef<HTMLElement>(null);
   const stage = useRef<HTMLDivElement>(null);
@@ -1022,7 +1191,7 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
       behavior: clickScrollBehavior(),
     });
   };
-  const product = products[active];
+  const product = heroSelectorProducts[active];
   return (
     <section
       className="scroll-story"
@@ -1051,7 +1220,7 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
           <div className="story-action-row">
             <div className="story-details">
               <span>{money(product.price)}</span>
-              <small>{product.hot ? "HOT" : "ICED"} / 16 OZ</small>
+              <small>{product.hot ? "HOT" : "ICED"} / {(product.defaultSize ?? "16 oz").toUpperCase()}</small>
             </div>
             <button className="button" onClick={() => onSelect(product)}>
               This is my cup <Icon name="plus" size={18} />
@@ -1059,13 +1228,13 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
           </div>
         </div>
         <div className="story-art">
-          {products.map((p, i) => (
+          {heroSelectorProducts.map((p, i) => (
             <img
               key={p.id}
-              src={image(p.id)}
+              src={heroStoryImages[i].src}
               className="story-product"
               style={{ opacity: i === 0 ? 1 : 0 }}
-              alt={active === i ? p.short : ""}
+              alt={active === i ? heroStoryImages[i].alt : ""}
               aria-hidden={active !== i}
               loading="lazy"
               width="500"
@@ -1090,7 +1259,7 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
             <span>0{active + 1}</span> / 06
           </div>
           <div className="flavor-tabs" ref={tabsRef} role="group" aria-label="Select a flavor">
-            {products.map((p, i) => (
+            {heroSelectorProducts.map((p, i) => (
               <button
                 key={p.id}
                 onClick={() => goTo(i)}
@@ -1099,17 +1268,7 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
                 aria-pressed={active === i}
               >
                 <span />
-                {p.id === "latte"
-                  ? "Spanish Latte"
-                  : p.id === "matcha"
-                    ? "Matcha Latte"
-                    : p.id === "caramel"
-                      ? "Caramel Macchiato"
-                      : p.id === "strawberry"
-                        ? "Strawberry Latte"
-                        : p.id === "chai"
-                          ? "Chai Latte"
-                          : "Hot Roast"}
+                {p.tabLabel ?? p.name}
               </button>
             ))}
           </div>
@@ -1370,7 +1529,7 @@ function App() {
         ? value
             .filter(
               (item: CartItem) =>
-                (products.some((p) => p.id === item.id) ||
+                (!!findProduct(item.id) ||
                   dinerBites.some(
                     (b) => b.id === item.id && !b.sample && b.price !== null,
                   ) ||
@@ -1648,10 +1807,12 @@ function App() {
       ?.scrollIntoView({ behavior: clickScrollBehavior() });
   };
   // ↓ PRODUCT FILTER: All drinks, Best sellers, Coffee, Not coffee
-  const visibleProducts = products.filter(
+  const isFeaturedBestSeller = (product: Product) =>
+    ["BEST SELLER", "POPULAR", "FAVORITE"].includes(product.badge ?? "");
+  const visibleProducts = heroSelectorProducts.filter(
     (p) =>
       filter === "All drinks" ||
-      (filter === "Best sellers" ? !!p.badge : p.type === filter),
+      (filter === "Best sellers" ? isFeaturedBestSeller(p) : p.type === filter),
   );
   return (
     <>
@@ -1835,8 +1996,8 @@ function App() {
           <div className="hero-product-wrap">
             <img
               className="hero-product"
-              src={image("latte")}
-              alt="Bean Diner signature Iced Spanish Latte with espresso, condensed milk, and caramel"
+              src="./images/hero-drinks/salted-caramel-macchiato-header.webp"
+              alt="Bean Diner Iced Salted Caramel Macchiato with sea salt caramel, chilled milk, and espresso"
               fetchPriority="high"
               width="500"
               height="700"
@@ -1889,9 +2050,9 @@ function App() {
           <div className="hero-product-caption">
             <span className="caption-line" />
             <div>
-              <span className="eyebrow">BAYAMBANG BEST SELLER</span>
+              <span className="eyebrow">MENU FAVORITE</span>
               <p>
-                {spanishLatte.name} <span>{money(spanishLatte.price)}</span>
+                {saltedCaramelHeaderDrink.name} <span>{money(saltedCaramelHeaderPrice)}</span>
               </p>
             </div>
           </div>
@@ -1945,10 +2106,26 @@ function App() {
             <div className="menu-toolbar-signature-row">
               <CategoryTabs
                 tabs={[
-                  { id: "All drinks", label: "All drinks", count: 6 },
-                  { id: "Best sellers", label: "Best sellers", count: 3 },
-                  { id: "Coffee", label: "Coffee", count: 4 },
-                  { id: "Not coffee", label: "Not coffee", count: 2 },
+                  {
+                    id: "All drinks",
+                    label: "All drinks",
+                    count: heroSelectorProducts.length,
+                  },
+                  {
+                    id: "Best sellers",
+                    label: "Best sellers",
+                    count: heroSelectorProducts.filter(isFeaturedBestSeller).length,
+                  },
+                  {
+                    id: "Coffee",
+                    label: "Coffee",
+                    count: heroSelectorProducts.filter((p) => p.type === "Coffee").length,
+                  },
+                  {
+                    id: "Not coffee",
+                    label: "Not coffee",
+                    count: heroSelectorProducts.filter((p) => p.type === "Not coffee").length,
+                  },
                 ]}
                 active={filter}
                 onChange={(tabId) => {
@@ -1959,7 +2136,7 @@ function App() {
                 }}
                 label="Filter drinks"
               />
-              <span className="menu-size">SIGNATURE 16 OZ CUPS</span>
+              <span className="menu-size">MENU PRICES & SIZES</span>
             </div>
           </StickyMenuBar>
           <div className="product-grid" id="drink-menu-products">
@@ -1973,20 +2150,10 @@ function App() {
                 >
                   {p.badge && <span className="product-badge">{p.badge}</span>}
                   <span className="product-art-word" aria-hidden="true">
-                    {p.id === "latte"
-                      ? "spanish!"
-                      : p.id === "matcha"
-                        ? "matcha!"
-                        : p.id === "caramel"
-                          ? "caramel!"
-                          : p.id === "strawberry"
-                            ? "berry!"
-                            : p.id === "chai"
-                              ? "chai!"
-                              : "roast!"}
+                    {p.word.split(" ")[0].toLowerCase()}!
                   </span>
                   <FadeImage
-                    src={image(p.id)}
+                    src={productImage(p)}
                     alt={p.name}
                     loading="lazy"
                     width={300}
@@ -2004,7 +2171,9 @@ function App() {
                 </div>
                 <p>
                   {p.short}
-                  <span>{p.hot ? "HOT" : "ICED"} / 16 OZ</span>
+                  <span>
+                    {p.fixedTemperature ?? (p.hot ? "Hot" : "Iced")} / {p.defaultSize ?? "16 oz"}
+                  </span>
                 </p>
                 <div className="product-card-actions">
                   <button
@@ -2615,7 +2784,7 @@ function App() {
                 </button>
                 <div className="cart-items">
                   {cart.map((item) => {
-                    const p = products.find((p) => p.id === item.id);
+                    const p = findProduct(item.id);
                     const b = dinerBites.find((b) => b.id === item.id);
                     const bev = allBeverages.find((bev) => bev.id === item.id);
                     const mod = [...beverageAddOns, ...beverageSubs].find((m) => m.id === item.id);
@@ -2643,7 +2812,7 @@ function App() {
                       <div className="cart-item" key={item.key}>
                         {p ? (
                           <img
-                            src={image(p.id)}
+                            src={productImage(p)}
                             alt={p.name}
                             style={{ background: p.color }}
                           />
@@ -3118,7 +3287,7 @@ function App() {
 
                     <div className="checkout-summary-items">
                       {cart.map((item) => {
-                        const p = products.find((p) => p.id === item.id);
+                        const p = findProduct(item.id);
                         const b = dinerBites.find((b) => b.id === item.id);
                         const bev = allBeverages.find((bev) => bev.id === item.id);
                         const mod = [...beverageAddOns, ...beverageSubs].find((m) => m.id === item.id);
