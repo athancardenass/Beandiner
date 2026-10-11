@@ -272,7 +272,6 @@ export function CategoryTabs({
             aria-pressed={isActive}
             onClick={() => onChange(tab.id)}
           >
-            {isActive && <svg className="menu-tab-selected" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m5 12 4 4L19 6" /></svg>}
             <span>{tab.label}</span>
             {tab.count !== undefined && (
               <span className="menu-tab-count" aria-label={`${tab.count} items`}>
