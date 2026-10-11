@@ -9,6 +9,7 @@ import {
 } from "react";
 import DinerBitesPage from "./DinerBitesPage";
 import BeveragesPage from "./BeveragesPage";
+import { usePageBackground } from "./ui/usePageBackground";
 import { dinerBites, type DinerBite } from "./dinerBites";
 import {
   allBeverages,
@@ -1247,6 +1248,7 @@ function App() {
     return "home";
   });
   const isFoodPage = currentPage === "diner-bites";
+  usePageBackground(currentPage);
   const isBeveragesPage = currentPage === "beverages";
   const navigationFrame = useRef(0);
   const foodHref = pageHref("diner-bites");
@@ -3268,9 +3270,11 @@ function App() {
           }}
           aria-label={`View order bag with ${cartCount} items`}
         >
-          <span className="floating-bag-badge">{cartCount}</span>
-          <span className="floating-bag-text">View Order Bag</span>
-          <span className="floating-bag-price">{money(subtotal - discount)}</span>
+          <span className="floating-bag-surface">
+            <span className="floating-bag-badge">{cartCount}</span>
+            <span className="floating-bag-text">View Order Bag</span>
+            <span className="floating-bag-price">{money(subtotal - discount)}</span>
+          </span>
         </button>
       )}
     </>
