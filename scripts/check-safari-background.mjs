@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { chromium, webkit, expect } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
+import sharp from 'sharp';
 
 await mkdir('artifacts/safari-background', { recursive: true });
 for (const engine of [chromium, webkit]) {
@@ -24,6 +25,17 @@ for (const engine of [chromium, webkit]) {
       await page.locator('#flavors').evaluate(el => window.scrollTo(0,el.offsetTop+100));
       await page.getByRole('button', {name:'Explore Iced Matcha Latte',exact:true}).click();
       await checkColor('.story-stage');
+      // A compositor/toolbar edge can briefly expose the layer below the panel.
+      assert.equal(await page.locator('main').evaluate(el => getComputedStyle(el).backgroundColor),'rgba(0, 0, 0, 0)');
+      await page.locator('.story-stage').evaluate(el => el.style.clipPath = 'inset(0 0 24px)');
+      await checkColor('.story-stage');
+      const expectedPixel = await page.locator('.story-stage').evaluate(el => getComputedStyle(el).backgroundColor.match(/\d+/g).slice(0,3).map(Number));
+      const bottomPixel = await sharp(await page.screenshot()).extract({left:4,top:732,width:1,height:1}).removeAlpha().raw().toBuffer();
+      // The existing bag shadow and browser color conversion can shade a pixel.
+      assert.ok([...bottomPixel].every((value,i) => Math.abs(value-expectedPixel[i]) <= 4),'Exposed pixels below the panel must use the active section color');
+      await page.getByRole('button', {name:'Explore Sweet Strawberry Iced Latte',exact:true}).click();
+      await checkColor('.story-stage');
+      await page.locator('.story-stage').evaluate(el => el.style.removeProperty('clip-path'));
       for (const height of [852, 740, 900, 680]) {
         await page.setViewportSize({width:430,height});
         await page.locator('#flavors').evaluate(el => window.scrollTo(0,el.offsetTop+100));

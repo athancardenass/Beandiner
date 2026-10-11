@@ -23,12 +23,15 @@ export function usePageBackground(page: string) {
       // Pinch zoom should not change the page's browser-chrome theme.
       if (viewport && Math.abs(viewport.scale - 1) > .01) return;
       const bottom = Math.min(innerHeight, (viewport?.offsetTop ?? 0) + (viewport?.height ?? innerHeight));
-      const stack = document.elementsFromPoint(innerWidth / 2, Math.max(0, bottom - 1));
+      const stack = document.elementsFromPoint(innerWidth / 2, Math.max(0, bottom - 4));
       let color = getComputedStyle(root).getPropertyValue("--cream").trim() || "#FFF0D6";
       let transitioning = false;
       for (const element of stack) {
         if (element.closest(".floating-bag-bubble, .toast, .page-progress, .skip-link, dialog")) continue;
-        const surface = element.closest(".story-stage, main > section, footer");
+        // The bottom edge may hit the story's exposed track while its sticky
+        // panel is clipped/repainted. Its active panel still owns that color.
+        const track = element.closest(".scroll-story");
+        const surface = track?.querySelector(".story-stage") ?? element.closest("main > section, main > .manifesto-strip, footer");
         if (!surface) continue;
         const background = getComputedStyle(surface).backgroundColor;
         if (background !== "transparent" && background !== "rgba(0, 0, 0, 0)") {
