@@ -2342,26 +2342,6 @@ function App() {
             Back to top <span>↑</span>
           </a>
         </div>
-      {/* ↓ FOOTER MESSENGER BUTTON: Direct chat with Bean Diner */}
-      <a
-        href={getMessengerUrl()}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="footer-messenger"
-        aria-label="Chat with Bean Diner on Facebook Messenger"
-        onClick={(e) => {
-          if (isMobileDevice() && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
-            e.preventDefault();
-            openMessengerApp();
-          }
-        }}
-      >
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-          <path d="M12 2C6.48 2 2 6.03 2 11c0 2.87 1.5 5.43 3.84 7.02l-.65 2.45a.75.75 0 0 0 .97.9l2.84-1.22c.96.28 1.97.43 3 .43 5.52 0 10-4.03 10-9s-4.48-9-10-9zm1.06 12.15-2.58-2.75-5.04 2.75 5.54-5.88 2.64 2.75 4.98-2.75-5.54 5.88z" />
-        </svg>
-        <span>Message Us</span>
-      </a>
-
       </footer>
       {/* ↓ TOAST: Add-to-bag confirmation with Undo */}
       {toast && (
@@ -3272,6 +3252,25 @@ function App() {
           <span className="floating-bag-price">{money(subtotal - discount)}</span>
         </button>
       )}
+      {/* ↓ FLOATING MESSENGER BUTTON: Direct chat with Bean Diner */}
+      <a
+        href={getMessengerUrl()}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="floating-messenger"
+        aria-label="Chat with Bean Diner on Facebook Messenger"
+        onClick={(e) => {
+          if (isMobileDevice() && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+            e.preventDefault();
+            openMessengerApp();
+          }
+        }}
+      >
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.03 2 11c0 2.87 1.5 5.43 3.84 7.02l-.65 2.45a.75.75 0 0 0 .97.9l2.84-1.22c.96.28 1.97.43 3 .43 5.52 0 10-4.03 10-9s-4.48-9-10-9zm1.06 12.15-2.58-2.75-5.04 2.75 5.54-5.88 2.64 2.75 4.98-2.75-5.54 5.88z" />
+        </svg>
+        <span>Message Us</span>
+      </a>
     </>
   );
 }

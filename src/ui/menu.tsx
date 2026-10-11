@@ -304,42 +304,19 @@ export function useStickyHeaderOffset() {
     const header = document.querySelector<HTMLElement>(".header");
     if (!header) return;
     const root = document.documentElement;
-    const viewport = window.visualViewport;
-    let frame = 0;
-    let disposed = false;
-    const setValue = (name: string, value: string) => {
-      if (root.style.getPropertyValue(name) !== value) root.style.setProperty(name, value);
-    };
     const update = () => {
-      frame = 0;
-      if (disposed) return;
       const pinned = getComputedStyle(header).position === "sticky";
       const h = pinned ? header.offsetHeight : 0;
-      setValue("--sticky-top", `${h}px`);
-      setValue("--header-h", `${h}px`);
-      // Ignore pinch zoom and keyboard resizing; neither should resize the story.
-      const editing = document.activeElement?.matches("input, textarea, [contenteditable=true]");
-      if ((!viewport || Math.abs(viewport.scale - 1) < .01) && !editing) {
-        setValue("--visible-viewport-height", `${Math.round(viewport?.height ?? innerHeight)}px`);
-      }
+      root.style.setProperty("--sticky-top", `${h}px`);
+      root.style.setProperty("--header-h", `${h}px`);
     };
-    const schedule = () => { if (!frame && !disposed) frame = requestAnimationFrame(update); };
     update();
-    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(schedule) : null;
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(update) : null;
     observer?.observe(header);
-    window.addEventListener("resize", schedule, { passive: true });
-    window.addEventListener("pageshow", schedule);
-    window.addEventListener("orientationchange", schedule);
-    viewport?.addEventListener("resize", schedule, { passive: true });
-    document.fonts?.ready.then(schedule);
+    window.addEventListener("resize", update);
     return () => {
-      disposed = true;
-      cancelAnimationFrame(frame);
       observer?.disconnect();
-      window.removeEventListener("resize", schedule);
-      window.removeEventListener("pageshow", schedule);
-      window.removeEventListener("orientationchange", schedule);
-      viewport?.removeEventListener("resize", schedule);
+      window.removeEventListener("resize", update);
     };
   }, []);
 }
