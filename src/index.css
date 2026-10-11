@@ -990,6 +990,13 @@ main {
   height: 76%;
   pointer-events: none;
 }
+/* ↓ STORY PRODUCT WINDOW: Let isolated cups slide within the story stage */
+.story-product-window {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  z-index: 3;
+}
 /* ↓ STORY PRODUCT: Individual product image */
 .story-product {
   position: absolute;
@@ -997,14 +1004,14 @@ main {
   height: 100%;
   object-fit: contain;
   filter: drop-shadow(17px 22px 12px #363e2d24);
-  z-index: 3;
+  z-index: 1;
 }
 /* ↓ STORY BEAN: Floating bean in story */
 .story-bean {
   width: 66px;
   left: 3%;
   top: 11%;
-  z-index: 4;
+  z-index: 2;
 }
 /* ↓ STORY ICE: Floating ice in story */
 .story-ice {
@@ -1018,7 +1025,7 @@ main {
   width: 155px;
   right: -2%;
   bottom: 2%;
-  z-index: 4;
+  z-index: 2;
 }
 /* ↓ INGREDIENT NOTES: Ingredient list with handwritten title */
 .ingredient-notes {
@@ -1288,19 +1295,18 @@ main {
   isolation: isolate;
 }
 .product-image-button > img {
-  height: 315px;
-  width: 92%;
-  object-fit: contain;
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
   position: absolute;
-  left: 4%;
-  bottom: 12px;
+  inset: 0;
   z-index: 2;
-  transform: rotate(-3deg);
+  transform: none;
   transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
-  filter: drop-shadow(10px 18px 12px rgba(18, 18, 18, 0.16));
+  filter: none;
 }
 .product-image-button:hover > img {
-  transform: rotate(3deg) translateY(-8px) scale(1.04);
+  transform: scale(1.04);
 }
 /* ↓ PRODUCT ART WORD: Large background word in card */
 .product-art-word {
@@ -1390,18 +1396,21 @@ main {
   padding-top: 2px;
 }
 .product-card > p {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  display: block;
   font-size: 11px;
+  line-height: 1.4;
   margin-top: 7px;
-  gap: 10px;
-  min-height: 28px;
+  min-height: 50px;
 }
-.product-card > p > span {
+.product-card-description {
+  display: block;
+}
+.product-card-size {
+  display: block;
   font-size: 9px;
   letter-spacing: 0.7px;
   white-space: nowrap;
+  margin-top: 6px;
 }
 /* ↓ MENU FOOTNOTE: Bottom note about customization */
 .menu-footnote {
@@ -2891,7 +2900,7 @@ main {
     height: 310px;
   }
   .product-image-button > img {
-    height: 250px;
+    height: 100%;
   }
   .product-art-word {
     font-size: 84px;
@@ -2902,7 +2911,7 @@ main {
   .product-card > p {
     font-size: 9px;
   }
-  .product-card > p > span {
+  .product-card-size {
     font-size: 7px;
   }
   .brand-story {
@@ -3226,8 +3235,8 @@ main {
     opacity: 0.12;
   }
   .story-art {
-    left: 26%;
-    width: 72%;
+    left: 18%;
+    width: 64%;
     top: 13%;
     height: 44%;
     max-height: 350px;
@@ -3238,7 +3247,7 @@ main {
   }
   .story-bean {
     width: 36px;
-    left: -6%;
+    left: 0;
     top: 12%;
   }
   .story-ice {
@@ -5303,13 +5312,13 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   }
   .story-art {
     top: 12%;
-    left: 23%;
-    width: 74%;
+    left: 18%;
+    width: 64%;
     height: 46%;
   }
   .story-bean {
     top: 9%;
-    left: -2%;
+    left: 0;
   }
   .ingredient-notes {
     top: 35%;
