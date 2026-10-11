@@ -326,9 +326,16 @@ const formatOrderMessage = (
 };
 
 // ↓ BULLETPROOF CLIPBOARD COPY: Synchronous execCommand inside active modal/container + Async navigator.clipboard
-const copyToClipboard = (text: string): boolean => {
+const copyToClipboard = async (text: string): Promise<boolean> => {
   if (!text) return false;
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch { /* Try copying inside the active dialog instead. */ }
   let copied = false;
+  let textarea: HTMLTextAreaElement | undefined;
 
   // 1. Synchronous fallback: Executes immediately inside the user click/submit gesture.
   // Critical fix: When dialog.showModal() is active, elements appended to document.body
@@ -339,7 +346,7 @@ const copyToClipboard = (text: string): boolean => {
       document.querySelector<HTMLElement>("dialog[open]") ||
       document.body;
 
-    const textarea = document.createElement("textarea");
+    textarea = document.createElement("textarea");
     textarea.value = text;
     textarea.style.position = "absolute";
     textarea.style.left = "0";
@@ -367,17 +374,11 @@ const copyToClipboard = (text: string): boolean => {
     container.removeChild(textarea);
   } catch {
     /* fallback handled below */
+  } finally {
+    textarea?.remove();
   }
 
   // 2. Also trigger modern async navigator.clipboard as backup when available & allowed
-  if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
-    navigator.clipboard
-      .writeText(text)
-      .then(() => {
-        copied = true;
-      })
-      .catch(() => {});
-  }
 
   return copied;
 };
@@ -428,11 +429,11 @@ const openMessengerApp = () => {
   }
 };
 
-function OrderingSteps({ handoff = false }: { handoff?: boolean }) {
+function OrderingSteps({ handoff = false, copied = true }: { handoff?: boolean; copied?: boolean }) {
   const steps = handoff
     ? [
-        ["Order Copied", "Details are saved to your clipboard"],
-        ["Open Chat", "Tap the button below to launch Messenger"],
+        [copied ? "Order Copied" : "Copy Your Order", copied ? "Details are saved to your clipboard" : "Select the order text below and copy it manually"],
+        ["Open Chat", "Tap Open Messenger above to launch your chat"],
         ["Paste & Send", "Long-press the chat bar, tap Paste, and send"],
       ]
     : [
@@ -667,6 +668,7 @@ function Modal({
       }}
     >
       <div className="modal-inner">
+        <div className={className === "bag-modal" ? "bag-close-bar" : undefined}>
         <button
           className="icon-button modal-close"
           onClick={onClose}
@@ -674,6 +676,7 @@ function Modal({
         >
           <Icon name="close" />
         </button>
+        </div>
         {children}
       </div>
     </dialog>
@@ -1260,14 +1263,19 @@ function App() {
   const [receipt, setReceipt] = useState(false);
   const [toast, setToast] = useState("");
   const [lastOrder, setLastOrder] = useState("");
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copying" | "copied" | "failed">("idle");
+  const retryOrderCopy = async () => {
+    setCopyStatus("copying");
+    const copied = await copyToClipboard(lastOrder);
+    setCopyStatus(copied ? "copied" : "failed");
+    setToast(copied ? "Order copied. Paste it in Messenger." : "Copy failed. Select and copy your order below.");
+  };
   const bagHeadingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     if (receipt) {
       bagHeadingRef.current?.focus({ preventScroll: true });
       bagHeadingRef.current?.closest("dialog")?.scrollTo({ top: 0 });
-      if (lastOrder) {
-        copyToClipboard(lastOrder);
-      }
+      bagHeadingRef.current?.closest(".bag-content")?.scrollTo({ top: 0 });
     }
   }, [receipt, lastOrder]);
   const [storeStatus, setStoreStatus] = useState(getStoreStatus);
@@ -1277,6 +1285,7 @@ function App() {
   const [checkoutNote, setCheckoutNote] = useState("");
   const [checkoutOrderType, setCheckoutOrderType] = useState<"pickup" | "dine-in" | "delivery">("pickup");
   const [checkoutExtra, setCheckoutExtra] = useState("");
+  const [checkoutLandmark, setCheckoutLandmark] = useState("");
   const [checkoutPayment, setCheckoutPayment] = useState<CheckoutPayment>("gcash");
   const [checkoutName, setCheckoutName] = useState("");
   const [checkoutPhone, setCheckoutPhone] = useState("");
@@ -1286,7 +1295,20 @@ function App() {
     address?: string | null;
     time?: string | null;
   }>({});
-  const [focusedField, setFocusedField] = useState<string | null>(null);
+  const validatePreferredTime = () => {
+    const now = new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date());
+    const minutes = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
+    if (checkoutPickupTime === "Custom time") {
+      if (!/^\d{2}:\d{2}$/.test(checkoutCustomTime)) return "Choose your preferred time today";
+      const chosen = minutes(checkoutCustomTime);
+      if (chosen < 600 || chosen >= 1260) return "Choose a time between 10:00 AM and 8:59 PM";
+      if (chosen <= minutes(now)) return "Choose a time later today";
+    } else {
+      const delay = checkoutPickupTime === "In 30 mins" ? 30 : checkoutPickupTime === "In 1 hour" ? 60 : 20;
+      if (minutes(now) < 600 || minutes(now) + delay >= 1260) return "Choose a custom time during today’s opening hours, or contact our crew";
+    }
+    return null;
+  };
 
   const formatPhoneNumber = (val: string) => {
     let cleaned = val.replace(/\D/g, "");
@@ -1324,16 +1346,16 @@ function App() {
   const validateDeliveryAddress = (val: string, orderType: string) => {
     if (orderType !== "delivery") return null;
     const trimmed = val.trim();
-    if (!trimmed) return "Please enter your delivery address & landmark";
+    if (!trimmed) return "Please enter your delivery address";
     if (trimmed.length < 8)
-      return "Address must be at least 8 characters with street, barangay & landmark";
+      return "Include your house or building, street, and barangay";
     return null;
   };
 
-  const showNameError = focusedField !== "name" && Boolean(checkoutErrors.name);
-  const showPhoneError = focusedField !== "phone" && Boolean(checkoutErrors.phone);
-  const showAddressError = focusedField !== "address" && Boolean(checkoutErrors.address);
-  const showTimeError = focusedField !== "customTime" && Boolean(checkoutErrors.time);
+  const showNameError = Boolean(checkoutErrors.name);
+  const showPhoneError = Boolean(checkoutErrors.phone);
+  const showAddressError = Boolean(checkoutErrors.address);
+  const showTimeError = Boolean(checkoutErrors.time);
   const scrollToTop = (e?: React.MouseEvent) => {
     if (e) e.preventDefault();
     window.scrollTo({ top: 0, left: 0, behavior: clickScrollBehavior() });
@@ -1642,7 +1664,7 @@ function App() {
     );
   const scrollToMenu = () => {
     document
-      .querySelector(isFoodPage ? "#food-menu" : "#menu")
+      .querySelector(isFoodPage ? "#food-menu" : isBeveragesPage ? "#drinks-menu" : "#menu")
       ?.scrollIntoView({ behavior: clickScrollBehavior() });
   };
   // ↓ PRODUCT FILTER: All drinks, Best sellers, Coffee, Not coffee
@@ -1699,7 +1721,6 @@ function App() {
           >
             <span className="nav-num">01</span>
             <span className="nav-label">Beverages menu</span>
-            <span className="nav-badge">60+</span>
           </a>
           <a
             href={foodHref}
@@ -1709,7 +1730,6 @@ function App() {
           >
             <span className="nav-num">02</span>
             <span className="nav-label">Diner bites</span>
-            <span className="nav-badge">₱99</span>
           </a>
           <a href={homeHref("menu")} onClick={handlePageLink} className="nav-item">
             <span className="nav-num">03</span>
@@ -2019,7 +2039,7 @@ function App() {
           </div>
           <div className="bites-preview-link">
             <a className="button button-outline" href={beveragesHref} onClick={handlePageLink}>
-              Explore beverages menu (60+ brews) <Icon name="arrow" size={18} />
+              Explore beverages menu <Icon name="arrow" size={18} />
             </a>
           </div>
           <p className="menu-footnote">
@@ -2234,11 +2254,11 @@ function App() {
             <div className="footer-pill-links">
               <a href={beveragesHref} onClick={handlePageLink} className="footer-pill">
                 <span>Beverages menu</span>
-                <small>60+ artisanal brews</small>
+                <small>Artisanal brews</small>
               </a>
               <a href={foodHref} onClick={handlePageLink} className="footer-pill">
                 <span>Diner bites</span>
-                <small>₱99 wings & comfort</small>
+                <small>Wings & comfort</small>
               </a>
               <a href={homeHref("menu")} onClick={handlePageLink} className="footer-pill">
                 <span>Top 6 signatures</span>
@@ -2247,21 +2267,6 @@ function App() {
               <a href={homeHref("story")} onClick={handlePageLink} className="footer-pill">
                 <span>Our story</span>
                 <small>Two crafts, one home</small>
-              </a>
-              <a
-                href={getMessengerUrl()}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="footer-pill footer-pill-fb"
-                onClick={(e) => {
-                  if (isMobileDevice() && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
-                    e.preventDefault();
-                    openMessengerApp();
-                  }
-                }}
-              >
-                <span>Chat on Messenger</span>
-                <small>Order & table inquiry</small>
               </a>
             </div>
           </div>
@@ -2491,10 +2496,34 @@ function App() {
                   <div className="receipt-perforation" aria-hidden="true" />
 
                   <p className="receipt-intro">
-                    Your order summary is ready and copied to your clipboard. Follow the 3 steps below and send it to our team in Messenger.
+                    {copyStatus === "copied" ? "Your order is copied. Open Messenger, paste it, and send it to our crew." : "Automatic copying failed. Select and copy your order below, then open Messenger."}
                   </p>
 
-                  <OrderingSteps handoff />
+                  <div className="receipt-actions-group">
+                    <a
+                      href={getMessengerUrl()}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="button button-copy-messenger prominent"
+                      onClick={(e) => {
+                        if (isMobileDevice() && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+                          e.preventDefault();
+                          openMessengerApp();
+                        }
+                      }}
+                    >
+                      Open Messenger ↗
+                    </a>
+                    <a
+                      href={FACEBOOK_PAGE_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="button button-facebook-fallback"
+                    >
+                      Open Bean Diner Facebook Page Directly ↗
+                    </a>
+                  </div>
+                  <OrderingSteps handoff copied={copyStatus === "copied"} />
 
                   {/* Summary Box */}
                   {lastOrder && (
@@ -2504,54 +2533,30 @@ function App() {
                         <button
                           type="button"
                           className="receipt-copy-pill"
-                          onClick={() => {
-                            copyToClipboard(lastOrder);
-                            setToast("✓ Order details copied to clipboard!");
-                          }}
+                          onClick={retryOrderCopy}
+                          disabled={copyStatus === "copying"}
                         >
-                          <Icon name="check" size={13} /> Copy Text
+                          <Icon name="check" size={13} /> {copyStatus === "copying" ? "Copying…" : "Copy Text"}
                         </button>
                       </div>
-                      <pre className="receipt-summary-text">{lastOrder}</pre>
+                      {copyStatus === "failed" ? (
+                        <div className="manual-copy-fallback">
+                          <p role="status">Copying was blocked. Select the text, then use your device’s Copy command.</p>
+                          <label htmlFor="manual-order-copy">Your order text</label>
+                          <textarea id="manual-order-copy" readOnly value={lastOrder} rows={10} onFocus={(e) => e.currentTarget.select()} />
+                          <button type="button" className="button button-outline" onClick={() => {
+                            const field = document.getElementById("manual-order-copy") as HTMLTextAreaElement | null;
+                            field?.focus(); field?.select(); field?.setSelectionRange(0, lastOrder.length);
+                          }}>Select order text</button>
+                        </div>
+                      ) : <pre className="receipt-summary-text">{lastOrder}</pre>}
                     </div>
                   )}
 
-                  <div className="receipt-actions-group">
-                    <a
-                      href={getMessengerUrl()}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="button button-copy-messenger prominent"
-                      onClick={(e) => {
-                        if (lastOrder) {
-                          copyToClipboard(lastOrder);
-                          setToast("✓ Order details copied! Opening Messenger...");
-                        }
-                        if (isMobileDevice() && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
-                          e.preventDefault();
-                          openMessengerApp();
-                        }
-                      }}
-                    >
-                      Copy Order &amp; Open Messenger ↗
-                    </a>
-                    <a
-                      href={FACEBOOK_PAGE_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="button button-facebook-fallback"
-                      onClick={() => {
-                        if (lastOrder) {
-                          copyToClipboard(lastOrder);
-                          setToast("✓ Order details copied! Opening Facebook Page...");
-                        }
-                      }}
-                    >
-                      Open Bean Diner Facebook Page Directly ↗
-                    </a>
-                  </div>
+
                 </div>
 
+                <div className="receipt-menu-actions">
                 <button
                   className="button button-continue-shopping"
                   onClick={() => {
@@ -2561,8 +2566,27 @@ function App() {
                     scrollToMenu();
                   }}
                 >
-                  Back to Menu / Order More <Icon name="arrow" />
+                  Back to Menu <Icon name="arrow" />
                 </button>
+                <button type="button" className="button button-clear-order" onClick={() => {
+                  setCart([]);
+                  setCheckoutName("");
+                  setCheckoutPhone("");
+                  setCheckoutExtra("");
+                  setCheckoutLandmark("");
+                  setCheckoutNote("");
+                  setCheckoutCustomTime("");
+                  setCheckoutPickupTime("ASAP (~15-20 mins)");
+                  setCheckoutOrderType("pickup");
+                  setCheckoutPayment("gcash");
+                  setCheckoutErrors({});
+                  setLastOrder("");
+                  setReceipt(false);
+                  setCheckoutStep("bag");
+                  setBagOpen(false);
+                  scrollToMenu();
+                }}>Clear bag and start a new order</button>
+                </div>
               </div>
             ) : cart.length === 0 ? (
               <div className="empty-bag">
@@ -2731,15 +2755,12 @@ function App() {
                   <form
                     className="checkout-form checkout-form-compact"
                     noValidate
-                    onSubmit={(e) => {
+                    onSubmit={async (e) => {
                       e.preventDefault();
                       const currentAddressErr = validateDeliveryAddress(checkoutExtra, checkoutOrderType);
                       const currentNameErr = validateCustomerName(checkoutName);
                       const currentPhoneErr = validateCustomerPhone(checkoutPhone);
-                      const currentTimeErr =
-                        checkoutPickupTime === "Custom time" && !checkoutCustomTime.trim()
-                          ? "Please specify your preferred time"
-                          : null;
+                      const currentTimeErr = validatePreferredTime();
 
                       setCheckoutErrors({
                         name: currentNameErr,
@@ -2747,22 +2768,10 @@ function App() {
                         address: currentAddressErr,
                         time: currentTimeErr,
                       });
-                      setFocusedField(null);
 
-                      if (currentAddressErr) {
-                        document.getElementById("checkout-address")?.focus();
-                        return;
-                      }
-                      if (currentNameErr) {
-                        document.getElementById("order-name")?.focus();
-                        return;
-                      }
-                      if (currentTimeErr) {
-                        document.getElementById("checkout-custom-time")?.focus();
-                        return;
-                      }
-                      if (currentPhoneErr) {
-                        document.getElementById("order-phone")?.focus();
+                      const firstInvalid = currentNameErr ? "order-name" : currentPhoneErr ? "order-phone" : currentAddressErr ? "checkout-address" : currentTimeErr ? (checkoutPickupTime === "Custom time" ? "checkout-custom-time" : "checkout-timing") : null;
+                      if (firstInvalid) {
+                        document.getElementById(firstInvalid)?.focus();
                         return;
                       }
 
@@ -2770,7 +2779,7 @@ function App() {
                       const customerPhone = checkoutPhone.trim();
                       const resolvedTiming =
                         checkoutPickupTime === "Custom time"
-                          ? checkoutCustomTime.trim()
+                          ? new Date(`2000-01-01T${checkoutCustomTime}:00`).toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit" })
                           : checkoutPickupTime;
 
                       const msg = formatOrderMessage(
@@ -2780,24 +2789,49 @@ function App() {
                         subtotal - discount,
                         discount,
                         checkoutOrderType,
-                        checkoutExtra.trim(),
+                        [checkoutExtra.trim(), checkoutOrderType === "delivery" && checkoutLandmark.trim() ? `Landmark: ${checkoutLandmark.trim()}` : ""].filter(Boolean).join("; "),
                         checkoutPayment,
                         resolvedTiming,
                         checkoutNote.trim(),
                       );
-                      copyToClipboard(msg);
+                      if (copyStatus === "copying") return;
+                      setCopyStatus("copying");
+                      const copied = await copyToClipboard(msg);
+                      setCopyStatus(copied ? "copied" : "failed");
                       setLastOrder(msg);
-                      setToast("Order copied! Follow the guide below to send.");
+                      setToast(copied ? "Order copied. Open Messenger to send." : "Copy failed. Your order is ready to copy manually.");
                       setReceipt(true);
-                      setCart([]);
-                      setCheckoutName("");
-                      setCheckoutPhone("");
-                      setCheckoutExtra("");
-                      setCheckoutNote("");
-                      setCheckoutCustomTime("");
                       setCheckoutErrors({});
                     }}
                   >
+                    {/* Order Type */}
+                    <fieldset className="checkout-fieldset">
+                      <legend>Order type</legend>
+                      <div className="choice-row order-type-row">
+                        {[
+                          { id: "pickup", label: "Pickup" },
+                          { id: "dine-in", label: "Dine in" },
+                          { id: "delivery", label: "Delivery" },
+                        ].map((t) => (
+                          <label
+                            className={checkoutOrderType === t.id ? "selected" : ""}
+                            key={t.id}
+                          >
+                            <input
+                              type="radio"
+                              name="checkoutOrderType"
+                              checked={checkoutOrderType === t.id}
+                              onChange={() => {
+                                setCheckoutOrderType(t.id as "pickup" | "dine-in" | "delivery");
+                                setCheckoutExtra("");
+                              }}
+                            />
+                            <span>{t.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
+
                     {/* Customer Name */}
                     <div className="form-group">
                       <label htmlFor="order-name">
@@ -2814,12 +2848,7 @@ function App() {
                         className={showNameError ? "input-error" : ""}
                         value={checkoutName}
                         onChange={(e) => setCheckoutName(e.target.value)}
-                        onFocus={() => {
-                          setFocusedField("name");
-                          setCheckoutErrors((prev) => ({ ...prev, name: null }));
-                        }}
                         onBlur={() => {
-                          setFocusedField(null);
                           setCheckoutErrors((prev) => ({
                             ...prev,
                             name: validateCustomerName(checkoutName),
@@ -2838,10 +2867,96 @@ function App() {
                       )}
                     </div>
 
+                    {/* Contact Number */}
+                    <div className="form-group">
+                      <label htmlFor="order-phone">
+                        Contact number <span className="required-star">*</span>
+                      </label>
+                      <input
+                        id="order-phone"
+                        name="phone"
+                        type="tel"
+                        inputMode="tel"
+                        className={showPhoneError ? "input-error" : ""}
+                        value={checkoutPhone}
+                        onChange={(e) => setCheckoutPhone(formatPhoneNumber(e.target.value))}
+                        onBlur={() => {
+                          setCheckoutErrors((prev) => ({
+                            ...prev,
+                            phone: validateCustomerPhone(checkoutPhone),
+                          }));
+                        }}
+                        aria-invalid={showPhoneError ? "true" : "false"}
+                        aria-describedby={showPhoneError ? "order-phone-error" : undefined}
+                        autoComplete="tel"
+                        placeholder="09XX-XXX-XXXX or +639XX-XXX-XXXX"
+                        maxLength={20}
+                      />
+                      {showPhoneError && (
+                        <span id="order-phone-error" className="form-field-error" role="alert">
+                          <Icon name="alert-circle" size={14} /> {checkoutErrors.phone}
+                        </span>
+                      )}
+                    </div>
+
+                    {checkoutOrderType === "dine-in" && (
+                      <div className="order-extra-field">
+                        <label htmlFor="checkout-table">Table number (if seated):</label>
+                        <input
+                          id="checkout-table"
+                          name="table"
+                          placeholder="e.g. Table 4"
+                          value={checkoutExtra}
+                          onChange={(e) => setCheckoutExtra(e.target.value)}
+                          maxLength={20}
+                        />
+                      </div>
+                    )}
+
+                    {checkoutOrderType === "delivery" && (
+                      <div className="order-extra-field">
+                        <label htmlFor="checkout-address">Delivery address <span className="required-star">*</span></label>
+                        <textarea
+                          rows={3}
+                          autoComplete="street-address"
+                          id="checkout-address"
+                          name="address"
+                          className={showAddressError ? "input-error" : ""}
+                          placeholder="House / building, street, barangay, Bayambang"
+                          value={checkoutExtra}
+                          onChange={(e) => setCheckoutExtra(e.target.value)}
+                          onBlur={() => {
+                            setCheckoutErrors((prev) => ({
+                              ...prev,
+                              address: validateDeliveryAddress(checkoutExtra, checkoutOrderType),
+                            }));
+                          }}
+                          aria-invalid={showAddressError ? "true" : "false"}
+                          aria-describedby={showAddressError ? "checkout-address-error" : undefined}
+                          maxLength={150}
+                        />
+                        {showAddressError && (
+                          <span id="checkout-address-error" className="form-field-error" role="alert">
+                            <Icon name="alert-circle" size={14} /> {checkoutErrors.address}
+                          </span>
+                        )}
+                        <label htmlFor="checkout-landmark">Landmark <small>(optional)</small></label>
+                        <input id="checkout-landmark" name="landmark" value={checkoutLandmark} onChange={(e) => setCheckoutLandmark(e.target.value)} placeholder="e.g. opposite the barangay hall" maxLength={100} />
+                        <small className="checkout-field-hint">Our crew confirms delivery availability and fees in Messenger. Delivery fees are not included in this total.</small>
+                      </div>
+                    )}
+
+                    {checkoutOrderType === "pickup" && (
+                      <div className="pickup-notice">
+                        <small>Pickup: Bean Diner · Gen. Antonio Luna St., Zone 2, Bayambang</small>
+                      </div>
+                    )}
+
                     {/* Pickup / Preferred Time */}
                     <fieldset className="checkout-fieldset">
-                      <legend>Pickup / Preferred timing</legend>
-                      <div className="timing-choice-row">
+                      <legend>{checkoutOrderType === "pickup" ? "Pickup time" : checkoutOrderType === "dine-in" ? "Arrival time" : "Preferred delivery time"}</legend>
+                      <small className="checkout-field-hint">Today · 10:00 AM–9:00 PM. Preparation and delivery times are estimates; our crew confirms availability.</small>
+                      <div className="timing-choice-row" id="checkout-timing" tabIndex={-1}>
                         {[
                           "ASAP (~15-20 mins)",
                           "In 30 mins",
@@ -2871,6 +2986,7 @@ function App() {
                           <input
                             id="checkout-custom-time"
                             name="customTime"
+                            type="time" min="10:00" max="20:59"
                             className={showTimeError ? "input-error" : ""}
                             placeholder="e.g. 2:45 PM or 5:30 PM"
                             value={checkoutCustomTime}
@@ -2878,16 +2994,11 @@ function App() {
                               setCheckoutCustomTime(e.target.value);
                               setCheckoutErrors((prev) => ({ ...prev, time: null }));
                             }}
-                            onFocus={() => {
-                              setFocusedField("customTime");
-                              setCheckoutErrors((prev) => ({ ...prev, time: null }));
-                            }}
                             onBlur={() => {
-                              setFocusedField(null);
-                              if (!checkoutCustomTime.trim()) {
+                              if (validatePreferredTime()) {
                                 setCheckoutErrors((prev) => ({
                                   ...prev,
-                                  time: "Please specify your preferred time",
+                                  time: validatePreferredTime(),
                                 }));
                               }
                             }}
@@ -2895,152 +3006,20 @@ function App() {
                             aria-describedby={showTimeError ? "checkout-time-error" : undefined}
                             maxLength={30}
                           />
+
+                        </div>
+                      )}
                           {showTimeError && (
                             <span id="checkout-time-error" className="form-field-error" role="alert">
                               <Icon name="alert-circle" size={14} /> {checkoutErrors.time}
                             </span>
                           )}
-                        </div>
-                      )}
                     </fieldset>
-
-                    {/* Order Note */}
-                    <div className="form-group">
-                      <label htmlFor="order-note">
-                        Order note / special request <small>(optional)</small>
-                      </label>
-                      <input
-                        id="order-note"
-                        name="note"
-                        placeholder="e.g. separate syrup, extra napkins, less sweet"
-                        value={checkoutNote}
-                        onChange={(e) => setCheckoutNote(e.target.value)}
-                        maxLength={140}
-                      />
-                    </div>
-
-                    {/* Order Type */}
-                    <fieldset className="checkout-fieldset">
-                      <legend>Order type</legend>
-                      <div className="choice-row order-type-row">
-                        {[
-                          { id: "pickup", label: "For pick up" },
-                          { id: "dine-in", label: "Dine in" },
-                          { id: "delivery", label: "Door to door" },
-                        ].map((t) => (
-                          <label
-                            className={checkoutOrderType === t.id ? "selected" : ""}
-                            key={t.id}
-                          >
-                            <input
-                              type="radio"
-                              name="checkoutOrderType"
-                              checked={checkoutOrderType === t.id}
-                              onChange={() => {
-                                setCheckoutOrderType(t.id as any);
-                                setCheckoutExtra("");
-                                setCheckoutErrors((prev) => ({ ...prev, address: null }));
-                              }}
-                            />
-                            <span>{t.label}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </fieldset>
-
-                    {checkoutOrderType === "dine-in" && (
-                      <div className="order-extra-field">
-                        <label htmlFor="checkout-table">Table number (if seated):</label>
-                        <input
-                          id="checkout-table"
-                          name="table"
-                          placeholder="e.g. Table 4"
-                          value={checkoutExtra}
-                          onChange={(e) => setCheckoutExtra(e.target.value)}
-                          maxLength={20}
-                        />
-                      </div>
-                    )}
-
-                    {checkoutOrderType === "delivery" && (
-                      <div className="order-extra-field">
-                        <label htmlFor="checkout-address">Delivery address &amp; landmark:</label>
-                        <input
-                          id="checkout-address"
-                          name="address"
-                          className={showAddressError ? "input-error" : ""}
-                          placeholder="Street, Barangay, and Landmark in Bayambang"
-                          value={checkoutExtra}
-                          onChange={(e) => setCheckoutExtra(e.target.value)}
-                          onFocus={() => {
-                            setFocusedField("address");
-                            setCheckoutErrors((prev) => ({ ...prev, address: null }));
-                          }}
-                          onBlur={() => {
-                            setFocusedField(null);
-                            setCheckoutErrors((prev) => ({
-                              ...prev,
-                              address: validateDeliveryAddress(checkoutExtra, checkoutOrderType),
-                            }));
-                          }}
-                          aria-invalid={showAddressError ? "true" : "false"}
-                          aria-describedby={showAddressError ? "checkout-address-error" : undefined}
-                          maxLength={150}
-                        />
-                        {showAddressError && (
-                          <span id="checkout-address-error" className="form-field-error" role="alert">
-                            <Icon name="alert-circle" size={14} /> {checkoutErrors.address}
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    {checkoutOrderType === "pickup" && (
-                      <div className="pickup-notice">
-                        <small>Pickup: Bean Diner · Gen. Antonio Luna St., Zone 2, Bayambang</small>
-                      </div>
-                    )}
-
-                    {/* Contact Number */}
-                    <div className="form-group">
-                      <label htmlFor="order-phone">
-                        Contact number <span className="required-star">*</span>
-                      </label>
-                      <input
-                        id="order-phone"
-                        name="phone"
-                        type="tel"
-                        inputMode="numeric"
-                        className={showPhoneError ? "input-error" : ""}
-                        value={checkoutPhone}
-                        onChange={(e) => setCheckoutPhone(formatPhoneNumber(e.target.value))}
-                        onFocus={() => {
-                          setFocusedField("phone");
-                          setCheckoutErrors((prev) => ({ ...prev, phone: null }));
-                        }}
-                        onBlur={() => {
-                          setFocusedField(null);
-                          setCheckoutErrors((prev) => ({
-                            ...prev,
-                            phone: validateCustomerPhone(checkoutPhone),
-                          }));
-                        }}
-                        aria-invalid={showPhoneError ? "true" : "false"}
-                        aria-describedby={showPhoneError ? "order-phone-error" : undefined}
-                        autoComplete="tel"
-                        placeholder="09XX-XXX-XXXX"
-                        maxLength={20}
-                      />
-                      {showPhoneError && (
-                        <span id="order-phone-error" className="form-field-error" role="alert">
-                          <Icon name="alert-circle" size={14} /> {checkoutErrors.phone}
-                        </span>
-                      )}
-                    </div>
 
                     {/* Payment Method */}
                     <fieldset className="checkout-payment-fieldset">
-                      <legend>Payment method</legend>
+                      <legend>Preferred payment method</legend>
+                      <small className="checkout-field-hint">Our crew will confirm payment instructions in Messenger. Wait for confirmation before paying.</small>
                       <div className="payment-choice-row">
                         {([
                           { id: "gcash", label: "GCash" },
@@ -3064,16 +3043,33 @@ function App() {
                       </div>
                     </fieldset>
 
+                    {/* Order Note */}
+                    <div className="form-group">
+                      <label htmlFor="order-note">
+                        Order note / special request <small>(optional)</small>
+                      </label>
+                      <input
+                        id="order-note"
+                        name="note"
+                        placeholder="e.g. separate syrup, extra napkins, less sweet"
+                        value={checkoutNote}
+                        onChange={(e) => setCheckoutNote(e.target.value)}
+                        maxLength={140}
+                      />
+                    </div>
+
                     {/* Prominent Send Order via Messenger button */}
                     <div className="checkout-actions-block">
                       <button
                         className="button button-messenger-checkout prominent"
                         type="submit"
+                        disabled={copyStatus === "copying"}
+                        aria-busy={copyStatus === "copying"}
                       >
-                        Send order via Messenger <Icon name="arrow" size={17} />
+                        {copyStatus === "copying" ? "Copying order…" : "Continue to Messenger"} <Icon name="arrow" size={17} />
                       </button>
                       <small className="checkout-actions-hint">
-                        Copies your order summary and guides you to Facebook Messenger to confirm with our crew.
+                        Copies your order and opens sending instructions. Paste it into Messenger; your order is confirmed only when our crew replies. Your bag stays saved.
                       </small>
                     </div>
                   </form>
@@ -3162,16 +3158,14 @@ function App() {
             {[
               {
                 num: "01",
-                label: "Beverages menu (60+)",
+                label: "Beverages menu",
                 sub: "Espresso, matcha, teas & cold frappes",
-                badge: "60+ BREWS",
                 href: beveragesHref,
               },
               {
                 num: "02",
                 label: "Diner bites",
-                sub: "₱99 crispy wings & comfort plates",
-                badge: "₱99 WINGS",
+                sub: "Crispy wings & comfort plates",
                 href: foodHref,
               },
               {

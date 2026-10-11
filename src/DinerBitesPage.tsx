@@ -110,7 +110,7 @@ export default function DinerBitesPage({
     { id: "all", label: "All bites", count: totalDishes },
     ...foodCategories.map((cat) => ({
       id: cat.id,
-      label: cat.name,
+      label: ({ "croffles": "Croffles", "appetizers": "Appetizers", "rice-plates": "Rice plates", "rice-bowls": "Rice bowls", "salads": "Salads", "pasta": "Pasta", "sandwiches": "Sandwiches", "add-ons": "Add-ons" } as Record<string, string>)[cat.id] ?? cat.name,
       count: cat.items.length,
     })),
   ];

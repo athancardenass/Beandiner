@@ -153,7 +153,18 @@ export default function BeveragesPage({
     { id: "all", label: "All drinks", count: totalDrinks },
     ...beverageCategories.map((cat) => ({
       id: cat.id,
-      label: cat.name.replace(/^Hot Beverage - (Hot )?/, "Hot ").replace(" - ", ": "),
+      label: ({
+        "hot-coffee": "Hot coffee",
+        "hot-non-coffee": "Hot non-coffee",
+        "over-iced-coffee": "Iced coffee",
+        "over-iced-cloudy": "Cloudy coffee",
+        "over-iced-matcha": "Iced matcha",
+        "over-iced-non-coffee": "Iced non-coffee",
+        "over-iced-tea": "Iced tea",
+        "iced-blends-coffee": "Coffee blends",
+        "iced-blends-non-coffee": "Non-coffee blends",
+        "iced-blends-milkshake": "Milkshakes",
+      } as Record<string, string>)[cat.id] ?? cat.name,
       count: cat.items.length,
     })),
     {
