@@ -9,6 +9,7 @@ import {
 } from "react";
 import DinerBitesPage from "./DinerBitesPage";
 import BeveragesPage from "./BeveragesPage";
+import { usePageBackground } from "./ui/usePageBackground";
 import { dinerBites, type DinerBite } from "./dinerBites";
 import {
   allBeverages,
@@ -53,8 +54,6 @@ const image = (name: string) => {
   if (name === "hot") return "./images/optimized/hotroast.webp";
   return `./images/optimized/${name}.webp`;
 };
-const heroCutoutImage = (name: string) =>
-  `./images/optimized/${name}-cutout.webp`;
 const menuImage = (name: string) => `./images/menu/${name}.webp`;
 type AppPage = "home" | "diner-bites" | "beverages";
 const pageHref = (page: AppPage, anchor = "") => {
@@ -104,98 +103,130 @@ const scrollToPageAnchor = (animate = false) => {
 type Product = {
   id: string;
   name: string;
+  short: string;
+  note: string;
   description: string;
   price: number;
-  prices: Record<string, number>;
-  defaultSize: string;
   color: string;
   word: string;
   ingredients: string[];
   type: "Coffee" | "Not coffee";
-  hot: boolean;
+  hot?: boolean;
   badge?: string;
+  photo: string;
 };
-const displaySize = (size: string) => size.replace(/(\d+)oz$/i, "$1 oz");
-const featuredProductSpecs = [
+// ↓ DATA: Six signature drink products matching Bean Diner sample photos
+const products: Product[] = [
   {
-    id: "strawberry-milk",
-    color: "#fed7d7",
-    word: "Strawberry",
-    ingredients: ["Real strawberry puree", "Sweetened fresh milk"],
+    id: "latte",
+    name: "Iced Spanish Latte",
+    short: "Signature espresso & fresh milk",
+    note: "Double espresso, silky milk, poured over ice.",
+    description:
+      "Our signature double-shot espresso extraction over chilled fresh milk and crisp ice. The everyday crowd favorite at Antonio Luna Street.",
+    price: 145,
+    color: "#f2dfb8",
+    word: "Daily joy.",
+    ingredients: ["Double espresso", "Fresh milk", "Ice chill"],
+    type: "Coffee",
+    badge: "BEST SELLER",
+    photo: "caffe-latte",
   },
   {
-    id: "iced-salted-caramel",
+    id: "matcha",
+    name: "Iced Matcha Latte",
+    short: "Ceremonial matcha & creamy milk",
+    note: "Whisked smooth. 100% authentic green tea.",
+    description:
+      "Vibrant ceremonial-grade Japanese matcha whisked smooth and paired with creamy milk (or Oatside oat milk) over ice. Earthy, soothing, and perfectly balanced.",
+    price: 165,
+    color: "#dce4b8",
+    word: "Matcha chill.",
+    ingredients: [
+      "Ceremonial matcha",
+      "Fresh milk / Oatside",
+      "Clean ice chill",
+    ],
+    type: "Not coffee",
+    badge: "OATSIDE COLLAB",
+    photo: "matcha-latte",
+  },
+  {
+    id: "caramel",
+    name: "Iced Caramel Macchiato",
+    short: "Caramel syrup, cold milk & espresso",
+    note: "Sweet golden caramel meets dark roast.",
+    description:
+      "Rich amber caramel syrup layered with cold fresh milk, marked with a bold double espresso float and finished with golden drizzle.",
+    price: 160,
     color: "#eedec7",
-    word: "Caramel",
-    ingredients: ["Sea salt caramel syrup", "Chilled milk", "Espresso kick"],
+    word: "Caramel swirl.",
+    ingredients: ["Dark caramel drizzle", "Chilled milk", "Espresso float"],
+    type: "Coffee",
+    badge: "HOUSE SPECIAL",
+    photo: "caramel-macchiato",
   },
   {
-    id: "shake-oreo",
-    name: "Oreo Milkshake",
-    color: "#d8c6b5",
-    word: "Oreo",
-    ingredients: ["Cookies & cream", "Dark Oreo cookie pieces"],
+    id: "strawberry",
+    name: "Sweet Strawberry Iced Latte",
+    short: "Real strawberry fruit & espresso float",
+    note: "Coffee that says stay, strawberry that says sweet.",
+    description:
+      "Real crushed strawberry puree poured with silky milk, topped with a gentle espresso kick. Refreshing, vibrant, and a diner customer favorite.",
+    price: 155,
+    color: "#fed7d7",
+    word: "Berry sweet.",
+    ingredients: [
+      "Real strawberry fruit",
+      "Velvety fresh milk",
+      "Bold espresso float",
+    ],
+    type: "Coffee",
+    badge: "CROWD FAVORITE",
+    photo: "strawberry-latte",
   },
   {
-    id: "blend-double-dutch",
+    id: "chai",
+    name: "Iced Milk Tea Chai Latte",
+    short: "Spiced artisan black tea blend",
+    note: "Warm aromatic spice, served ice-cold.",
+    description:
+      "Slow-steeped artisan spiced black tea infused with cardamom, cinnamon, and clove, softened with creamy sweetened milk over ice.",
+    price: 145,
+    color: "#efcebc",
+    word: "Spiced chill.",
+    ingredients: [
+      "Artisan spiced tea",
+      "Silky fresh milk",
+      "Fragrant cinnamon",
+    ],
+    type: "Not coffee",
+    badge: "BARISTA CRAFT",
+    photo: "chai-latte",
+  },
+  {
+    id: "hot",
+    name: "Artisan Hot Roast & Latte",
+    short: "Middle East barista craft brew",
+    note: "Crafted by our Middle East-trained barista.",
+    description:
+      "Full-bodied, deeply aromatic extraction celebrating Middle Eastern specialty coffee techniques with golden crema and latte art.",
+    price: 130,
     color: "#e9c3a4",
-    word: "Dutch",
-    ingredients: ["Double chocolate", "Vanilla bean", "Chocolate chips", "Espresso"],
+    word: "Warm comfort.",
+    ingredients: [
+      "Artisan roast espresso",
+      "Steamed velvety milk",
+      "Latte art pour",
+    ],
+    type: "Coffee",
+    hot: true,
+    badge: "BARISTA SPECIAL",
+    photo: "hot-roast",
   },
-  {
-    id: "blend-choco-pistachio",
-    color: "#dce4b8",
-    word: "Pistachio",
-    ingredients: ["Dark chocolate", "Mediterranean pistachio nut paste"],
-  },
-  {
-    id: "iced-matcha-latte",
-    color: "#dce4b8",
-    word: "Matcha",
-    ingredients: ["Ceremonial green tea", "Silky chilled milk", "Ice"],
-  },
-] as const;
+];
 
-const featuredProducts: Product[] = featuredProductSpecs.map((spec) => {
-  const beverage = allBeverages.find((item) => item.id === spec.id)!;
-  const prices = Object.fromEntries(
-    Object.entries(beverage.prices).map(([size, price]) => [displaySize(size), price]),
-  );
-  const defaultSize = displaySize(beverage.defaultSize);
-
-  return {
-    id: beverage.id,
-    name: "name" in spec ? spec.name : beverage.name,
-    description: beverage.description,
-    price: prices[defaultSize],
-    prices,
-    defaultSize,
-    color: spec.color,
-    word: spec.word,
-    ingredients: [...spec.ingredients],
-    type: beverage.type as Product["type"],
-    hot: false,
-    badge: beverage.badge,
-  };
-});
-
-const spanishLatte: Product = {
-  id: "latte",
-  name: "Iced Spanish Latte",
-  description:
-    "Our signature double-shot espresso extraction over chilled fresh milk and crisp ice. The everyday crowd favorite at Antonio Luna Street.",
-  price: 145,
-  prices: { "16 oz": 145, "22 oz": 175 },
-  defaultSize: "16 oz",
-  color: "#f2dfb8",
-  word: "Daily joy.",
-  ingredients: ["Double espresso", "Fresh milk", "Ice chill"],
-  type: "Coffee",
-  hot: false,
-  badge: "BEST SELLER",
-};
-
-const products: Product[] = [...featuredProducts, spanishLatte];
+const spanishLatte = products.find((product) => product.id === "latte")!;
 const spanishLatteBundlePrice = 250;
 const spanishLatteBundleSavings =
   spanishLatte.price * 2 - spanishLatteBundlePrice;
@@ -696,9 +727,9 @@ function ProductModal({
   onAdd: (item: CartItem) => void;
   bagOfferCups: number;
 }) {
-  const isIcedDrink = !product.hot;
-  const isHotDrink = product.hot;
-  const [size, setSize] = useState(product.defaultSize);
+  const isIcedDrink = product.name.toLowerCase().includes("iced");
+  const isHotDrink = product.name.toLowerCase().includes("hot");
+  const [size, setSize] = useState("16 oz");
   const [milk, setMilk] = useState("Regular");
   const [temperature, setTemperature] = useState(
     isIcedDrink ? "Iced" : isHotDrink ? "Hot" : product.hot ? "Hot" : "Iced"
@@ -708,8 +739,8 @@ function ProductModal({
   const [quantity, setQuantity] = useState(1);
   const [note, setNote] = useState("");
   const hasMilk = true;
-  const basePrice = product.prices[size] ?? product.price;
-  const price = basePrice + (milk === "Oat" ? 35 : 0);
+  const price =
+    product.price + (size === "22 oz" ? 30 : 0) + (milk === "Oat" ? 35 : 0);
 
   // Offer hint mirrors the cart rule: latte, 16 oz, regular milk, iced.
   const isOfferDrink = product.id === spanishLatte.id;
@@ -756,7 +787,7 @@ function ProductModal({
       >
         <div className="customize-head">
           <h2>{product.name}</h2>
-          <p className="customize-price">{money(basePrice)}</p>
+          <p className="customize-price">{money(product.price)}</p>
         </div>
         <p className="customize-desc">{product.description}</p>
 
@@ -783,11 +814,10 @@ function ProductModal({
           name="size"
           value={size}
           onChange={setSize}
-          options={Object.entries(product.prices).map(([sizeOption, sizePrice]) => ({
-            value: sizeOption,
-            label: sizeOption,
-            extra: money(sizePrice),
-          }))}
+          options={[
+            { value: "16 oz", label: "16 oz" },
+            { value: "22 oz", label: "22 oz", extra: "+₱30" },
+          ]}
         />
 
         {hasMilk && (
@@ -911,7 +941,6 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
     const el = section.current!;
     const stageEl = stage.current!;
     const media = matchMedia("(prefers-reduced-motion: reduce)");
-    const mobileViewport = matchMedia("(max-width: 820px)");
     const cups = Array.from(stageEl.querySelectorAll<HTMLElement>(".story-product"));
     const bean = stageEl.querySelector<HTMLElement>(".story-bean");
     const ice = stageEl.querySelector<HTMLElement>(".story-ice");
@@ -937,8 +966,6 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
         setActive(index);
       }
       const reduced = media.matches;
-      // Keep the mobile cups inside the stage while preserving the layered slide.
-      const horizontalTravel = mobileViewport.matches ? 62 : 90;
       cups.forEach((cup, i) => {
         const d = i - p;
         const opacity = `${Math.max(0, 1 - Math.abs(d) * 1.35)}`;
@@ -947,7 +974,7 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
         if (cup.style.opacity !== opacity) cup.style.opacity = opacity;
         if (reduced) cup.style.transform = "none";
         else if (opacity !== "0") {
-          cup.style.transform = `translate3d(${d * horizontalTravel}%,${Math.abs(d) * 28}%,0) rotate(${d * 27 - 5}deg) scale(${1 - Math.min(Math.abs(d) * 0.15, 0.35)})`;
+          cup.style.transform = `translate3d(${d * 90}%,${Math.abs(d) * 28}%,0) rotate(${d * 27 - 5}deg) scale(${1 - Math.min(Math.abs(d) * 0.15, 0.35)})`;
         }
       });
       if (bean) bean.style.transform = reduced ? "none" : `translate3d(${p * -10}px,0,0) rotate(${p * 100}deg)`;
@@ -995,7 +1022,7 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
       behavior: clickScrollBehavior(),
     });
   };
-  const product = featuredProducts[active];
+  const product = products[active];
   return (
     <section
       className="scroll-story"
@@ -1018,13 +1045,13 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
           {product.word}
         </span>
         <div className="story-copy" key={product.id}>
-          <span className="eyebrow">{product.type}</span>
+          <span className="eyebrow">{product.short}</span>
           <h2>{product.name}</h2>
           <p>{product.description}</p>
           <div className="story-action-row">
             <div className="story-details">
               <span>{money(product.price)}</span>
-              <small>ICED / {product.defaultSize.toUpperCase()}</small>
+              <small>{product.hot ? "HOT" : "ICED"} / 16 OZ</small>
             </div>
             <button className="button" onClick={() => onSelect(product)}>
               This is my cup <Icon name="plus" size={18} />
@@ -1032,21 +1059,19 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
           </div>
         </div>
         <div className="story-art">
-          <div className="story-product-window">
-            {featuredProducts.map((p, i) => (
-              <img
-                key={p.id}
-                src={heroCutoutImage(p.id)}
-                className="story-product"
-                style={{ opacity: i === 0 ? 1 : 0 }}
-                alt={active === i ? p.name : ""}
-                aria-hidden={active !== i}
-                loading="lazy"
-                width="500"
-                height="700"
-              />
-            ))}
-          </div>
+          {products.map((p, i) => (
+            <img
+              key={p.id}
+              src={image(p.id)}
+              className="story-product"
+              style={{ opacity: i === 0 ? 1 : 0 }}
+              alt={active === i ? p.short : ""}
+              aria-hidden={active !== i}
+              loading="lazy"
+              width="500"
+              height="700"
+            />
+          ))}
           <Ingredient kind="bean" className="story-bean" />
           <Ingredient kind="ice" className="story-ice" />
           <Ingredient kind="leaf" className="story-leaf" />
@@ -1065,7 +1090,7 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
             <span>0{active + 1}</span> / 06
           </div>
           <div className="flavor-tabs" ref={tabsRef} role="group" aria-label="Select a flavor">
-            {featuredProducts.map((p, i) => (
+            {products.map((p, i) => (
               <button
                 key={p.id}
                 onClick={() => goTo(i)}
@@ -1074,7 +1099,17 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
                 aria-pressed={active === i}
               >
                 <span />
-                {p.name}
+                {p.id === "latte"
+                  ? "Spanish Latte"
+                  : p.id === "matcha"
+                    ? "Matcha Latte"
+                    : p.id === "caramel"
+                      ? "Caramel Macchiato"
+                      : p.id === "strawberry"
+                        ? "Strawberry Latte"
+                        : p.id === "chai"
+                          ? "Chai Latte"
+                          : "Hot Roast"}
               </button>
             ))}
           </div>
@@ -1213,6 +1248,7 @@ function App() {
     return "home";
   });
   const isFoodPage = currentPage === "diner-bites";
+  usePageBackground(currentPage);
   const isBeveragesPage = currentPage === "beverages";
   const navigationFrame = useRef(0);
   const foodHref = pageHref("diner-bites");
@@ -1612,17 +1648,11 @@ function App() {
       ?.scrollIntoView({ behavior: clickScrollBehavior() });
   };
   // ↓ PRODUCT FILTER: All drinks, Best sellers, Coffee, Not coffee
-  const visibleProducts = featuredProducts.filter(
+  const visibleProducts = products.filter(
     (p) =>
       filter === "All drinks" ||
       (filter === "Best sellers" ? !!p.badge : p.type === filter),
   );
-  const productFilterCounts = {
-    all: featuredProducts.length,
-    bestSellers: featuredProducts.filter((product) => !!product.badge).length,
-    coffee: featuredProducts.filter((product) => product.type === "Coffee").length,
-    notCoffee: featuredProducts.filter((product) => product.type === "Not coffee").length,
-  };
   return (
     <>
       <div
@@ -1915,10 +1945,10 @@ function App() {
             <div className="menu-toolbar-signature-row">
               <CategoryTabs
                 tabs={[
-                  { id: "All drinks", label: "All drinks", count: productFilterCounts.all },
-                  { id: "Best sellers", label: "Best sellers", count: productFilterCounts.bestSellers },
-                  { id: "Coffee", label: "Coffee", count: productFilterCounts.coffee },
-                  { id: "Not coffee", label: "Not coffee", count: productFilterCounts.notCoffee },
+                  { id: "All drinks", label: "All drinks", count: 6 },
+                  { id: "Best sellers", label: "Best sellers", count: 3 },
+                  { id: "Coffee", label: "Coffee", count: 4 },
+                  { id: "Not coffee", label: "Not coffee", count: 2 },
                 ]}
                 active={filter}
                 onChange={(tabId) => {
@@ -1929,7 +1959,7 @@ function App() {
                 }}
                 label="Filter drinks"
               />
-              <span className="menu-size">MENU SIZES &amp; PRICES</span>
+              <span className="menu-size">SIGNATURE 16 OZ CUPS</span>
             </div>
           </StickyMenuBar>
           <div className="product-grid" id="drink-menu-products">
@@ -1943,7 +1973,17 @@ function App() {
                 >
                   {p.badge && <span className="product-badge">{p.badge}</span>}
                   <span className="product-art-word" aria-hidden="true">
-                    {p.word}
+                    {p.id === "latte"
+                      ? "spanish!"
+                      : p.id === "matcha"
+                        ? "matcha!"
+                        : p.id === "caramel"
+                          ? "caramel!"
+                          : p.id === "strawberry"
+                            ? "berry!"
+                            : p.id === "chai"
+                              ? "chai!"
+                              : "roast!"}
                   </span>
                   <FadeImage
                     src={image(p.id)}
@@ -1963,8 +2003,8 @@ function App() {
                   <span>{money(p.price)}</span>
                 </div>
                 <p>
-                  <span className="product-card-description">{p.description}</span>
-                  <span className="product-card-size">ICED / {p.defaultSize.toUpperCase()}</span>
+                  {p.short}
+                  <span>{p.hot ? "HOT" : "ICED"} / 16 OZ</span>
                 </p>
                 <div className="product-card-actions">
                   <button
@@ -2286,6 +2326,27 @@ function App() {
             </div>
           </div>
         </div>
+
+      {/* ↓ FOOTER MESSENGER BUTTON: Direct chat with Bean Diner */}
+      <a
+        href={getMessengerUrl()}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="footer-messenger"
+        aria-label="Chat with Bean Diner on Facebook Messenger"
+        onClick={(e) => {
+          if (isMobileDevice() && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+            e.preventDefault();
+            openMessengerApp();
+          }
+        }}
+      >
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.03 2 11c0 2.87 1.5 5.43 3.84 7.02l-.65 2.45a.75.75 0 0 0 .97.9l2.84-1.22c.96.28 1.97.43 3 .43 5.52 0 10-4.03 10-9s-4.48-9-10-9zm1.06 12.15-2.58-2.75-5.04 2.75 5.54-5.88 2.64 2.75 4.98-2.75-5.54 5.88z" />
+        </svg>
+        <span>Chat with us on Messenger</span>
+      </a>
+
 
         <div className="footer-bottom-bar">
           <div className="footer-copy">
@@ -3209,30 +3270,13 @@ function App() {
           }}
           aria-label={`View order bag with ${cartCount} items`}
         >
-          <span className="floating-bag-badge">{cartCount}</span>
-          <span className="floating-bag-text">View Order Bag</span>
-          <span className="floating-bag-price">{money(subtotal - discount)}</span>
+          <span className="floating-bag-surface">
+            <span className="floating-bag-badge">{cartCount}</span>
+            <span className="floating-bag-text">View Order Bag</span>
+            <span className="floating-bag-price">{money(subtotal - discount)}</span>
+          </span>
         </button>
       )}
-      {/* ↓ FLOATING MESSENGER BUTTON: Direct chat with Bean Diner */}
-      <a
-        href={getMessengerUrl()}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="floating-messenger"
-        aria-label="Chat with Bean Diner on Facebook Messenger"
-        onClick={(e) => {
-          if (isMobileDevice() && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
-            e.preventDefault();
-            openMessengerApp();
-          }
-        }}
-      >
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-          <path d="M12 2C6.48 2 2 6.03 2 11c0 2.87 1.5 5.43 3.84 7.02l-.65 2.45a.75.75 0 0 0 .97.9l2.84-1.22c.96.28 1.97.43 3 .43 5.52 0 10-4.03 10-9s-4.48-9-10-9zm1.06 12.15-2.58-2.75-5.04 2.75 5.54-5.88 2.64 2.75 4.98-2.75-5.54 5.88z" />
-        </svg>
-        <span>Message Us</span>
-      </a>
     </>
   );
 }

@@ -6,7 +6,7 @@
 :root {
   font-family: "DM Sans", sans-serif;
   color: #121212;
-  background: #FFF0D6;
+  background: var(--viewport-background, #FFF0D6);
   color-scheme: light;
   font-synthesis: none;
   font-weight: 400;
@@ -60,12 +60,19 @@
 html {
   scroll-behavior: auto;
   scroll-padding-top: 24px;
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 /* ↓ BODY: Reset margin */
 body {
   margin: 0;
   overflow-x: hidden;
+  background: inherit;
+  min-height: 100vh;
+  min-height: 100dvh;
 }
+/* Keep transparent content sections on their original cream surface. */
+main { background: var(--cream); }
 /* ↓ INTERACTIVE: Remove tap highlight on mobile */
 button,
 input,
@@ -990,13 +997,6 @@ main {
   height: 76%;
   pointer-events: none;
 }
-/* ↓ STORY PRODUCT WINDOW: Let isolated cups slide within the story stage */
-.story-product-window {
-  position: absolute;
-  inset: 0;
-  overflow: visible;
-  z-index: 3;
-}
 /* ↓ STORY PRODUCT: Individual product image */
 .story-product {
   position: absolute;
@@ -1004,14 +1004,14 @@ main {
   height: 100%;
   object-fit: contain;
   filter: drop-shadow(17px 22px 12px #363e2d24);
-  z-index: 1;
+  z-index: 3;
 }
 /* ↓ STORY BEAN: Floating bean in story */
 .story-bean {
   width: 66px;
   left: 3%;
   top: 11%;
-  z-index: 2;
+  z-index: 4;
 }
 /* ↓ STORY ICE: Floating ice in story */
 .story-ice {
@@ -1025,7 +1025,7 @@ main {
   width: 155px;
   right: -2%;
   bottom: 2%;
-  z-index: 2;
+  z-index: 4;
 }
 /* ↓ INGREDIENT NOTES: Ingredient list with handwritten title */
 .ingredient-notes {
@@ -1295,18 +1295,19 @@ main {
   isolation: isolate;
 }
 .product-image-button > img {
-  height: 100%;
-  width: 100%;
-  object-fit: cover;
+  height: 315px;
+  width: 92%;
+  object-fit: contain;
   position: absolute;
-  inset: 0;
+  left: 4%;
+  bottom: 12px;
   z-index: 2;
-  transform: none;
+  transform: rotate(-3deg);
   transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
-  filter: none;
+  filter: drop-shadow(10px 18px 12px rgba(18, 18, 18, 0.16));
 }
 .product-image-button:hover > img {
-  transform: scale(1.04);
+  transform: rotate(3deg) translateY(-8px) scale(1.04);
 }
 /* ↓ PRODUCT ART WORD: Large background word in card */
 .product-art-word {
@@ -1396,21 +1397,18 @@ main {
   padding-top: 2px;
 }
 .product-card > p {
-  display: block;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
   font-size: 11px;
-  line-height: 1.4;
   margin-top: 7px;
-  min-height: 50px;
+  gap: 10px;
+  min-height: 28px;
 }
-.product-card-description {
-  display: block;
-}
-.product-card-size {
-  display: block;
+.product-card > p > span {
   font-size: 9px;
   letter-spacing: 0.7px;
   white-space: nowrap;
-  margin-top: 6px;
 }
 /* ↓ MENU FOOTNOTE: Bottom note about customization */
 .menu-footnote {
@@ -2900,7 +2898,7 @@ main {
     height: 310px;
   }
   .product-image-button > img {
-    height: 100%;
+    height: 250px;
   }
   .product-art-word {
     font-size: 84px;
@@ -2911,7 +2909,7 @@ main {
   .product-card > p {
     font-size: 9px;
   }
-  .product-card-size {
+  .product-card > p > span {
     font-size: 7px;
   }
   .brand-story {
@@ -3235,8 +3233,8 @@ main {
     opacity: 0.12;
   }
   .story-art {
-    left: 18%;
-    width: 64%;
+    left: 26%;
+    width: 72%;
     top: 13%;
     height: 44%;
     max-height: 350px;
@@ -3247,7 +3245,7 @@ main {
   }
   .story-bean {
     width: 36px;
-    left: 0;
+    left: -6%;
     top: 12%;
   }
   .story-ice {
@@ -3992,33 +3990,7 @@ main {
   border-color: #0072db;
   transform: translateY(-2px);
 }
-/* ↓ FLOATING MESSENGER: Sticky quick action for customer contact */
-.floating-messenger {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 90;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #0084ff;
-  color: #ffffff;
-  padding: 12px 18px;
-  border-radius: 50px;
-  border: 2px solid rgba(255, 240, 214, 0.85);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  text-decoration: none;
-  box-shadow: 0 6px 20px rgba(18, 18, 18, 0.22);
-  transition:
-    transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
-    box-shadow 0.3s;
-}
-.floating-messenger:hover {
-  transform: translateY(-3px) scale(1.03);
-  box-shadow: 0 12px 30px rgba(0, 132, 255, 0.5);
-}
+
 .floating-bag-bubble {
   position: fixed;
   left: max(24px, env(safe-area-inset-left, 0px));
@@ -4026,11 +3998,21 @@ main {
   z-index: 91;
   display: flex;
   align-items: center;
-  gap: 12px;
   max-width: calc(100vw - 220px);
+  padding: 0;
+  border-radius: 999px;
+  background: transparent;
+  border: 0;
+}
+.floating-bag-surface {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
   min-height: 56px;
   padding: 10px 18px 10px 10px;
-  border-radius: 999px;
+  border-radius: inherit;
   background: var(--near-black, #121212);
   color: var(--cream, #FFF0D6);
   border: 1px solid rgba(212, 158, 119, 0.35);
@@ -4039,7 +4021,7 @@ main {
   font-weight: 650;
   transition: background 0.2s, border-color 0.2s;
 }
-.floating-bag-bubble:hover {
+.floating-bag-bubble:hover .floating-bag-surface {
   background: var(--espresso-raised, #1c1c1c);
   border-color: var(--pine-wood, #D49E77);
 }
@@ -4078,24 +4060,12 @@ body:has(.floating-bag-bubble) .footer-artisanal {
     right: calc(84px + env(safe-area-inset-right, 0px));
     bottom: max(14px, env(safe-area-inset-bottom, 0px));
     max-width: none;
+  }
+  .floating-bag-surface {
     min-height: 48px;
     gap: 8px;
     padding: 8px 12px 8px 8px;
     font-size: 12px;
-  }
-  .floating-messenger {
-    bottom: max(14px, env(safe-area-inset-bottom, 14px));
-    right: 14px;
-    width: 44px;
-    height: 44px;
-    padding: 0;
-    border-radius: 50%;
-    justify-content: center;
-    border: 2px solid rgba(255, 255, 255, 0.85);
-    box-shadow: 0 4px 14px rgba(18, 18, 18, 0.28);
-  }
-  .floating-messenger span {
-    display: none;
   }
 }
 /* ↓ ACCESSIBILITY: Reduced motion preferences */
@@ -5311,14 +5281,14 @@ body:has(.floating-bag-bubble) .footer-artisanal {
     height: 100svh;
   }
   .story-art {
-    top: 17%;
-    left: 18%;
-    width: 64%;
+    top: 12%;
+    left: 23%;
+    width: 74%;
     height: 46%;
   }
   .story-bean {
     top: 9%;
-    left: 0;
+    left: -2%;
   }
   .ingredient-notes {
     top: 35%;
@@ -5491,15 +5461,6 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   }
   .checkout-form > .button {
     min-height: 54px;
-  }
-  .floating-messenger {
-    right: 14px;
-    bottom: max(14px, env(safe-area-inset-bottom, 14px));
-    width: 48px;
-    height: 48px;
-    min-width: 48px;
-    min-height: 48px;
-    border-radius: 50%;
   }
   .back-top-pill {
     width: calc(100% - 72px);
@@ -7971,4 +7932,40 @@ body:has(.floating-bag-bubble) .footer-artisanal {
 .button-facebook-fallback:hover {
   background: var(--cream-deep, #F3DFC3);
   border-color: var(--pine, #D49E77);
+}
+
+/* Messenger is an in-flow footer action; shared checkout handlers stay intact. */
+.footer-messenger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 48px;
+  margin: 24px 0;
+  padding: 12px 20px;
+  border-radius: 999px;
+  background: #0084ff;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.footer-messenger svg { flex-shrink: 0; }
+.footer-messenger:hover { background: #0069cc; }
+.footer-messenger:focus-visible { outline: 2px solid var(--cream); outline-offset: 4px; }
+@media (max-width: 820px) {
+  html:root { --viewport-background: var(--espresso); }
+  main { background: transparent; }
+  .scroll-story { background: var(--viewport-background, var(--cream)); }
+  .brand-story { background: var(--cream); }
+  .story-stage {
+    height: 100vh;
+    height: 100dvh;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  .footer-artisanal { padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)); }
+  body:has(.floating-bag-bubble) .footer-artisanal { padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
 }

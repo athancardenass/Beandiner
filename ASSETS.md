@@ -47,27 +47,3 @@ License: https://www.pexels.com/license/ (free commercial/personal use subject t
 Local adaptations: 12-second, 854x480, 24fps, silent MP4 H.264 CRF29 with faststart; VP9 WebM CRF38; JPEG poster. Created with ffmpeg-static, a development-only asset-processing tool. No encoder binary is shipped in the frontend. Playback is user-initiated from the coffee-break film control; the video element is not mounted or downloaded before interaction. Both native controls and download fallback are available. The footage is clearly stock, not AI-generated or filmed for Saya. There is no speech or omitted soundtrack requiring captions; an accessible visual description is supplied.
 
 Example regeneration: ffmpeg -i input.mp4 -t 12 -vf 'scale=854:-2,fps=24' -c:v libx264 -crf 29 -preset fast -an -movflags +faststart coffee-break.mp4; ffmpeg -i coffee-break.mp4 -c:v libvpx-vp9 -b:v 0 -crf 38 -an coffee-break.webm.
-
-## Supplied featured drink photographs
-
-The six source photos were supplied by the user in `C:\Users\Menaze\Downloads\Bean Diner`. The originals remain in that folder and are not copied into this repository. Optimized outputs use Sharp WebP conversion, quality 84, effort 6, with a maximum dimension of 1920 pixels.
-
-| Supplied source | Optimized output | Dimensions | Size |
-| --- | --- | --- | ---: |
-| `Strawberry milk drink 1 for hero slider.JPG` | `public/images/optimized/strawberry-milk.webp` | 1370×768 | 57 KB |
-| `Salted Caramel Macchiato drink 2 for hero slider.JPG` | `public/images/optimized/iced-salted-caramel.webp` | 1920×1072 | 124 KB |
-| `Oreo Milkshake drink 3 for hero slider.JPG` | `public/images/optimized/shake-oreo.webp` | 1920×1071 | 96 KB |
-| `Double Dutch drink 4 for hero slider.JPG` | `public/images/optimized/blend-double-dutch.webp` | 1920×1059 | 101 KB |
-| `Choco Pistachio drink 5 for hero slider .JPG` | `public/images/optimized/blend-choco-pistachio.webp` | 1920×1043 | 102 KB |
-| `Matcha Latte drink 6 for hero slider.JPG` | `public/images/optimized/iced-matcha-latte.webp` | 1920×1072 | 108 KB |
-
-Transparent hero cutouts are separate variants created from the same supplied photos with the built-in image generator's background-removal tool. Each generated alpha mask is cropped to its largest connected foreground component with 24px transparent padding, then converted to alpha WebP with Sharp (quality 90). This keeps detached edge specks from shrinking the cup in `object-fit: contain`. They are used only by the hero selector; homepage cards retain the full-scene photographs. The generated cutouts can slightly reinterpret fine photo details, including edges and lettering, so the source photos remain the reference originals.
-
-| Hero cutout output | Dimensions | Size |
-| --- | --- | ---: |
-| `public/images/optimized/strawberry-milk-cutout.webp` | 777×1200 | 141 KB |
-| `public/images/optimized/iced-salted-caramel-cutout.webp` | 821×1112 | 152 KB |
-| `public/images/optimized/shake-oreo-cutout.webp` | 594×965 | 120 KB |
-| `public/images/optimized/blend-double-dutch-cutout.webp` | 779×1239 | 188 KB |
-| `public/images/optimized/blend-choco-pistachio-cutout.webp` | 784×1173 | 187 KB |
-| `public/images/optimized/iced-matcha-latte-cutout.webp` | 857×1201 | 166 KB |
