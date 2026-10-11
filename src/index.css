@@ -3983,33 +3983,7 @@ main {
   border-color: #0072db;
   transform: translateY(-2px);
 }
-/* ↓ FLOATING MESSENGER: Sticky quick action for customer contact */
-.floating-messenger {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 90;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #0084ff;
-  color: #ffffff;
-  padding: 12px 18px;
-  border-radius: 50px;
-  border: 2px solid rgba(255, 240, 214, 0.85);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  text-decoration: none;
-  box-shadow: 0 6px 20px rgba(18, 18, 18, 0.22);
-  transition:
-    transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
-    box-shadow 0.3s;
-}
-.floating-messenger:hover {
-  transform: translateY(-3px) scale(1.03);
-  box-shadow: 0 12px 30px rgba(0, 132, 255, 0.5);
-}
+
 .floating-bag-bubble {
   position: fixed;
   left: max(24px, env(safe-area-inset-left, 0px));
@@ -4073,20 +4047,6 @@ body:has(.floating-bag-bubble) .footer-artisanal {
     gap: 8px;
     padding: 8px 12px 8px 8px;
     font-size: 12px;
-  }
-  .floating-messenger {
-    bottom: max(14px, env(safe-area-inset-bottom, 14px));
-    right: 14px;
-    width: 44px;
-    height: 44px;
-    padding: 0;
-    border-radius: 50%;
-    justify-content: center;
-    border: 2px solid rgba(255, 255, 255, 0.85);
-    box-shadow: 0 4px 14px rgba(18, 18, 18, 0.28);
-  }
-  .floating-messenger span {
-    display: none;
   }
 }
 /* ↓ ACCESSIBILITY: Reduced motion preferences */
@@ -5482,15 +5442,6 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   }
   .checkout-form > .button {
     min-height: 54px;
-  }
-  .floating-messenger {
-    right: 14px;
-    bottom: max(14px, env(safe-area-inset-bottom, 14px));
-    width: 48px;
-    height: 48px;
-    min-width: 48px;
-    min-height: 48px;
-    border-radius: 50%;
   }
   .back-top-pill {
     width: calc(100% - 72px);
@@ -7962,4 +7913,31 @@ body:has(.floating-bag-bubble) .footer-artisanal {
 .button-facebook-fallback:hover {
   background: var(--cream-deep, #F3DFC3);
   border-color: var(--pine, #D49E77);
+}
+
+/* Messenger is an in-flow footer action; shared checkout handlers stay intact. */
+.footer-messenger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 48px;
+  margin: 24px 0;
+  padding: 12px 20px;
+  border-radius: 999px;
+  background: #0084ff;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.footer-messenger svg { flex-shrink: 0; }
+.footer-messenger:hover { background: #0069cc; }
+.footer-messenger:focus-visible { outline: 2px solid var(--cream); outline-offset: 4px; }
+@media (max-width: 820px) {
+  html:root, body { background: var(--espresso); }
+  .footer-artisanal { padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)); }
+  body:has(.floating-bag-bubble) .footer-artisanal { padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
 }
