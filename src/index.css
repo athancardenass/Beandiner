@@ -8065,3 +8065,23 @@ body:has(.floating-bag-bubble) .footer-artisanal {
 .manual-copy-fallback textarea:focus-visible { outline: 2px solid #8c6546; outline-offset: 2px; }
 .receipt-actions-group { margin: 0 0 20px; }
 .button:disabled, .receipt-copy-pill:disabled { opacity: .65; cursor: wait; }
+
+/* Keep the mobile drink story inside the visible area below the header. */
+@media (max-width: 600px) {
+  .story-stage {
+    top: var(--header-h, 80px);
+    height: min(780px, calc(100svh - var(--header-h, 80px)));
+    min-height: 640px;
+  }
+  .story-art {
+    top: 52px;
+    height: min(38svh, 330px);
+    max-height: 330px;
+  }
+  .story-giant { top: 52px; }
+  .ingredient-notes { top: min(28svh, 240px); }
+  .story-copy {
+    top: calc(76px + min(38svh, 330px));
+    bottom: auto;
+  }
+}
