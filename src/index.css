@@ -704,18 +704,18 @@ main {
   align-items: flex-start;
   width: max-content;
 }
+.hero-scribble .handwritten {
+  font-size: 31px;
+  line-height: 0.92;
+  display: block;
+  white-space: nowrap;
+}
 .hero-scribble .scribble-star {
   font-size: 15px;
   color: var(--accent-light);
   margin-bottom: 2px;
   margin-left: 28px;
   opacity: 0.85;
-}
-.hero-scribble .handwritten {
-  font-size: 31px;
-  line-height: 0.92;
-  display: block;
-  white-space: nowrap;
 }
 .hero-scribble svg {
   width: 75px;
@@ -897,7 +897,7 @@ main {
 }
 /* ↓ SCROLL STORY: Full-height scroll-driven section */
 .scroll-story {
-  height: 460vh;
+  height: 532vh;
   position: relative;
 }
 /* ↓ STORY STAGE: Sticky container for scroll story */
@@ -946,6 +946,9 @@ main {
   width: 29%;
   z-index: 5;
   animation: copy-arrive 0.65s both;
+}
+.story-switch-in {
+  animation: copy-arrive 0.45s both;
 }
 .story-copy > .eyebrow {
   font-size: 10px;
@@ -1035,6 +1038,9 @@ main {
   width: 16%;
   animation: copy-arrive 0.65s both;
 }
+.mobile-good-stuff {
+  display: none;
+}
 .ingredient-notes .handwritten {
   font-size: 29px;
   color: var(--accent);
@@ -1091,6 +1097,11 @@ main {
   align-items: center;
   gap: 7px;
   padding: 10px 0;
+  transition:
+    color 180ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
 }
 .flavor-tabs > button > span {
   height: 6px;
@@ -1427,8 +1438,9 @@ main {
   gap: 24px;
 }
 .bite-card {
-  background: var(--cream-card, #FFF8EB);
-  border: 1.5px solid rgba(110, 98, 86, 0.28);
+  background: var(--black, #121212);
+  color: var(--cream, #FFF0D6);
+  border: 1px solid rgba(255, 240, 214, 0.16);
   border-radius: 20px;
   padding: 28px 24px;
   display: flex;
@@ -1452,8 +1464,8 @@ main {
 }
 .bite-top-badge .product-badge {
   position: static;
-  background: var(--black, #121212);
-  color: var(--cream, #FFF0D6);
+  background: #fff;
+  color: var(--black, #121212);
   font-size: 9.5px;
   font-weight: 800;
   letter-spacing: 0.8px;
@@ -1465,9 +1477,9 @@ main {
 .bite-subtag {
   font-size: 10px;
   font-weight: 700;
-  color: var(--black, #121212);
-  background: rgba(212, 158, 119, 0.16);
-  border: 1px solid rgba(212, 158, 119, 0.35);
+  color: var(--cream, #FFF0D6);
+  background: rgba(255, 240, 214, 0.08);
+  border: 1px solid rgba(255, 240, 214, 0.2);
   padding: 3px 9px;
   border-radius: 999px;
   letter-spacing: 0.5px;
@@ -1484,7 +1496,7 @@ main {
   font-weight: 750;
   letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: var(--pine-dark, #B9825F);
+  color: rgba(255, 240, 214, 0.72);
   margin-bottom: 6px;
 }
 .bite-card-body h3 {
@@ -1492,7 +1504,7 @@ main {
   font-size: 28px;
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: var(--near-black, #121212);
+  color: var(--cream, #FFF0D6);
   line-height: 1.18;
   margin: 0 0 10px;
   min-height: unset;
@@ -1500,7 +1512,7 @@ main {
 .bite-card-body p {
   font-size: 14px;
   line-height: 1.6;
-  color: var(--warm-gray, #6E6256);
+  color: rgba(255, 240, 214, 0.78);
   margin-bottom: 22px;
   flex: 1;
 }
@@ -1509,7 +1521,7 @@ main {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border-top: 1px solid rgba(110, 98, 86, 0.18);
+  border-top: 1px solid rgba(255, 240, 214, 0.18);
   padding-top: 18px;
   margin-top: auto;
   flex-wrap: wrap;
@@ -1522,14 +1534,14 @@ main {
   font-size: 9.5px;
   text-transform: uppercase;
   letter-spacing: 0.6px;
-  color: var(--muted, #6E6256);
+  color: rgba(255, 240, 214, 0.64);
   font-weight: 700;
 }
 .bite-card-footer strong {
   font-family: var(--serif);
   font-size: 24px;
   font-weight: 750;
-  color: var(--near-black, #121212);
+  color: var(--cream, #FFF0D6);
   line-height: 1.1;
   flex-shrink: 0;
 }
@@ -1638,7 +1650,7 @@ main {
   right: 4%;
   rotate: 15deg;
 }
-/* ↓ TOGETHER SECTION: Two-cup bundle offer */
+/* ↓ TOGETHER SECTION: Salted Caramel + Matcha pair */
 .together-section {
   background: var(--espresso);
   color: var(--beige);
@@ -1679,19 +1691,12 @@ main {
   font-size: 13px;
   line-height: 1.8;
 }
-/* ↓ OFFER PRICE: Bundle pricing display */
+/* ↓ PAIR PRICE: Combined regular price */
 .offer-price {
   font-family: var(--serif);
   font-size: 27px;
   margin: 25px 0 23px;
   color: var(--accent-light);
-}
-.offer-price > span {
-  font-family: "DM Sans", sans-serif;
-  font-size: 10px;
-  color: var(--beige-muted);
-  text-decoration: line-through;
-  margin-left: 12px;
 }
 .offer-copy > small {
   display: block;
@@ -1700,7 +1705,7 @@ main {
   margin-top: 18px;
   color: var(--beige-muted);
 }
-/* ↓ OFFER ART: Two-cup bundle illustration */
+/* ↓ OFFER ART: Two-drink pair illustration */
 .offer-art {
   position: relative;
   min-height: 440px;
@@ -1722,7 +1727,7 @@ main {
   border: 1px solid #d5a17d30;
   border-radius: 50%;
 }
-/* ↓ OFFER CUP: Individual cup in bundle */
+/* ↓ OFFER CUP: Individual drink in pair */
 .offer-cup {
   position: absolute;
   object-fit: contain;
@@ -2362,20 +2367,7 @@ main {
   font-size: 13px;
   font-weight: 500;
 }
-/* ↓ BUNDLE NOTE: Coffee-date savings message */
-.bundle-note {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 10px;
-  line-height: 1.5;
-  padding: 14px;
-  margin-top: 25px;
-  background: var(--espresso);
-  color: var(--beige);
-  border-radius: 3px;
-}
-/* ↓ CART TOTALS: Subtotal, discount, total */
+/* ↓ CART TOTALS: Subtotal and total */
 .cart-totals {
   margin-top: 28px;
   border-top: 1px solid rgba(110, 98, 86, 0.35);
@@ -2720,6 +2712,16 @@ main {
   to {
     opacity: 1;
     translate: 0 0;
+  }
+}
+@keyframes mobile-good-stuff-enter {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 /* ↓ MODAL ARRIVE: Fade up for modal */
@@ -3203,7 +3205,7 @@ main {
     display: none;
   }
   .scroll-story {
-    height: 440svh;
+    height: 508svh;
   }
   .story-stage {
     min-height: 560px;
@@ -3326,6 +3328,59 @@ main {
     white-space: nowrap;
     align-self: center;
     box-shadow: 0 2px 6px rgba(18, 18, 18, 0.14);
+  }
+  .ingredient-notes {
+    display: none;
+  }
+  .mobile-good-stuff {
+    position: absolute;
+    display: block;
+    top: 14%;
+    left: 5%;
+    z-index: 5;
+    max-width: 40%;
+    pointer-events: none;
+    transition: opacity 130ms ease, transform 130ms ease;
+  }
+  .mobile-good-stuff.is-exiting {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+  .mobile-good-stuff > .handwritten {
+    display: block;
+    color: var(--accent);
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.35px;
+    line-height: 1;
+    margin: 0 0 7px;
+    rotate: -2deg;
+    transform-origin: left center;
+  }
+  .mobile-good-stuff ul {
+    display: grid;
+    gap: 6px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .mobile-good-stuff li {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  .mobile-good-stuff li::before {
+    content: "–";
+    color: var(--accent);
+  }
+  .mobile-good-stuff.is-entering > .handwritten,
+  .mobile-good-stuff.is-entering li {
+    animation: mobile-good-stuff-enter 240ms ease both;
   }
   .ingredient-notes {
     top: 33%;
@@ -5281,17 +5336,17 @@ body:has(.floating-bag-bubble) .footer-artisanal {
     height: 100svh;
   }
   .story-art {
-    top: 12%;
+    top: 24%;
     left: 23%;
     width: 74%;
-    height: 46%;
+    height: 42%;
   }
   .story-bean {
     top: 9%;
     left: -2%;
   }
   .ingredient-notes {
-    top: 35%;
+    top: 42%;
     left: 4%;
     right: auto;
     width: max-content;
@@ -7105,27 +7160,6 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   outline-offset: 2px;
 }
 
-.offer-hint {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 14px 0 8px;
-  padding: 10px 14px;
-  background: rgba(212, 158, 119, 0.14);
-  border-left: 3px solid var(--pine, #D49E77);
-  border-radius: 8px;
-  font-size: 12.5px;
-  font-weight: 550;
-  color: var(--ink, #121212);
-  min-height: 38px;
-}
-
-.offer-hint.is-on {
-  background: rgba(212, 158, 119, 0.24);
-  border-left-color: var(--accent, #8c6546);
-  font-weight: 600;
-}
-
 .add-row-price {
   font-size: 12px;
   font-weight: 700;
@@ -7961,10 +7995,11 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   .scroll-story { background: var(--viewport-background, var(--cream)); }
   .brand-story { background: var(--cream); }
   .story-stage {
-    height: 100vh;
-    height: 100dvh;
-    min-height: 100vh;
-    min-height: 100dvh;
+    top: var(--sticky-top, 0px);
+    height: calc(100vh - var(--sticky-top, 0px) - 12px);
+    height: calc(100dvh - var(--sticky-top, 0px) - 12px);
+    min-height: calc(100vh - var(--sticky-top, 0px) - 12px);
+    min-height: calc(100dvh - var(--sticky-top, 0px) - 12px);
   }
   .footer-artisanal { padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)); }
   body:has(.floating-bag-bubble) .footer-artisanal { padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }

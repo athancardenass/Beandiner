@@ -70,6 +70,8 @@ const clickScrollBehavior = (): ScrollBehavior =>
     ? "instant"
     : "smooth";
 
+const MOBILE_FINAL_DRINK_SCROLL_MULTIPLIER = 1.25;
+
 const handleAnchorLink = (event: MouseEvent<HTMLAnchorElement>) => {
   if (
     event.defaultPrevented || event.button !== 0 || event.metaKey ||
@@ -351,9 +353,17 @@ const allProducts = [...products, ...heroSelectorProducts];
 const findProduct = (id: string) => allProducts.find((product) => product.id === id);
 
 const spanishLatte = products.find((product) => product.id === "latte")!;
-const spanishLatteBundlePrice = 250;
-const spanishLatteBundleSavings =
-  spanishLatte.price * 2 - spanishLatteBundlePrice;
+const coffeeDateSaltedCaramel = allBeverages.find(
+  (beverage) => beverage.id === "iced-salted-caramel",
+)!;
+const coffeeDateMatcha = allBeverages.find(
+  (beverage) => beverage.id === "iced-matcha-latte",
+)!;
+const coffeeDatePairSize = "16oz";
+const coffeeDatePairSizeLabel = "16 oz";
+const coffeeDatePairPrice =
+  coffeeDateSaltedCaramel.prices[coffeeDatePairSize] +
+  coffeeDateMatcha.prices[coffeeDatePairSize];
 const saltedCaramelHeaderDrink = allBeverages.find(
   (beverage) => beverage.id === "iced-salted-caramel",
 )!;
@@ -380,7 +390,6 @@ const formatOrderMessage = (
   customerName: string,
   customerPhone: string,
   totalAmount: number,
-  bundleDiscount: number = 0,
   orderType: "pickup" | "dine-in" | "delivery" = "pickup",
   extraInfo: string = "",
   payment: CheckoutPayment = "gcash",
@@ -442,7 +451,6 @@ const formatOrderMessage = (
     ``,
     ...lines,
     ``,
-    bundleDiscount > 0 ? `Bundle Discount: -${money(bundleDiscount)}` : null,
     orderTypeLine,
     timingLine,
     `Payment: ${payment === "gcash" ? "GCash" : payment === "maya" ? "Maya" : "Cash upon pickup/delivery"}`,
@@ -849,12 +857,10 @@ function ProductModal({
   product,
   onClose,
   onAdd,
-  bagOfferCups,
 }: {
   product: Product;
   onClose: () => void;
   onAdd: (item: CartItem) => void;
-  bagOfferCups: number;
 }) {
   const isIcedDrink = product.fixedTemperature === "Iced" || product.name.toLowerCase().includes("iced");
   const isHotDrink = product.fixedTemperature === "Hot" || product.name.toLowerCase().includes("hot");
@@ -876,19 +882,6 @@ function ProductModal({
   const price =
     (sizeOptions.find((option) => option.size === size)?.price ?? product.price) +
     (hasMilk && milk === "Oat" ? 35 : 0);
-
-  // Offer hint mirrors the cart rule: latte, 16 oz, regular milk, iced.
-  const isOfferDrink = product.id === spanishLatte.id;
-  const qualifies =
-    isOfferDrink && size === "16 oz" && milk === "Regular" && temperature === "Iced";
-  const cupsAfterAdd = bagOfferCups + (qualifies ? quantity : 0);
-  const offerHint = !isOfferDrink
-    ? ""
-    : !qualifies
-      ? `Two-cup offer (2 for ${money(spanishLatteBundlePrice)}) needs 16 oz, regular milk, iced.`
-      : cupsAfterAdd >= 2
-        ? `Two-cup offer applies: save ${money(spanishLatteBundleSavings * Math.floor(cupsAfterAdd / 2))} at checkout.`
-        : `Add one more cup for 2 for ${money(spanishLatteBundlePrice)}.`;
 
   return (
     <Modal
@@ -1013,14 +1006,6 @@ function ProductModal({
           />
         </div>
 
-        <p
-          className={`offer-hint${qualifies ? " is-on" : ""}`}
-          aria-live="polite"
-          aria-atomic="true"
-        >
-          {offerHint}
-        </p>
-
         <div className="add-row">
           <div className="quantity" role="group" aria-label="Quantity">
             <button
@@ -1079,6 +1064,52 @@ const heroStoryImages = [
     alt: "Matcha Latte drink",
   },
 ] as const;
+function MobileGoodStuff({ product }: { product: Product }) {
+  const displayedProductRef = useRef(product);
+  const [displayedProduct, setDisplayedProduct] = useState(product);
+  const [phase, setPhase] = useState<"idle" | "exiting" | "entering">("idle");
+
+  useEffect(() => {
+    if (displayedProductRef.current.id === product.id) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      displayedProductRef.current = product;
+      setDisplayedProduct(product);
+      setPhase("idle");
+      return;
+    }
+
+    setPhase("exiting");
+    let enterTimer: number | undefined;
+    const exitTimer = window.setTimeout(() => {
+      displayedProductRef.current = product;
+      setDisplayedProduct(product);
+      setPhase("entering");
+      enterTimer = window.setTimeout(() => setPhase("idle"), 350);
+    }, 130);
+    return () => {
+      window.clearTimeout(exitTimer);
+      if (enterTimer !== undefined) window.clearTimeout(enterTimer);
+    };
+  }, [product]);
+
+  return (
+    <div
+      className={`mobile-good-stuff is-${phase}`}
+      role="group"
+      aria-label="The good stuff"
+    >
+      <span className="handwritten">the good stuff</span>
+      <ul>
+        {displayedProduct.ingredients.map((ingredient, index) => (
+          <li key={ingredient} style={{ animationDelay: `${index * 55}ms` }}>
+            {ingredient}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
   const section = useRef<HTMLElement>(null);
   const stage = useRef<HTMLDivElement>(null);
@@ -1101,7 +1132,7 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
           activeBtn.clientWidth / 2;
         container.scrollTo({
           left: Math.max(0, targetScroll),
-          behavior: "instant",
+          behavior: clickScrollBehavior(),
         });
       }
     }
@@ -1123,9 +1154,19 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
       frame = 0;
       const top = sectionTop - scrollY;
       if (top + sectionHeight < 0 || top > viewportHeight) return;
+      const scrollRange = Math.max(1, sectionHeight - viewportHeight);
+      const slideCount = heroSelectorProducts.length;
+      const isMobileViewport = matchMedia("(max-width: 820px)").matches;
+      const rawProgress = (-top / scrollRange) * (slideCount - 1);
+      const finalIntervalStart = slideCount - 2;
+      const adjustedProgress = isMobileViewport
+        ? rawProgress +
+          Math.max(0, rawProgress - finalIntervalStart) *
+            (MOBILE_FINAL_DRINK_SCROLL_MULTIPLIER - 1)
+        : rawProgress;
       const p = Math.max(
         0,
-        Math.min(5, (-top / Math.max(1, sectionHeight - viewportHeight)) * 5),
+        Math.min(slideCount - 1, adjustedProgress),
       );
       if (p === previousProgress) return;
       previousProgress = p;
@@ -1138,12 +1179,23 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
       cups.forEach((cup, i) => {
         const d = i - p;
         const opacity = `${Math.max(0, 1 - Math.abs(d) * 1.35)}`;
+        const isMatcha = heroSelectorProducts[i]?.tabLabel === "Matcha Latte";
+        const matchaSettle = isMatcha && isMobileViewport
+          ? reduced
+            ? Number(index === slideCount - 1)
+            : Math.max(0, Math.min(1, p - (slideCount - 2)))
+          : 0;
+        const matchaX = innerWidth * 0.08 * matchaSettle;
+        const matchaY = viewportHeight * 0.02 * matchaSettle;
         const promotion = !reduced && opacity !== "0" ? "transform, opacity" : "auto";
         if (cup.style.willChange !== promotion) cup.style.willChange = promotion;
         if (cup.style.opacity !== opacity) cup.style.opacity = opacity;
-        if (reduced) cup.style.transform = "none";
-        else if (opacity !== "0") {
-          cup.style.transform = `translate3d(${d * 90}%,${Math.abs(d) * 28}%,0) rotate(${d * 27 - 5}deg) scale(${1 - Math.min(Math.abs(d) * 0.15, 0.35)})`;
+        if (reduced) {
+          cup.style.transform = matchaSettle
+            ? `translate3d(-${matchaX}px,${matchaY}px,0)`
+            : "none";
+        } else if (opacity !== "0") {
+          cup.style.transform = `translate3d(calc(${d * 90}% - ${matchaX}px),calc(${Math.abs(d) * 28}% + ${matchaY}px),0) rotate(${d * 27 - 5}deg) scale(${1 - Math.min(Math.abs(d) * 0.15, 0.35)})`;
         }
       });
       if (bean) bean.style.transform = reduced ? "none" : `translate3d(${p * -10}px,0,0) rotate(${p * 100}deg)`;
@@ -1182,10 +1234,18 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
   }, []);
   const goTo = (index: number) => {
     const el = section.current!;
+    const scrollRange = Math.max(0, el.offsetHeight - innerHeight);
+    const slideCount = heroSelectorProducts.length;
+    const finalIntervalStart = slideCount - 2;
+    const targetProgress =
+      matchMedia("(max-width: 820px)").matches && index > finalIntervalStart
+        ? finalIntervalStart +
+          (index - finalIntervalStart) / MOBILE_FINAL_DRINK_SCROLL_MULTIPLIER
+        : index;
     const y =
       el.getBoundingClientRect().top +
       scrollY +
-      ((el.offsetHeight - innerHeight) * index) / 5;
+      (scrollRange * targetProgress) / (slideCount - 1);
     window.scrollTo({
       top: y + 1,
       behavior: clickScrollBehavior(),
@@ -1213,11 +1273,17 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
         <span className="story-giant" key={product.word} aria-hidden="true">
           {product.word}
         </span>
-        <div className="story-copy" key={product.id}>
-          <span className="eyebrow">{product.short}</span>
-          <h2>{product.name}</h2>
-          <p>{product.description}</p>
-          <div className="story-action-row">
+        <div className="story-copy">
+          <span className="eyebrow story-switch-in" key={`${product.id}-eyebrow`}>
+            {product.short}
+          </span>
+          <h2 className="story-switch-in" key={`${product.id}-name`}>
+            {product.name}
+          </h2>
+          <p className="story-switch-in" key={`${product.id}-description`}>
+            {product.description}
+          </p>
+          <div className="story-action-row story-switch-in" key={`${product.id}-action`}>
             <div className="story-details">
               <span>{money(product.price)}</span>
               <small>{product.hot ? "HOT" : "ICED"} / {(product.defaultSize ?? "16 oz").toUpperCase()}</small>
@@ -1245,6 +1311,7 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
           <Ingredient kind="ice" className="story-ice" />
           <Ingredient kind="leaf" className="story-leaf" />
         </div>
+        <MobileGoodStuff product={product} />
         <div className="ingredient-notes" key={`${product.id}-notes`}>
           <span className="handwritten">the good stuff</span>
           {product.ingredients.map((ingredient, i) => (
@@ -1763,6 +1830,41 @@ function App() {
     add(item);
   };
 
+  const addCoffeeDatePair = () => {
+    const pairItems: CartItem[] = [
+      coffeeDateSaltedCaramel,
+      coffeeDateMatcha,
+    ].map((beverage) => ({
+      key: `bev-${beverage.id}-${coffeeDatePairSize}`,
+      id: beverage.id,
+      name: `${beverage.name} (${coffeeDatePairSizeLabel})`,
+      size: coffeeDatePairSize,
+      temperature: "Over Iced",
+      quantity: 1,
+      price: beverage.prices[coffeeDatePairSize],
+      isFood: false,
+    }));
+
+    announceAdd("Salted Caramel + Matcha coffee date");
+    setCart((current) =>
+      pairItems.reduce((items, item) => {
+        const existing = items.find((candidate) => candidate.key === item.key);
+        return existing
+          ? items.map((candidate) =>
+              candidate.key === item.key
+                ? {
+                    ...candidate,
+                    quantity: Math.min(20, candidate.quantity + item.quantity),
+                  }
+                : candidate,
+            )
+          : [...items, item];
+      }, current),
+    );
+    setSelected(null);
+    setReceipt(false);
+  };
+
   // ↓ ADD MODIFIER: Add add-on or milk substitution to bag
   const addModifier = (mod: BeverageModifier, type: "Add-on" | "Sub") => {
     const item: CartItem = {
@@ -1778,17 +1880,6 @@ function App() {
   };
   const cartCount = cart.reduce((n, i) => n + i.quantity, 0);
   const subtotal = cart.reduce((n, i) => n + i.price * i.quantity, 0);
-  // ↓ BUNDLE DISCOUNT: Two Iced Spanish Lattes for ₱250
-  const eligible = cart
-    .filter(
-      (i) =>
-        i.id === "latte" &&
-        i.size === "16 oz" &&
-        i.milk === "Regular" &&
-        i.temperature === "Iced",
-    )
-    .reduce((n, i) => n + i.quantity, 0);
-  const discount = Math.floor(eligible / 2) * spanishLatteBundleSavings;
   const removeItem = (key: string) =>
     setCart((items) => items.filter((item) => item.key !== key));
   const changeQuantity = (key: string, difference: number) =>
@@ -1837,7 +1928,7 @@ function App() {
       <div className="announcement">
         <span className="announcement-brand">GOOD FOOD. GREAT COFFEE.</span>
         <span className="announcement-promo">
-          Two Iced Spanish Lattes for {money(spanishLatteBundlePrice)}.
+          Salted Caramel + Matcha for {money(coffeeDatePairPrice)}.
         </span>
         <a href={homeHref("together")} onClick={handlePageLink}>
           Make it a coffee date <span>↗</span>
@@ -2206,11 +2297,6 @@ function App() {
               Diner bites &amp;{" "}
               <span className="serif-italic">comfort plates.</span>
             </h2>
-            <p>
-              Crispy chicken wings, loaded nachos, and savory skillets.
-              <br />
-              Student-budget approved, chef-crafted with real flavor.
-            </p>
           </div>
           <div className="product-grid bites-grid bites-preview-grid">
             {dinerBites.slice(0, 2).map((bite) => (
@@ -2292,7 +2378,7 @@ function App() {
             <Sun />
           </div>
         </section>
-        {/* ↓ TOGETHER SECTION: Two-cup bundle offer */}
+        {/* ↓ TOGETHER SECTION: Salted Caramel + Matcha pair */}
         <section className="together-section" id="together">
           <Ingredient kind="bean" className="offer-bean" />
           <div className="offer-copy reveal">
@@ -2308,48 +2394,35 @@ function App() {
               Study sessions, afternoon catchups, or cozy diner merienda on
               Antonio Luna Street.
               <br />
-              Two signature Iced Spanish Lattes, one friendly price.
+              Salted Caramel Macchiato + Matcha Latte, together for one price.
             </p>
             <div className="offer-price">
-              2 cups. {money(spanishLatteBundlePrice)}.{" "}
-              <span>Usually {money(spanishLatte.price * 2)}</span>
+              {money(coffeeDatePairPrice)}
             </div>
             <button
               className="button"
-              onClick={() =>
-                add({
-                  key: "latte-16 oz-Regular-Iced",
-                  id: "latte",
-                  size: "16 oz",
-                  milk: "Regular",
-                  temperature: "Iced",
-                  quantity: 2,
-                  price: spanishLatte.price,
-                })
-              }
+              onClick={addCoffeeDatePair}
             >
               Make it a coffee date <Icon name="arrow" />
             </button>
             <small>
-              Two 16 oz signature Iced Spanish Lattes with regular milk.
-              <br />
-              Bundle savings applied automatically in your bag.
+              One 16 oz Salted Caramel Macchiato + one 16 oz Matcha Latte.
             </small>
           </div>
           <div className="offer-art">
             <span className="offer-orbit" />
             <img
               className="offer-cup cup-left"
-              src={image("latte")}
-              alt="First iced Spanish Latte in the two-cup bundle"
+              src="./images/hero-drinks/salted-caramel-macchiato-header.webp"
+              alt="16 oz Iced Salted Caramel Macchiato"
               loading="lazy"
               width="400"
               height="600"
             />
             <img
               className="offer-cup cup-right"
-              src={image("latte")}
-              alt="Second iced Spanish Latte in the two-cup bundle"
+              src="./images/hero-drinks/drink-06-matcha-latte.webp"
+              alt="16 oz Iced Matcha Latte"
               loading="lazy"
               width="400"
               height="600"
@@ -2405,11 +2478,9 @@ function App() {
             <div className="footer-pill-links">
               <a href={beveragesHref} onClick={handlePageLink} className="footer-pill">
                 <span>Beverages menu</span>
-                <small>60+ artisanal brews</small>
               </a>
               <a href={foodHref} onClick={handlePageLink} className="footer-pill">
                 <span>Diner bites</span>
-                <small>₱99 wings & comfort</small>
               </a>
               <a href={homeHref("menu")} onClick={handlePageLink} className="footer-pill">
                 <span>Top 6 signatures</span>
@@ -2418,21 +2489,6 @@ function App() {
               <a href={homeHref("story")} onClick={handlePageLink} className="footer-pill">
                 <span>Our story</span>
                 <small>Two crafts, one home</small>
-              </a>
-              <a
-                href={getMessengerUrl()}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="footer-pill footer-pill-fb"
-                onClick={(e) => {
-                  if (isMobileDevice() && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
-                    e.preventDefault();
-                    openMessengerApp();
-                  }
-                }}
-              >
-                <span>Chat on Messenger</span>
-                <small>Order & table inquiry</small>
               </a>
             </div>
           </div>
@@ -2560,7 +2616,6 @@ function App() {
           product={selected}
           onClose={() => setSelected(null)}
           onAdd={add}
-          bagOfferCups={eligible}
         />
       )}
       {customizingBite && (
@@ -2870,26 +2925,14 @@ function App() {
                     );
                   })}
                 </div>
-                {discount > 0 && (
-                  <div className="bundle-note">
-                    <Icon name="check" size={17} />
-                    Better together! Your coffee-date savings are in.
-                  </div>
-                )}
                 <div className="cart-totals">
                   <div>
                     <span>Subtotal</span>
                     <span>{money(subtotal)}</span>
                   </div>
-                  {discount > 0 && (
-                    <div>
-                      <span>Coffee-date savings</span>
-                      <span>−{money(discount)}</span>
-                    </div>
-                  )}
                   <div className="cart-total">
                     <span>Total</span>
-                    <strong aria-live="polite">{money(subtotal - discount)}</strong>
+                    <strong aria-live="polite">{money(subtotal)}</strong>
                   </div>
                 </div>
                 <div className="bag-actions-bar">
@@ -2969,8 +3012,7 @@ function App() {
                         cart,
                         customerName,
                         customerPhone,
-                        subtotal - discount,
-                        discount,
+                        subtotal,
                         checkoutOrderType,
                         checkoutExtra.trim(),
                         checkoutPayment,
@@ -3316,15 +3358,9 @@ function App() {
                         <span>Subtotal ({cartCount} {cartCount === 1 ? "item" : "items"})</span>
                         <span>{money(subtotal)}</span>
                       </div>
-                      {discount > 0 && (
-                        <div className="checkout-summary-row savings">
-                          <span>Coffee-date savings</span>
-                          <span>−{money(discount)}</span>
-                        </div>
-                      )}
                       <div className="checkout-summary-row total">
                         <span>Total</span>
-                        <strong aria-live="polite">{money(subtotal - discount)}</strong>
+                        <strong aria-live="polite">{money(subtotal)}</strong>
                       </div>
                     </div>
 
@@ -3354,16 +3390,13 @@ function App() {
             {[
               {
                 num: "01",
-                label: "Beverages menu (60+)",
+                label: "Beverages menu",
                 sub: "Espresso, matcha, teas & cold frappes",
-                badge: "60+ BREWS",
                 href: beveragesHref,
               },
               {
                 num: "02",
                 label: "Diner bites",
-                sub: "₱99 crispy wings & comfort plates",
-                badge: "₱99 WINGS",
                 href: foodHref,
               },
               {
@@ -3382,9 +3415,8 @@ function App() {
                 num: "05",
                 label: "Better together",
                 sub:
-                  "Two-cup coffee date bundle for " +
-                  money(spanishLatteBundlePrice),
-                badge: "SAVE " + money(spanishLatteBundleSavings),
+                  "Salted Caramel + Matcha for " +
+                  money(coffeeDatePairPrice),
                 href: homeHref("together"),
               },
               {
@@ -3408,9 +3440,6 @@ function App() {
                   <div className="mobile-nav-titles">
                     <div className="mobile-nav-heading">
                       <span className="mobile-nav-label">{item.label}</span>
-                      {item.badge && (
-                        <span className="mobile-nav-badge">{item.badge}</span>
-                      )}
                     </div>
                     <span className="mobile-nav-sub">{item.sub}</span>
                   </div>
@@ -3442,7 +3471,7 @@ function App() {
           <span className="floating-bag-surface">
             <span className="floating-bag-badge">{cartCount}</span>
             <span className="floating-bag-text">View Order Bag</span>
-            <span className="floating-bag-price">{money(subtotal - discount)}</span>
+            <span className="floating-bag-price">{money(subtotal)}</span>
           </span>
         </button>
       )}

@@ -130,7 +130,6 @@ export default function DinerBitesPage({
           <div className="food-page-hero-bottom">
             <p>
               Crispy chicken wings, loaded nachos, freshly pressed croffles, and hearty skillets.
-              Student-budget approved, chef-crafted with real flavor.
             </p>
             <a className="button food-page-hero-link" href="#food-menu">
               Browse the food menu
