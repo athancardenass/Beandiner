@@ -71,6 +71,11 @@ const clickScrollBehavior = (): ScrollBehavior =>
     : "smooth";
 
 const MOBILE_FINAL_DRINK_SCROLL_MULTIPLIER = 1.25;
+const isSafariBrowser = () => {
+  const userAgent = navigator.userAgent;
+  return /Safari/i.test(userAgent) &&
+    !/(Android|Brave|Chrome|Chromium|CriOS|Edg|FxiOS|Firefox|OPR|OPiOS|SamsungBrowser)/i.test(userAgent);
+};
 
 const handleAnchorLink = (event: MouseEvent<HTMLAnchorElement>) => {
   if (
@@ -1114,6 +1119,7 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
   const section = useRef<HTMLElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
+  const stableViewportHeight = useRef(0);
   const [active, setActive] = useState(0);
   const activeRef = useRef(0);
   const previousActive = useRef(active);
@@ -1141,6 +1147,11 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
     const el = section.current!;
     const stageEl = stage.current!;
     const media = matchMedia("(prefers-reduced-motion: reduce)");
+    const isSafari = isSafariBrowser();
+    const viewportProbe = document.createElement("div");
+    viewportProbe.setAttribute("aria-hidden", "true");
+    viewportProbe.style.cssText = "position:fixed;top:0;left:0;width:0;height:100svh;visibility:hidden;pointer-events:none;contain:strict";
+    if (!isSafari) document.body.appendChild(viewportProbe);
     const cups = Array.from(stageEl.querySelectorAll<HTMLElement>(".story-product"));
     const bean = stageEl.querySelector<HTMLElement>(".story-bean");
     const ice = stageEl.querySelector<HTMLElement>(".story-ice");
@@ -1148,15 +1159,18 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
     let sectionTop = 0;
     let sectionHeight = 0;
     let viewportHeight = innerHeight;
+    let progressViewportHeight = innerHeight;
     let previousProgress = -1;
+    let renderedProgress = Number.NaN;
+    let lastFrameTime = 0;
     let frame = 0;
     const update = () => {
       frame = 0;
       const top = sectionTop - scrollY;
       if (top + sectionHeight < 0 || top > viewportHeight) return;
-      const scrollRange = Math.max(1, sectionHeight - viewportHeight);
       const slideCount = heroSelectorProducts.length;
       const isMobileViewport = matchMedia("(max-width: 820px)").matches;
+      const scrollRange = Math.max(1, sectionHeight - progressViewportHeight);
       const rawProgress = (-top / scrollRange) * (slideCount - 1);
       const finalIntervalStart = slideCount - 2;
       const adjustedProgress = isMobileViewport
@@ -1164,18 +1178,32 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
           Math.max(0, rawProgress - finalIntervalStart) *
             (MOBILE_FINAL_DRINK_SCROLL_MULTIPLIER - 1)
         : rawProgress;
-      const p = Math.max(
+      const targetProgress = Math.max(
         0,
         Math.min(slideCount - 1, adjustedProgress),
       );
-      if (p === previousProgress) return;
+      const reduced = media.matches;
+      const shouldSmooth = isMobileViewport && !isSafari && !reduced;
+      const now = performance.now();
+      if (!shouldSmooth || !Number.isFinite(renderedProgress)) {
+        renderedProgress = targetProgress;
+      } else {
+        const elapsed = Math.min(50, Math.max(0, now - lastFrameTime));
+        const easing = 1 - Math.exp(-elapsed / 55);
+        renderedProgress += (targetProgress - renderedProgress) * easing;
+      }
+      lastFrameTime = now;
+      const p = renderedProgress;
+      if (p === previousProgress) {
+        if (shouldSmooth && Math.abs(targetProgress - renderedProgress) > 0.001) request();
+        return;
+      }
       previousProgress = p;
       const index = Math.round(p);
       if (index !== activeRef.current) {
         activeRef.current = index;
         setActive(index);
       }
-      const reduced = media.matches;
       cups.forEach((cup, i) => {
         const d = i - p;
         const opacity = `${Math.max(0, 1 - Math.abs(d) * 1.35)}`;
@@ -1201,6 +1229,7 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
       if (bean) bean.style.transform = reduced ? "none" : `translate3d(${p * -10}px,0,0) rotate(${p * 100}deg)`;
       if (ice) ice.style.transform = reduced ? "none" : `translate3d(0,${p * 10}px,0) rotate(${p * 65}deg)`;
       if (leaf) leaf.style.transform = reduced ? "none" : `rotate(${p * -35}deg)`;
+      if (shouldSmooth && Math.abs(targetProgress - renderedProgress) > 0.001) request();
     };
     const request = () => {
       if (!frame) frame = requestAnimationFrame(update);
@@ -1209,6 +1238,16 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
       sectionTop = el.getBoundingClientRect().top + scrollY;
       sectionHeight = el.offsetHeight;
       viewportHeight = innerHeight;
+      if (isSafari) {
+        progressViewportHeight = innerHeight;
+      } else {
+        const stableHeight = viewportProbe.getBoundingClientRect().height ||
+          document.documentElement.clientHeight || innerHeight;
+        stableViewportHeight.current = stableHeight;
+        progressViewportHeight = matchMedia("(max-width: 820px)").matches
+          ? stableHeight
+          : innerHeight;
+      }
       request();
     };
     const motionChanged = () => {
@@ -1230,11 +1269,16 @@ function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
       media.removeEventListener("change", motionChanged);
       resizeObserver.disconnect();
       cancelAnimationFrame(frame);
+      if (!isSafari) viewportProbe.remove();
     };
   }, []);
   const goTo = (index: number) => {
     const el = section.current!;
-    const scrollRange = Math.max(0, el.offsetHeight - innerHeight);
+    const isMobileViewport = matchMedia("(max-width: 820px)").matches;
+    const scrollViewportHeight = isMobileViewport && !isSafariBrowser()
+      ? stableViewportHeight.current || document.documentElement.clientHeight || innerHeight
+      : innerHeight;
+    const scrollRange = Math.max(0, el.offsetHeight - scrollViewportHeight);
     const slideCount = heroSelectorProducts.length;
     const finalIntervalStart = slideCount - 2;
     const targetProgress =
