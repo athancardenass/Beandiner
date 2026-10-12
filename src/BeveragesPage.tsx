@@ -269,15 +269,17 @@ export default function BeveragesPage({
               <div
                 className={`bev-category-hero-frame ${
                   cat.categoryImage ? "has-image" : "no-image"
-                }`}
+                } bev-categorized-hero`}
               >
                 {cat.categoryImage ? (
-                  <FadeImage
-                    src={cat.categoryImage}
-                    alt={cat.name}
-                    className="bev-category-hero-image"
-                    loading="lazy"
-                  />
+                  <div className="bev-category-hero-visual">
+                    <FadeImage
+                      src={cat.categoryImage}
+                      alt={cat.name}
+                      className="bev-category-hero-image"
+                      loading="lazy"
+                    />
+                  </div>
                 ) : (
                   <div className="bev-category-hero-backdrop" aria-hidden="true">
                     <span className="bev-backdrop-watermark">BEAN DINER</span>
@@ -285,13 +287,9 @@ export default function BeveragesPage({
                 )}
 
                 <div className="bev-category-hero-overlay">
-                  <div className="bev-category-hero-meta">
-                    <span className="eyebrow">{cat.subtitle}</span>
-                  </div>
                   <h3 id={`bev-heading-${cat.id}`} className="category-hero-title">
                     {cat.name}
                   </h3>
-                  <p>{cat.description}</p>
                 </div>
               </div>
 
@@ -314,22 +312,14 @@ export default function BeveragesPage({
               <div className="bev-category-hero-frame has-image bev-modifiers-hero">
                 <FadeImage
                   src="./images/optimized/beverage-addons.webp"
-                  alt="Coffee with espresso, milk, caramel, honey, cocoa, and cream add-ons"
+                  alt="Bean Diner drink lineup beneath the Bean Diner wall sign"
                   className="bev-category-hero-image"
                   loading="lazy"
                 />
                 <div className="bev-category-hero-overlay">
-                  <div className="bev-category-hero-meta">
-                    <span className="eyebrow">BARISTA CUSTOMIZATIONS</span>
-                    <span className="bev-category-badge-note">Tailor Your Sip</span>
-                  </div>
                   <h3 id="bev-modifiers-heading" className="category-hero-title">
                     Add-Ons &amp; Substitutions
                   </h3>
-                  <p>
-                    Personalize your cup with extra espresso shots, creamy dessert toppings,
-                    rich drizzle sauces, or plant-based dairy-free milk upgrades.
-                  </p>
                 </div>
               </div>
 

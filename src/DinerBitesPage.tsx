@@ -107,7 +107,7 @@ export default function DinerBitesPage({
   );
 
   const tabs = [
-    { id: "all", label: "All bites", count: totalDishes },
+    { id: "all", label: "All Menu", count: totalDishes },
     ...foodCategories.map((cat) => ({
       id: cat.id,
       label: cat.name,
@@ -123,6 +123,13 @@ export default function DinerBitesPage({
   return (
     <>
       <section className="food-page-hero" aria-labelledby="food-page-title">
+        <FadeImage
+          src="./images/optimized/menu-categories/food-menu-overview.webp"
+          alt=""
+          aria-hidden="true"
+          className="food-page-hero-image"
+          loading="eager"
+        />
         <div className="food-page-hero-inner">
           <h1 id="food-page-title">
             Diner bites &amp; <em>comfort plates.</em>
@@ -190,7 +197,7 @@ export default function DinerBitesPage({
                   setActiveCategory("all");
                 }}
               >
-                Show all bites
+                Show all menu items
               </button>
             </div>
           )}
@@ -214,7 +221,6 @@ export default function DinerBitesPage({
                   <h3 id={`heading-${cat.id}`} className="category-hero-title">
                     {cat.name}
                   </h3>
-                  <p>{cat.description}</p>
                 </div>
               </div>
 

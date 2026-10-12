@@ -96,6 +96,51 @@ await sharp("public/images/saya-merienda.png")
   .resize({ width: 1200 })
   .webp({ quality: 85 })
   .toFile("public/images/optimized/merienda.webp");
+
+// ↓ FOOD CATEGORY BANNERS: Resize and optimize diner bites photography
+const menuCategoryImages = [
+  ["bd-crispy-chicken", "jpg"],
+  ["biscoff-caramel-croffle", "jpg"],
+  ["chicken-caesar-wrap", "jpg"],
+  ["chicken-pesto", "jpg"],
+  ["food-menu-overview", "jpg"],
+  ["korean-beef-mushroom", "jpg"],
+  ["mexican-nachos", "jpg"],
+  ["potato-feast", "jpg"],
+  ["salad", "png"],
+];
+await mkdir("public/images/optimized/menu-categories", { recursive: true });
+for (const [name, extension] of menuCategoryImages)
+  await sharp(`assets/diner-bites-category-source/${name}.${extension}`)
+    .resize({ width: 1400, withoutEnlargement: true })
+    .webp({ quality: 86 })
+    .toFile(`public/images/optimized/menu-categories/${name}.webp`);
+
+// ↓ BEVERAGE CATEGORY PHOTOS: Optimize one generated, branded hero per category
+const beverageCategoryPhotos = [
+  "hot-coffee",
+  "hot-non-coffee",
+  "over-iced-coffee",
+  "over-iced-cloudy",
+  "over-iced-matcha",
+  "over-iced-non-coffee",
+  "over-iced-tea",
+  "iced-blends-coffee",
+  "iced-blends-non-coffee",
+  "iced-blends-milkshake",
+];
+await mkdir("public/images/optimized/beverage-categories", { recursive: true });
+for (const name of beverageCategoryPhotos)
+  await sharp(`assets/beverage-category-generated/${name}.webp`)
+    .resize({ width: 1600, withoutEnlargement: true })
+    .webp({ quality: 86 })
+    .toFile(`public/images/optimized/beverage-categories/${name}.webp`);
+
+await sharp("assets/beverage-category-source/all-menu-for-drinks.jpg")
+  .resize({ width: 1600, withoutEnlargement: true })
+  .webp({ quality: 86 })
+  .toFile("public/images/optimized/beverage-addons.webp");
+
 console.log(
-  "Prepared six transparent products, four independent ingredients, and editorial photography.",
+  "Prepared six transparent products, four independent ingredients, editorial photography, eight diner bites category photos, the food menu overview, ten generated beverage category photos, and the supplied beverage lineup for add-ons.",
 );
