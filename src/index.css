@@ -6599,10 +6599,13 @@ body:has(.floating-bag-bubble) .footer-artisanal {
 }
 
 .menu-search input:focus-visible {
-  outline: 2px solid var(--beige);
-  outline-offset: 1px;
-  box-shadow: 0 0 0 5px var(--ink);
+  outline: none;
+  box-shadow: none;
   background: #fff;
+}
+
+.menu-search:focus-within > svg {
+  color: var(--accent);
 }
 
 .menu-search-clear {
@@ -6867,6 +6870,19 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   letter-spacing: 0;
   white-space: nowrap;
   flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(110, 98, 86, 0.16);
+  transition: transform 180ms ease, box-shadow 180ms ease,
+    background 180ms ease, border-color 180ms ease;
+}
+
+.button.menu-add-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 12px rgba(110, 98, 86, 0.22);
+}
+
+.button.menu-add-btn:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 1px 2px rgba(110, 98, 86, 0.14);
 }
 
 .button.menu-add-btn.menu-add-btn-compact {
@@ -7533,11 +7549,65 @@ body:has(.floating-bag-bubble) .footer-artisanal {
 .checkout-form-compact {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 0;
   background: #fff;
   border: 1px solid rgba(18, 18, 18, 0.08);
   border-radius: 14px;
   padding: 18px;
+}
+
+.checkout-form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding-bottom: 16px;
+}
+
+.checkout-form-section + .checkout-form-section {
+  padding-top: 16px;
+  border-top: 1px solid rgba(18, 18, 18, 0.1);
+}
+
+.checkout-section-heading {
+  margin: 0;
+  color: var(--ink, #121212);
+  font-family: "Bricolage Grotesque", "DM Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.checkout-form-section .form-group {
+  margin: 0;
+}
+
+.checkout-form-section .order-type-row {
+  margin: 0 !important;
+}
+
+.checkout-form-section .checkout-payment-fieldset,
+.checkout-form-section .order-extra-field {
+  margin: 0 !important;
+}
+
+.checkout-form-section .pickup-notice {
+  margin: 0 !important;
+}
+
+.checkout-form-compact label.checkout-note-label {
+  color: var(--ink, #121212);
+  font-family: "Bricolage Grotesque", "DM Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.checkout-form-compact label.checkout-note-label small {
+  color: var(--warm-gray, #6E6256);
+  font-family: "DM Sans", sans-serif;
+  font-size: 11px;
+  font-weight: 500;
 }
 
 .checkout-form-compact .form-group {

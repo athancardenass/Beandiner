@@ -3032,271 +3032,275 @@ function App() {
                       setCheckoutErrors({});
                     }}
                   >
-                    {/* Customer Name */}
-                    <div className="form-group">
-                      <label htmlFor="order-name">
-                        {checkoutOrderType === "dine-in"
-                          ? "Your name for table service"
-                          : checkoutOrderType === "delivery"
-                            ? "Recipient name for delivery"
-                            : "Your name for pickup"}
-                        <span className="required-star"> *</span>
-                      </label>
-                      <input
-                        id="order-name"
-                        name="name"
-                        className={showNameError ? "input-error" : ""}
-                        value={checkoutName}
-                        onChange={(e) => setCheckoutName(e.target.value)}
-                        onFocus={() => {
-                          setFocusedField("name");
-                          setCheckoutErrors((prev) => ({ ...prev, name: null }));
-                        }}
-                        onBlur={() => {
-                          setFocusedField(null);
-                          setCheckoutErrors((prev) => ({
-                            ...prev,
-                            name: validateCustomerName(checkoutName),
-                          }));
-                        }}
-                        aria-invalid={showNameError ? "true" : "false"}
-                        aria-describedby={showNameError ? "order-name-error" : undefined}
-                        autoComplete="name"
-                        placeholder="e.g. Karl Santos"
-                        maxLength={50}
-                      />
-                      {showNameError && (
-                        <span id="order-name-error" className="form-field-error" role="alert">
-                          <Icon name="alert-circle" size={14} /> {checkoutErrors.name}
-                        </span>
-                      )}
-                    </div>
+                    <div className="checkout-form-section">
+                      <fieldset className="checkout-fieldset">
+                        <legend>Order type</legend>
+                        <div className="choice-row order-type-row">
+                          {[
+                            { id: "pickup", label: "For pick up" },
+                            { id: "dine-in", label: "Dine in" },
+                            { id: "delivery", label: "Door to door" },
+                          ].map((t) => (
+                            <label
+                              className={checkoutOrderType === t.id ? "selected" : ""}
+                              key={t.id}
+                            >
+                              <input
+                                type="radio"
+                                name="checkoutOrderType"
+                                checked={checkoutOrderType === t.id}
+                                onChange={() => {
+                                  setCheckoutOrderType(t.id as any);
+                                  setCheckoutExtra("");
+                                  setCheckoutErrors((prev) => ({ ...prev, address: null }));
+                                }}
+                              />
+                              <span>{t.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </fieldset>
 
-                    {/* Pickup / Preferred Time */}
-                    <fieldset className="checkout-fieldset">
-                      <legend>Pickup / Preferred timing</legend>
-                      <div className="timing-choice-row">
-                        {[
-                          "ASAP (~15-20 mins)",
-                          "In 30 mins",
-                          "In 1 hour",
-                          "Custom time",
-                        ].map((timeOption) => (
-                          <label
-                            key={timeOption}
-                            className={checkoutPickupTime === timeOption ? "selected" : ""}
-                          >
-                            <input
-                              type="radio"
-                              name="checkoutPickupTime"
-                              checked={checkoutPickupTime === timeOption}
-                              onChange={() => {
-                                setCheckoutPickupTime(timeOption);
-                                setCheckoutErrors((prev) => ({ ...prev, time: null }));
-                              }}
-                            />
-                            <span>{timeOption}</span>
-                          </label>
-                        ))}
-                      </div>
-                      {checkoutPickupTime === "Custom time" && (
-                        <div className="custom-time-field">
-                          <label htmlFor="checkout-custom-time">Specify time today:</label>
+                      {checkoutOrderType === "dine-in" && (
+                        <div className="order-extra-field">
+                          <label htmlFor="checkout-table">Table number (if seated):</label>
                           <input
-                            id="checkout-custom-time"
-                            name="customTime"
-                            className={showTimeError ? "input-error" : ""}
-                            placeholder="e.g. 2:45 PM or 5:30 PM"
-                            value={checkoutCustomTime}
-                            onChange={(e) => {
-                              setCheckoutCustomTime(e.target.value);
-                              setCheckoutErrors((prev) => ({ ...prev, time: null }));
-                            }}
+                            id="checkout-table"
+                            name="table"
+                            placeholder="e.g. Table 4"
+                            value={checkoutExtra}
+                            onChange={(e) => setCheckoutExtra(e.target.value)}
+                            maxLength={20}
+                          />
+                        </div>
+                      )}
+
+                      {checkoutOrderType === "delivery" && (
+                        <div className="order-extra-field">
+                          <label htmlFor="checkout-address">Delivery address &amp; landmark:</label>
+                          <input
+                            id="checkout-address"
+                            name="address"
+                            className={showAddressError ? "input-error" : ""}
+                            placeholder="Street, Barangay, and Landmark in Bayambang"
+                            value={checkoutExtra}
+                            onChange={(e) => setCheckoutExtra(e.target.value)}
                             onFocus={() => {
-                              setFocusedField("customTime");
-                              setCheckoutErrors((prev) => ({ ...prev, time: null }));
+                              setFocusedField("address");
+                              setCheckoutErrors((prev) => ({ ...prev, address: null }));
                             }}
                             onBlur={() => {
                               setFocusedField(null);
-                              if (!checkoutCustomTime.trim()) {
-                                setCheckoutErrors((prev) => ({
-                                  ...prev,
-                                  time: "Please specify your preferred time",
-                                }));
-                              }
+                              setCheckoutErrors((prev) => ({
+                                ...prev,
+                                address: validateDeliveryAddress(checkoutExtra, checkoutOrderType),
+                              }));
                             }}
-                            aria-invalid={showTimeError ? "true" : "false"}
-                            aria-describedby={showTimeError ? "checkout-time-error" : undefined}
-                            maxLength={30}
+                            aria-invalid={showAddressError ? "true" : "false"}
+                            aria-describedby={showAddressError ? "checkout-address-error" : undefined}
+                            maxLength={150}
                           />
-                          {showTimeError && (
-                            <span id="checkout-time-error" className="form-field-error" role="alert">
-                              <Icon name="alert-circle" size={14} /> {checkoutErrors.time}
+                          {showAddressError && (
+                            <span id="checkout-address-error" className="form-field-error" role="alert">
+                              <Icon name="alert-circle" size={14} /> {checkoutErrors.address}
                             </span>
                           )}
                         </div>
                       )}
-                    </fieldset>
 
-                    {/* Order Note */}
-                    <div className="form-group">
-                      <label htmlFor="order-note">
-                        Order note / special request <small>(optional)</small>
-                      </label>
-                      <input
-                        id="order-note"
-                        name="note"
-                        placeholder="e.g. separate syrup, extra napkins, less sweet"
-                        value={checkoutNote}
-                        onChange={(e) => setCheckoutNote(e.target.value)}
-                        maxLength={140}
-                      />
+                      {checkoutOrderType === "pickup" && (
+                        <div className="pickup-notice">
+                          <small>Pickup: Bean Diner · Gen. Antonio Luna St., Zone 2, Bayambang</small>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Order Type */}
-                    <fieldset className="checkout-fieldset">
-                      <legend>Order type</legend>
-                      <div className="choice-row order-type-row">
-                        {[
-                          { id: "pickup", label: "For pick up" },
-                          { id: "dine-in", label: "Dine in" },
-                          { id: "delivery", label: "Door to door" },
-                        ].map((t) => (
-                          <label
-                            className={checkoutOrderType === t.id ? "selected" : ""}
-                            key={t.id}
-                          >
-                            <input
-                              type="radio"
-                              name="checkoutOrderType"
-                              checked={checkoutOrderType === t.id}
-                              onChange={() => {
-                                setCheckoutOrderType(t.id as any);
-                                setCheckoutExtra("");
-                                setCheckoutErrors((prev) => ({ ...prev, address: null }));
-                              }}
-                            />
-                            <span>{t.label}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </fieldset>
-
-                    {checkoutOrderType === "dine-in" && (
-                      <div className="order-extra-field">
-                        <label htmlFor="checkout-table">Table number (if seated):</label>
+                    <section className="checkout-form-section" aria-labelledby="checkout-contact-heading">
+                      <h3 className="checkout-section-heading" id="checkout-contact-heading">Contact details</h3>
+                      <div className="form-group">
+                        <label htmlFor="order-name">
+                          {checkoutOrderType === "dine-in"
+                            ? "Your name for table service"
+                            : checkoutOrderType === "delivery"
+                              ? "Recipient name for delivery"
+                              : "Your name for pickup"}
+                          <span className="required-star"> *</span>
+                        </label>
                         <input
-                          id="checkout-table"
-                          name="table"
-                          placeholder="e.g. Table 4"
-                          value={checkoutExtra}
-                          onChange={(e) => setCheckoutExtra(e.target.value)}
-                          maxLength={20}
-                        />
-                      </div>
-                    )}
-
-                    {checkoutOrderType === "delivery" && (
-                      <div className="order-extra-field">
-                        <label htmlFor="checkout-address">Delivery address &amp; landmark:</label>
-                        <input
-                          id="checkout-address"
-                          name="address"
-                          className={showAddressError ? "input-error" : ""}
-                          placeholder="Street, Barangay, and Landmark in Bayambang"
-                          value={checkoutExtra}
-                          onChange={(e) => setCheckoutExtra(e.target.value)}
+                          id="order-name"
+                          name="name"
+                          className={showNameError ? "input-error" : ""}
+                          value={checkoutName}
+                          onChange={(e) => setCheckoutName(e.target.value)}
                           onFocus={() => {
-                            setFocusedField("address");
-                            setCheckoutErrors((prev) => ({ ...prev, address: null }));
+                            setFocusedField("name");
+                            setCheckoutErrors((prev) => ({ ...prev, name: null }));
                           }}
                           onBlur={() => {
                             setFocusedField(null);
                             setCheckoutErrors((prev) => ({
                               ...prev,
-                              address: validateDeliveryAddress(checkoutExtra, checkoutOrderType),
+                              name: validateCustomerName(checkoutName),
                             }));
                           }}
-                          aria-invalid={showAddressError ? "true" : "false"}
-                          aria-describedby={showAddressError ? "checkout-address-error" : undefined}
-                          maxLength={150}
+                          aria-invalid={showNameError ? "true" : "false"}
+                          aria-describedby={showNameError ? "order-name-error" : undefined}
+                          autoComplete="name"
+                          placeholder="e.g. Karl Santos"
+                          maxLength={50}
                         />
-                        {showAddressError && (
-                          <span id="checkout-address-error" className="form-field-error" role="alert">
-                            <Icon name="alert-circle" size={14} /> {checkoutErrors.address}
+                        {showNameError && (
+                          <span id="order-name-error" className="form-field-error" role="alert">
+                            <Icon name="alert-circle" size={14} /> {checkoutErrors.name}
                           </span>
                         )}
                       </div>
-                    )}
-
-                    {checkoutOrderType === "pickup" && (
-                      <div className="pickup-notice">
-                        <small>Pickup: Bean Diner · Gen. Antonio Luna St., Zone 2, Bayambang</small>
+                      <div className="form-group">
+                        <label htmlFor="order-phone">
+                          Contact number <span className="required-star">*</span>
+                        </label>
+                        <input
+                          id="order-phone"
+                          name="phone"
+                          type="tel"
+                          inputMode="numeric"
+                          className={showPhoneError ? "input-error" : ""}
+                          value={checkoutPhone}
+                          onChange={(e) => setCheckoutPhone(formatPhoneNumber(e.target.value))}
+                          onFocus={() => {
+                            setFocusedField("phone");
+                            setCheckoutErrors((prev) => ({ ...prev, phone: null }));
+                          }}
+                          onBlur={() => {
+                            setFocusedField(null);
+                            setCheckoutErrors((prev) => ({
+                              ...prev,
+                              phone: validateCustomerPhone(checkoutPhone),
+                            }));
+                          }}
+                          aria-invalid={showPhoneError ? "true" : "false"}
+                          aria-describedby={showPhoneError ? "order-phone-error" : undefined}
+                          autoComplete="tel"
+                          placeholder="09XX-XXX-XXXX"
+                          maxLength={20}
+                        />
+                        {showPhoneError && (
+                          <span id="order-phone-error" className="form-field-error" role="alert">
+                            <Icon name="alert-circle" size={14} /> {checkoutErrors.phone}
+                          </span>
+                        )}
                       </div>
-                    )}
+                    </section>
 
-                    {/* Contact Number */}
-                    <div className="form-group">
-                      <label htmlFor="order-phone">
-                        Contact number <span className="required-star">*</span>
-                      </label>
-                      <input
-                        id="order-phone"
-                        name="phone"
-                        type="tel"
-                        inputMode="numeric"
-                        className={showPhoneError ? "input-error" : ""}
-                        value={checkoutPhone}
-                        onChange={(e) => setCheckoutPhone(formatPhoneNumber(e.target.value))}
-                        onFocus={() => {
-                          setFocusedField("phone");
-                          setCheckoutErrors((prev) => ({ ...prev, phone: null }));
-                        }}
-                        onBlur={() => {
-                          setFocusedField(null);
-                          setCheckoutErrors((prev) => ({
-                            ...prev,
-                            phone: validateCustomerPhone(checkoutPhone),
-                          }));
-                        }}
-                        aria-invalid={showPhoneError ? "true" : "false"}
-                        aria-describedby={showPhoneError ? "order-phone-error" : undefined}
-                        autoComplete="tel"
-                        placeholder="09XX-XXX-XXXX"
-                        maxLength={20}
-                      />
-                      {showPhoneError && (
-                        <span id="order-phone-error" className="form-field-error" role="alert">
-                          <Icon name="alert-circle" size={14} /> {checkoutErrors.phone}
-                        </span>
-                      )}
+                    <div className="checkout-form-section">
+                      <fieldset className="checkout-fieldset">
+                        <legend>Pickup / Preferred timing</legend>
+                        <div className="timing-choice-row">
+                          {[
+                            "ASAP (~15-20 mins)",
+                            "In 30 mins",
+                            "In 1 hour",
+                            "Custom time",
+                          ].map((timeOption) => (
+                            <label
+                              key={timeOption}
+                              className={checkoutPickupTime === timeOption ? "selected" : ""}
+                            >
+                              <input
+                                type="radio"
+                                name="checkoutPickupTime"
+                                checked={checkoutPickupTime === timeOption}
+                                onChange={() => {
+                                  setCheckoutPickupTime(timeOption);
+                                  setCheckoutErrors((prev) => ({ ...prev, time: null }));
+                                }}
+                              />
+                              <span>{timeOption}</span>
+                            </label>
+                          ))}
+                        </div>
+                        {checkoutPickupTime === "Custom time" && (
+                          <div className="custom-time-field">
+                            <label htmlFor="checkout-custom-time">Specify time today:</label>
+                            <input
+                              id="checkout-custom-time"
+                              name="customTime"
+                              className={showTimeError ? "input-error" : ""}
+                              placeholder="e.g. 2:45 PM or 5:30 PM"
+                              value={checkoutCustomTime}
+                              onChange={(e) => {
+                                setCheckoutCustomTime(e.target.value);
+                                setCheckoutErrors((prev) => ({ ...prev, time: null }));
+                              }}
+                              onFocus={() => {
+                                setFocusedField("customTime");
+                                setCheckoutErrors((prev) => ({ ...prev, time: null }));
+                              }}
+                              onBlur={() => {
+                                setFocusedField(null);
+                                if (!checkoutCustomTime.trim()) {
+                                  setCheckoutErrors((prev) => ({
+                                    ...prev,
+                                    time: "Please specify your preferred time",
+                                  }));
+                                }
+                              }}
+                              aria-invalid={showTimeError ? "true" : "false"}
+                              aria-describedby={showTimeError ? "checkout-time-error" : undefined}
+                              maxLength={30}
+                            />
+                            {showTimeError && (
+                              <span id="checkout-time-error" className="form-field-error" role="alert">
+                                <Icon name="alert-circle" size={14} /> {checkoutErrors.time}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </fieldset>
                     </div>
 
-                    {/* Payment Method */}
-                    <fieldset className="checkout-payment-fieldset">
-                      <legend>Payment method</legend>
-                      <div className="payment-choice-row">
-                        {([
-                          { id: "gcash", label: "GCash" },
-                          { id: "maya", label: "Maya" },
-                          { id: "cash", label: "Cash" },
-                        ] as const).map((payment) => (
-                          <label
-                            className={checkoutPayment === payment.id ? "selected" : ""}
-                            key={payment.id}
-                          >
-                            <input
-                              type="radio"
-                              name="checkoutPayment"
-                              value={payment.id}
-                              checked={checkoutPayment === payment.id}
-                              onChange={() => setCheckoutPayment(payment.id)}
-                            />
-                            <span>{payment.label}</span>
-                          </label>
-                        ))}
+                    <div className="checkout-form-section">
+                      <fieldset className="checkout-payment-fieldset">
+                        <legend>Payment method</legend>
+                        <div className="payment-choice-row">
+                          {([
+                            { id: "gcash", label: "GCash" },
+                            { id: "maya", label: "Maya" },
+                            { id: "cash", label: "Cash" },
+                          ] as const).map((payment) => (
+                            <label
+                              className={checkoutPayment === payment.id ? "selected" : ""}
+                              key={payment.id}
+                            >
+                              <input
+                                type="radio"
+                                name="checkoutPayment"
+                                value={payment.id}
+                                checked={checkoutPayment === payment.id}
+                                onChange={() => setCheckoutPayment(payment.id)}
+                              />
+                              <span>{payment.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </fieldset>
+                    </div>
+
+                    <section className="checkout-form-section checkout-form-section-note" aria-labelledby="checkout-note-label">
+                      <div className="form-group">
+                        <label className="checkout-note-label" id="checkout-note-label" htmlFor="order-note">
+                          Order note / special request <small>(optional)</small>
+                        </label>
+                        <input
+                          id="order-note"
+                          name="note"
+                          placeholder="e.g. separate syrup, extra napkins, less sweet"
+                          value={checkoutNote}
+                          onChange={(e) => setCheckoutNote(e.target.value)}
+                          maxLength={140}
+                        />
                       </div>
-                    </fieldset>
+                    </section>
 
                     {/* Prominent Send Order via Messenger button */}
                     <div className="checkout-actions-block">
