@@ -10,6 +10,7 @@ import {
 import DinerBitesPage from "./DinerBitesPage";
 import BeveragesPage from "./BeveragesPage";
 import { usePageBackground } from "./ui/usePageBackground";
+import { isSafariBrowser } from "./ui/browser";
 import { dinerBites, type DinerBite } from "./dinerBites";
 import {
   allBeverages,
@@ -71,11 +72,6 @@ const clickScrollBehavior = (): ScrollBehavior =>
     : "smooth";
 
 const MOBILE_FINAL_DRINK_SCROLL_MULTIPLIER = 1.25;
-const isSafariBrowser = () => {
-  const userAgent = navigator.userAgent;
-  return /Safari/i.test(userAgent) &&
-    !/(Android|Brave|Chrome|Chromium|CriOS|Edg|FxiOS|Firefox|OPR|OPiOS|SamsungBrowser)/i.test(userAgent);
-};
 
 const handleAnchorLink = (event: MouseEvent<HTMLAnchorElement>) => {
   if (
