@@ -5459,6 +5459,11 @@ body:has(.floating-bag-bubble) .footer-artisanal {
     mask-image: linear-gradient(to right, black calc(100% - 32px), transparent 100%);
     -webkit-mask-image: linear-gradient(to right, black calc(100% - 32px), transparent 100%);
   }
+  @supports not (-webkit-touch-callout: none) {
+    .flavor-tabs {
+      touch-action: pan-x pan-y;
+    }
+  }
   .flavor-tabs::-webkit-scrollbar {
     display: none;
   }
