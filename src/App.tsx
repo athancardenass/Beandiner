@@ -10,7 +10,7 @@ import {
 import DinerBitesPage from "./DinerBitesPage";
 import BeveragesPage from "./BeveragesPage";
 import { usePageBackground } from "./ui/usePageBackground";
-import { isSafariBrowser } from "./ui/browser";
+
 import { dinerBites, type DinerBite } from "./dinerBites";
 import {
   allBeverages,
@@ -24,7 +24,6 @@ import {
   FadeImage,
   PlusIcon,
   StickyMenuBar,
-  scrollListIntoView,
   useStickyHeaderOffset,
 } from "./ui/menu";
 
@@ -71,7 +70,6 @@ const clickScrollBehavior = (): ScrollBehavior =>
     ? "instant"
     : "smooth";
 
-const MOBILE_FINAL_DRINK_SCROLL_MULTIPLIER = 1.25;
 
 const handleAnchorLink = (event: MouseEvent<HTMLAnchorElement>) => {
   if (
@@ -365,11 +363,6 @@ const coffeeDatePairSizeLabel = "16 oz";
 const coffeeDatePairPrice =
   coffeeDateSaltedCaramel.prices[coffeeDatePairSize] +
   coffeeDateMatcha.prices[coffeeDatePairSize];
-const saltedCaramelHeaderDrink = allBeverages.find(
-  (beverage) => beverage.id === "iced-salted-caramel",
-)!;
-const saltedCaramelHeaderPrice =
-  saltedCaramelHeaderDrink.prices[saltedCaramelHeaderDrink.defaultSize];
 // ↓ TYPE: Shopping cart item shape
 type CartItem = {
   key: string;
@@ -1038,359 +1031,6 @@ function ProductModal({
     </Modal>
   );
 }
-// ↓ SCROLL STORY: Horizontal scroll-driven product showcase
-const heroStoryImages = [
-  {
-    src: "./images/hero-drinks/drink-01-honey-lemon.webp",
-    alt: "Honey Lemon Butterfly Pea drink",
-  },
-  {
-    src: "./images/hero-drinks/drink-02-strawberry-milk.webp",
-    alt: "Strawberry Milk drink",
-  },
-  {
-    src: "./images/hero-drinks/drink-03-oreo-milkshake.webp",
-    alt: "Oreo Milkshake",
-  },
-  {
-    src: "./images/hero-drinks/drink-04-double-dutch.webp",
-    alt: "Double Dutch drink",
-  },
-  {
-    src: "./images/hero-drinks/drink-05-choco-pistachio.webp",
-    alt: "Choco Pistachio drink",
-  },
-  {
-    src: "./images/hero-drinks/drink-06-matcha-latte.webp",
-    alt: "Matcha Latte drink",
-  },
-] as const;
-function MobileGoodStuff({ product }: { product: Product }) {
-  const displayedProductRef = useRef(product);
-  const [displayedProduct, setDisplayedProduct] = useState(product);
-  const [phase, setPhase] = useState<"idle" | "exiting" | "entering">("idle");
-
-  useEffect(() => {
-    if (displayedProductRef.current.id === product.id) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      displayedProductRef.current = product;
-      setDisplayedProduct(product);
-      setPhase("idle");
-      return;
-    }
-
-    setPhase("exiting");
-    let enterTimer: number | undefined;
-    const exitTimer = window.setTimeout(() => {
-      displayedProductRef.current = product;
-      setDisplayedProduct(product);
-      setPhase("entering");
-      enterTimer = window.setTimeout(() => setPhase("idle"), 350);
-    }, 130);
-    return () => {
-      window.clearTimeout(exitTimer);
-      if (enterTimer !== undefined) window.clearTimeout(enterTimer);
-    };
-  }, [product]);
-
-  return (
-    <div
-      className={`mobile-good-stuff is-${phase}`}
-      role="group"
-      aria-label="The good stuff"
-    >
-      <span className="handwritten">the good stuff</span>
-      <ul>
-        {displayedProduct.ingredients.map((ingredient, index) => (
-          <li key={ingredient} style={{ animationDelay: `${index * 55}ms` }}>
-            {ingredient}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
-  const section = useRef<HTMLElement>(null);
-  const stage = useRef<HTMLDivElement>(null);
-  const tabsRef = useRef<HTMLDivElement>(null);
-  const stableViewportHeight = useRef(0);
-  const [active, setActive] = useState(0);
-  const activeRef = useRef(0);
-  const previousActive = useRef(active);
-  useEffect(() => {
-    if (previousActive.current === active) return;
-    previousActive.current = active;
-    const container = tabsRef.current;
-    if (!container) return;
-    // Only scroll tabs horizontally on mobile viewports where overflow exists
-    if (container.scrollWidth > container.clientWidth) {
-      const activeBtn = container.querySelector<HTMLButtonElement>("button.active");
-      if (activeBtn) {
-        const targetScroll =
-          activeBtn.offsetLeft -
-          container.clientWidth / 2 +
-          activeBtn.clientWidth / 2;
-        container.scrollTo({
-          left: Math.max(0, targetScroll),
-          behavior: clickScrollBehavior(),
-        });
-      }
-    }
-  }, [active]);
-  useEffect(() => {
-    const el = section.current!;
-    const stageEl = stage.current!;
-    const media = matchMedia("(prefers-reduced-motion: reduce)");
-    const isSafari = isSafariBrowser();
-    const viewportProbe = document.createElement("div");
-    viewportProbe.setAttribute("aria-hidden", "true");
-    viewportProbe.style.cssText = "position:fixed;top:0;left:0;width:0;height:100svh;visibility:hidden;pointer-events:none;contain:strict";
-    if (!isSafari) document.body.appendChild(viewportProbe);
-    const cups = Array.from(stageEl.querySelectorAll<HTMLElement>(".story-product"));
-    const bean = stageEl.querySelector<HTMLElement>(".story-bean");
-    const ice = stageEl.querySelector<HTMLElement>(".story-ice");
-    const leaf = stageEl.querySelector<HTMLElement>(".story-leaf");
-    let sectionTop = 0;
-    let sectionHeight = 0;
-    let viewportHeight = innerHeight;
-    let progressViewportHeight = innerHeight;
-    let previousProgress = -1;
-    let renderedProgress = Number.NaN;
-    let lastFrameTime = 0;
-    let frame = 0;
-    const update = () => {
-      frame = 0;
-      const top = sectionTop - scrollY;
-      if (top + sectionHeight < 0 || top > viewportHeight) return;
-      const slideCount = heroSelectorProducts.length;
-      const isMobileViewport = matchMedia("(max-width: 820px)").matches;
-      const scrollRange = Math.max(1, sectionHeight - progressViewportHeight);
-      const rawProgress = (-top / scrollRange) * (slideCount - 1);
-      const finalIntervalStart = slideCount - 2;
-      const adjustedProgress = isMobileViewport
-        ? rawProgress +
-          Math.max(0, rawProgress - finalIntervalStart) *
-            (MOBILE_FINAL_DRINK_SCROLL_MULTIPLIER - 1)
-        : rawProgress;
-      const targetProgress = Math.max(
-        0,
-        Math.min(slideCount - 1, adjustedProgress),
-      );
-      const reduced = media.matches;
-      const shouldSmooth = isMobileViewport && !isSafari && !reduced;
-      const now = performance.now();
-      if (!shouldSmooth || !Number.isFinite(renderedProgress)) {
-        renderedProgress = targetProgress;
-      } else {
-        const elapsed = Math.min(50, Math.max(0, now - lastFrameTime));
-        const easing = 1 - Math.exp(-elapsed / 55);
-        renderedProgress += (targetProgress - renderedProgress) * easing;
-      }
-      lastFrameTime = now;
-      const p = renderedProgress;
-      if (p === previousProgress) {
-        if (shouldSmooth && Math.abs(targetProgress - renderedProgress) > 0.001) request();
-        return;
-      }
-      previousProgress = p;
-      const index = Math.round(p);
-      if (index !== activeRef.current) {
-        activeRef.current = index;
-        setActive(index);
-      }
-      cups.forEach((cup, i) => {
-        const d = i - p;
-        const opacity = `${Math.max(0, 1 - Math.abs(d) * 1.35)}`;
-        const isMatcha = heroSelectorProducts[i]?.tabLabel === "Matcha Latte";
-        const matchaSettle = isMatcha && isMobileViewport
-          ? reduced
-            ? Number(index === slideCount - 1)
-            : Math.max(0, Math.min(1, p - (slideCount - 2)))
-          : 0;
-        const matchaX = innerWidth * 0.08 * matchaSettle;
-        const matchaY = viewportHeight * 0.02 * matchaSettle;
-        const promotion = !reduced && opacity !== "0" ? "transform, opacity" : "auto";
-        if (cup.style.willChange !== promotion) cup.style.willChange = promotion;
-        if (cup.style.opacity !== opacity) cup.style.opacity = opacity;
-        if (reduced) {
-          cup.style.transform = matchaSettle
-            ? `translate3d(-${matchaX}px,${matchaY}px,0)`
-            : "none";
-        } else if (opacity !== "0") {
-          cup.style.transform = `translate3d(calc(${d * 90}% - ${matchaX}px),calc(${Math.abs(d) * 28}% + ${matchaY}px),0) rotate(${d * 27 - 5}deg) scale(${1 - Math.min(Math.abs(d) * 0.15, 0.35)})`;
-        }
-      });
-      if (bean) bean.style.transform = reduced ? "none" : `translate3d(${p * -10}px,0,0) rotate(${p * 100}deg)`;
-      if (ice) ice.style.transform = reduced ? "none" : `translate3d(0,${p * 10}px,0) rotate(${p * 65}deg)`;
-      if (leaf) leaf.style.transform = reduced ? "none" : `rotate(${p * -35}deg)`;
-      if (shouldSmooth && Math.abs(targetProgress - renderedProgress) > 0.001) request();
-    };
-    const request = () => {
-      if (!frame) frame = requestAnimationFrame(update);
-    };
-    const measure = () => {
-      sectionTop = el.getBoundingClientRect().top + scrollY;
-      sectionHeight = el.offsetHeight;
-      viewportHeight = innerHeight;
-      if (isSafari) {
-        progressViewportHeight = innerHeight;
-      } else {
-        const stableHeight = viewportProbe.getBoundingClientRect().height ||
-          document.documentElement.clientHeight || innerHeight;
-        stableViewportHeight.current = stableHeight;
-        progressViewportHeight = matchMedia("(max-width: 820px)").matches
-          ? stableHeight
-          : innerHeight;
-      }
-      request();
-    };
-    const motionChanged = () => {
-      previousProgress = -1;
-      request();
-    };
-    const resizeObserver = new ResizeObserver(measure);
-    resizeObserver.observe(el);
-    resizeObserver.observe(document.body);
-    const heroElement = document.querySelector(".hero");
-    if (heroElement) resizeObserver.observe(heroElement);
-    window.addEventListener("scroll", request, { passive: true });
-    window.addEventListener("resize", measure);
-    media.addEventListener("change", motionChanged);
-    measure();
-    return () => {
-      window.removeEventListener("scroll", request);
-      window.removeEventListener("resize", measure);
-      media.removeEventListener("change", motionChanged);
-      resizeObserver.disconnect();
-      cancelAnimationFrame(frame);
-      if (!isSafari) viewportProbe.remove();
-    };
-  }, []);
-  const goTo = (index: number) => {
-    const el = section.current!;
-    const isMobileViewport = matchMedia("(max-width: 820px)").matches;
-    const scrollViewportHeight = isMobileViewport && !isSafariBrowser()
-      ? stableViewportHeight.current || document.documentElement.clientHeight || innerHeight
-      : innerHeight;
-    const scrollRange = Math.max(0, el.offsetHeight - scrollViewportHeight);
-    const slideCount = heroSelectorProducts.length;
-    const finalIntervalStart = slideCount - 2;
-    const targetProgress =
-      matchMedia("(max-width: 820px)").matches && index > finalIntervalStart
-        ? finalIntervalStart +
-          (index - finalIntervalStart) / MOBILE_FINAL_DRINK_SCROLL_MULTIPLIER
-        : index;
-    const y =
-      el.getBoundingClientRect().top +
-      scrollY +
-      (scrollRange * targetProgress) / (slideCount - 1);
-    window.scrollTo({
-      top: y + 1,
-      behavior: clickScrollBehavior(),
-    });
-  };
-  const product = heroSelectorProducts[active];
-  return (
-    <section
-      className="scroll-story"
-      ref={section}
-      id="flavors"
-      aria-label="Explore the six Bean Diner drinks"
-    >
-      <div
-        ref={stage}
-        className="story-stage"
-        style={{ backgroundColor: product.color }}
-      >
-        <div className="story-top">
-          <span className="eyebrow">CRAFTED FOR EVERY KIND OF MOOD</span>
-          <a className="text-link" href="#menu" onClick={handleAnchorLink}>
-            Skip to the menu <Icon name="arrow" size={18} />
-          </a>
-        </div>
-        <span className="story-giant" key={product.word} aria-hidden="true">
-          {product.word}
-        </span>
-        <div className="story-copy">
-          <span className="eyebrow story-switch-in" key={`${product.id}-eyebrow`}>
-            {product.short}
-          </span>
-          <h2 className="story-switch-in" key={`${product.id}-name`}>
-            {product.name}
-          </h2>
-          <p className="story-switch-in" key={`${product.id}-description`}>
-            {product.description}
-          </p>
-          <div className="story-action-row story-switch-in" key={`${product.id}-action`}>
-            <div className="story-details">
-              <span>{money(product.price)}</span>
-              <small>{product.hot ? "HOT" : "ICED"} / {(product.defaultSize ?? "16 oz").toUpperCase()}</small>
-            </div>
-            <button className="button" onClick={() => onSelect(product)}>
-              This is my cup <Icon name="plus" size={18} />
-            </button>
-          </div>
-        </div>
-        <div className="story-art">
-          {heroSelectorProducts.map((p, i) => (
-            <img
-              key={p.id}
-              src={heroStoryImages[i].src}
-              className="story-product"
-              style={{ opacity: i === 0 ? 1 : 0 }}
-              alt={active === i ? heroStoryImages[i].alt : ""}
-              aria-hidden={active !== i}
-              loading="lazy"
-              width="500"
-              height="700"
-            />
-          ))}
-          <Ingredient kind="bean" className="story-bean" />
-          <Ingredient kind="ice" className="story-ice" />
-          <Ingredient kind="leaf" className="story-leaf" />
-        </div>
-        <MobileGoodStuff product={product} />
-        <div className="ingredient-notes" key={`${product.id}-notes`}>
-          <span className="handwritten">the good stuff</span>
-          {product.ingredients.map((ingredient, i) => (
-            <div key={ingredient}>
-              <span>0{i + 1}</span>
-              {ingredient}
-            </div>
-          ))}
-        </div>
-        <div className="story-navigation">
-          <div className="story-count">
-            <span>0{active + 1}</span> / 06
-          </div>
-          <div className="flavor-tabs" ref={tabsRef} role="group" aria-label="Select a flavor">
-            {heroSelectorProducts.map((p, i) => (
-              <button
-                key={p.id}
-                onClick={() => goTo(i)}
-                className={active === i ? "active" : ""}
-                aria-label={`Explore ${p.name}`}
-                aria-pressed={active === i}
-              >
-                <span />
-                {p.tabLabel ?? p.name}
-              </button>
-            ))}
-          </div>
-          <button
-            className="icon-button next-flavor"
-            aria-label="Next flavor"
-            onClick={() => goTo((active + 1) % 6)}
-          >
-            <Icon name="arrow" />
-          </button>
-        </div>
-      </div>
-    </section>
-  );
-}
 // ↓ APP COMPONENT: Root component with state, cart, and all sections
 // ↓ DINER BITE CUSTOMIZE MODAL: Flavor / glaze / option selection dialog
 function BiteCustomizeModal({
@@ -1666,7 +1306,47 @@ function App() {
     }
   });
   const hero = useRef<HTMLElement>(null);
+  const videoHero = useRef<HTMLVideoElement>(null);
+  const videoPlaybackTime = useRef(0);
   const progress = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const video = videoHero.current;
+    if (!video) return;
+
+    if (videoPlaybackTime.current > 0) {
+      video.currentTime = videoPlaybackTime.current;
+    }
+    const rememberPlaybackTime = () => {
+      if (Number.isFinite(video.currentTime)) {
+        videoPlaybackTime.current = video.currentTime;
+      }
+    };
+    video.addEventListener("timeupdate", rememberPlaybackTime);
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let isVisible = false;
+    const syncPlayback = () => {
+      if (reducedMotion.matches || !isVisible) {
+        video.pause();
+        return;
+      }
+      void video.play().catch(() => {});
+    };
+    const observer = new IntersectionObserver(([entry]) => {
+      isVisible = entry.isIntersecting;
+      syncPlayback();
+    }, { threshold: 0.05 });
+
+    observer.observe(video);
+    reducedMotion.addEventListener("change", syncPlayback);
+    return () => {
+      rememberPlaybackTime();
+      observer.disconnect();
+      reducedMotion.removeEventListener("change", syncPlayback);
+      video.removeEventListener("timeupdate", rememberPlaybackTime);
+      video.pause();
+    };
+  }, [currentPage]);
   useEffect(() => {
     document.title = isFoodPage
       ? "Diner Bites & Comfort Plates | Bean Diner"
@@ -1730,18 +1410,30 @@ function App() {
   useEffect(() => {
     let frame = 0;
     const reduced = matchMedia("(prefers-reduced-motion: reduce)");
-    const heading = hero.current?.querySelector<HTMLElement>("h1");
+    const heroSection = hero.current;
+    const heading = hero.current?.querySelector<HTMLElement>("h2");
     const cup = hero.current?.querySelector<HTMLElement>(".hero-product-wrap");
     let viewportHeight = innerHeight;
+    let snapOffset = Number.parseFloat(
+      getComputedStyle(document.documentElement).scrollPaddingTop,
+    ) || 0;
     let maxScroll = 1;
     const paint = () => {
       frame = 0;
-      const y = scrollY;
+      const sectionTop = heroSection?.getBoundingClientRect().top ?? viewportHeight;
+      const y = Math.min(
+        viewportHeight * 1.5,
+        Math.max(0, snapOffset - sectionTop),
+      );
       if (reduced.matches) {
-        if (heading) heading.style.transform = "none";
+        heading?.style.removeProperty("translate");
         if (cup) cup.style.transform = "none";
-      } else if (y < viewportHeight * 1.5) {
-        if (heading) heading.style.transform = `translate3d(${y * -0.08}px,${y * -0.06}px,0)`;
+      } else {
+        if (heading)
+          heading.style.setProperty(
+            "translate",
+            `${y * -0.08}px ${y * -0.06}px`,
+          );
         if (cup) cup.style.transform = `translate3d(${y * 0.1}px,${y * -0.12}px,0) rotate(${y * 0.017}deg)`;
       }
       if (progress.current)
@@ -1752,6 +1444,9 @@ function App() {
     };
     const measure = () => {
       viewportHeight = innerHeight;
+      snapOffset = Number.parseFloat(
+        getComputedStyle(document.documentElement).scrollPaddingTop,
+      ) || 0;
       maxScroll = Math.max(1, document.documentElement.scrollHeight - viewportHeight);
       handle();
     };
@@ -1964,36 +1659,16 @@ function App() {
       <a href="#main" className="skip-link">
         Skip to content
       </a>
-      {/* ↓ ANNOUNCEMENT BAR: Promotional banner */}
-      <div className="announcement">
-        <span className="announcement-brand">GOOD FOOD. GREAT COFFEE.</span>
-        <span className="announcement-promo">
-          Salted Caramel + Matcha for {money(coffeeDatePairPrice)}.
-        </span>
-        <a href={homeHref("together")} onClick={handlePageLink}>
-          Make it a coffee date <span>↗</span>
-        </a>
-        <span
-          className={`store-status-badge announcement-store-status ${storeStatus.isOpen ? "is-open" : "is-closed"}`}
-          role="status"
-        >
-          <span className="store-status-dot" aria-hidden="true" />
-          {storeStatus.text}
-        </span>
-      </div>
       {/* ↓ HEADER: Logo, navigation, order button, bag */}
       <header className="header" id="home">
-        <Logo href={homeHref("home")} onClick={handlePageLink} />
-        <nav aria-label="Main navigation" className="header-nav">
+        <nav aria-label="Main navigation" className="header-nav header-nav-left">
           <a
             href={beveragesHref}
             onClick={handlePageLink}
             className="nav-item"
             aria-current={isBeveragesPage ? "page" : undefined}
           >
-            <span className="nav-num">01</span>
-            <span className="nav-label">Beverages menu</span>
-            <span className="nav-badge">60+</span>
+            <span className="nav-label">Menu</span>
           </a>
           <a
             href={foodHref}
@@ -2001,70 +1676,58 @@ function App() {
             className="nav-item"
             aria-current={isFoodPage ? "page" : undefined}
           >
-            <span className="nav-num">02</span>
             <span className="nav-label">Diner bites</span>
-            <span className="nav-badge">₱99</span>
           </a>
           <a href={homeHref("menu")} onClick={handlePageLink} className="nav-item">
-            <span className="nav-num">03</span>
-            <span className="nav-label">Top 6 signatures</span>
-          </a>
-          <a href={homeHref("story")} onClick={handlePageLink} className="nav-item">
-            <span className="nav-num">04</span>
-            <span className="nav-label">Our story</span>
-          </a>
-          <a href={homeHref("together")} onClick={handlePageLink} className="nav-item nav-together">
-            <span className="nav-num">05</span>
-            <span className="nav-label">Better together</span>
-            <span className="nav-coffee">✦</span>
-          </a>
-          <a
-            href="https://www.facebook.com/beandiner"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="nav-fb-pill"
-          >
-            <span className="fb-dot" />
-            <span className="fb-text">Facebook</span>
-            <span className="fb-arrow">↗</span>
+            <span className="nav-label">Best sellers</span>
           </a>
         </nav>
-        <div className="header-actions">
-          <a
-            className="button header-order"
-            href={isFoodPage ? "#food-menu" : isBeveragesPage ? "#drinks-menu" : "#menu"}
-            onClick={(e) => {
-              if (cart.length > 0) {
-                e.preventDefault();
+        <Logo href={pageHref("home")} onClick={handlePageLink} />
+        <div className="header-right">
+          <nav aria-label="About and offers" className="header-nav header-nav-right">
+            <a href={homeHref("story")} onClick={handlePageLink} className="nav-item">
+              <span className="nav-label">Our story</span>
+            </a>
+            <a href={homeHref("together")} onClick={handlePageLink} className="nav-item nav-together">
+              <span className="nav-label">Better together</span>
+            </a>
+            <a
+              href="https://www.facebook.com/beandiner"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="nav-fb-icon"
+              aria-label="Visit Bean Diner on Facebook"
+              title="Facebook"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M13.36 21v-8.2h2.76l.41-3.2h-3.17V7.56c0-.93.26-1.57 1.59-1.57h1.7V3.12C16.35 3.04 15.16 3 13.79 3c-2.86 0-4.81 1.75-4.81 4.97V9.6H6v3.2h2.98V21h4.38Z" />
+              </svg>
+            </a>
+          </nav>
+          <div className="header-actions">
+            <button
+              key={`header-bag-${bagBump}`}
+              className={`bag-button ${bagBump > 0 ? "bag-bump-animate" : ""}`}
+              aria-label={`Open bag, ${cartCount} items`}
+              onClick={() => {
                 setBagOpen(true);
                 setReceipt(false);
-              }
-            }}
-          >
-            Order now <Icon name="arrow" size={17} />
-          </a>
-          <button
-            key={`header-bag-${bagBump}`}
-            className={`bag-button ${bagBump > 0 ? "bag-bump-animate" : ""}`}
-            aria-label={`Open bag, ${cartCount} items`}
-            onClick={() => {
-              setBagOpen(true);
-              setReceipt(false);
-              setCheckoutStep("bag");
-            }}
-          >
-            <Icon name="bag" />
-            <span>{cartCount}</span>
-          </button>
-          <button
-            className="icon-button mobile-menu"
-            onClick={() => setNavOpen(true)}
-            aria-label="Open navigation"
-            aria-expanded={navOpen}
-            aria-haspopup="dialog"
-          >
-            <Icon name="menu" />
-          </button>
+                setCheckoutStep("bag");
+              }}
+            >
+              <Icon name="bag" />
+              <span>{cartCount}</span>
+            </button>
+            <button
+              className="icon-button mobile-menu"
+              onClick={() => setNavOpen(true)}
+              aria-label="Open navigation"
+              aria-expanded={navOpen}
+              aria-haspopup="dialog"
+            >
+              <Icon name="menu" />
+            </button>
+          </div>
         </div>
       </header>
       <main id="main">
@@ -2084,45 +1747,69 @@ function App() {
           />
         ) : (
           <>
-        {/* ↓ HERO SECTION: Main landing area with floating cup animation */}
-        <section className="hero" ref={hero}>
+        <section className="video-hero" aria-labelledby="video-hero-title">
+          <video
+            ref={videoHero}
+            className="video-hero-media"
+            poster="./images/bean-diner-video-poster.webp"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            aria-hidden="true"
+            tabIndex={-1}
+          >
+            <source src="./videos/bean-diner-hero-4k30.mp4" type="video/mp4" />
+          </video>
+          <div className="video-hero-content">
+            <h1 id="video-hero-title">
+              Good Coffee,
+              <br />
+              Good Days.
+            </h1>
+            <p>
+              Every day deserves a good cup of coffee. At Bean Diner, we make every sip worth enjoying.
+            </p>
+          </div>
+          <a
+            className="video-hero-scroll"
+            href="#drink-hero"
+            onClick={(event) => {
+              event.preventDefault();
+              document.getElementById("drink-hero")?.scrollIntoView({
+                behavior: clickScrollBehavior(),
+              });
+            }}
+          >
+            <span>Scroll to discover</span>
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 4v15m0 0 6-6m-6 6-6-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </a>
+        </section>
+        {/* ↓ DRINK HERO: Existing signature drink section */}
+        <section id="drink-hero" className="hero" ref={hero}>
           <div className="hero-oval" />
           <div className="hero-heading">
-            <span className="eyebrow">
-              <span className="tiny-star">✦</span> GEN. ANTONIO LUNA ST. ·
-              BAYAMBANG, PANGASINAN
-            </span>
-            <h1>
-              Good food.
-              <br />
-              Great coffee.
-            </h1>
-          </div>
-          <div className="hero-copy">
-            <p>
-              Founded by a Chef trained in the US and a Barista skilled in the
-              Middle East.
-              <br />
-              Authentic diner comfort food &amp; specialty coffee on Antonio Luna Street.
-            </p>
-            <div className="hero-ctas">
-              <a
-                className="button"
-                href="#menu"
-                onClick={(e) => {
-                  if (cart.length > 0) {
-                    e.preventDefault();
-                    setBagOpen(true);
-                    setReceipt(false);
-                  } else handleAnchorLink(e);
-                }}
-              >
-                Order for pickup <Icon name="arrow" />
-              </a>
-              <a className="text-link" href={foodHref} onClick={handlePageLink}>
-                Diner comfort bites <span>↘</span>
-              </a>
+            <div className="hero-heading-copy">
+              <span className="eyebrow">
+                <span className="tiny-star">✦</span> GEN. ANTONIO LUNA ST. ·
+                BAYAMBANG, PANGASINAN
+              </span>
+              <h2>
+                Good food.
+                <br />
+                Great coffee.
+              </h2>
             </div>
+            <a
+              className="button hero-order-cta"
+              href={beveragesHref}
+              onClick={handlePageLink}
+            >
+              Order now <Icon name="arrow" size={17} />
+            </a>
           </div>
           <div className="hero-product-wrap">
             <img
@@ -2150,22 +1837,6 @@ function App() {
             </svg>
             <Sun />
           </div>
-          <div className="hero-scribble">
-            <span className="scribble-star">✦</span>
-            <span className="handwritten">
-              where food heals,
-              <br />
-              coffee understands.
-            </span>
-            <svg viewBox="0 0 100 70" fill="none" aria-hidden="true">
-              <path
-                d="M84 6C83 45 47 65 13 36m1 0 3 18M13 36l21 2"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
           <Ingredient kind="bean" className="hero-bean bean-one" />
           <Ingredient kind="bean" className="hero-bean bean-two" />
           <Ingredient kind="bean" className="hero-bean bean-three" />
@@ -2178,21 +1849,6 @@ function App() {
           <span className="drawn-spark spark-two" aria-hidden="true">
             ✧
           </span>
-          <div className="hero-product-caption">
-            <span className="caption-line" />
-            <div>
-              <span className="eyebrow">MENU FAVORITE</span>
-              <p>
-                {saltedCaramelHeaderDrink.name} <span>{money(saltedCaramelHeaderPrice)}</span>
-              </p>
-            </div>
-          </div>
-          <a className="scroll-cue" href="#flavors" onClick={handleAnchorLink}>
-            <span>↓</span> A good day starts with a scroll
-          </a>
-          <div className="hero-bottom-note">
-            WHERE THE FOOD HEALS &amp; THE COFFEE UNDERSTANDS
-          </div>
           <svg
             className="hero-wave"
             viewBox="0 0 1440 65"
@@ -2216,8 +1872,7 @@ function App() {
           <span>Bayambang, Pangasinan</span>
           <Sun />
         </div>
-        {/* ↓ SCROLL STORY: Interactive product showcase */}
-        <ScrollStory onSelect={setSelected} />
+
         {/* ↓ MENU SECTION: Product grid with filters */}
         <section id="menu" className="menu-section">
           <div className="menu-heading reveal">
@@ -2229,10 +1884,6 @@ function App() {
               Specialty brews, creamy Oatside lattes, and comforting diner sips.
             </p>
           </div>
-          <section className="social-ordering-guide" aria-labelledby="social-ordering-title">
-            <h3 id="social-ordering-title">How Social Ordering Works</h3>
-            <OrderingSteps />
-          </section>
           <StickyMenuBar label="Signature drink filters" className="home-sticky">
             <div className="menu-toolbar-signature-row">
               <CategoryTabs
@@ -2260,10 +1911,16 @@ function App() {
                 ]}
                 active={filter}
                 onChange={(tabId) => {
-                  setFilter(tabId as any);
-                  requestAnimationFrame(() =>
-                    scrollListIntoView(document.getElementById("drink-menu-products")),
-                  );
+                  const filterRail = document.querySelector<HTMLElement>(".home-sticky");
+                  const previousTop = filterRail?.getBoundingClientRect().top;
+                  setFilter(tabId);
+                  requestAnimationFrame(() => {
+                    if (!filterRail || previousTop === undefined) return;
+                    const offset = filterRail.getBoundingClientRect().top - previousTop;
+                    if (Math.abs(offset) > 0.5) {
+                      window.scrollBy({ top: offset, behavior: "instant" });
+                    }
+                  });
                 }}
                 label="Filter drinks"
               />
@@ -2324,6 +1981,10 @@ function App() {
               Explore beverages menu (60+ brews) <Icon name="arrow" size={18} />
             </a>
           </div>
+          <section className="social-ordering-guide" aria-labelledby="social-ordering-title">
+            <h3 id="social-ordering-title">How Social Ordering Works</h3>
+            <OrderingSteps />
+          </section>
           <p className="menu-footnote">
             Every cup crafted with Benguet highland beans and creamy Oatside oat
             milk. Ask our barista about custom sweetness!
@@ -3427,7 +3088,7 @@ function App() {
           className="nav-modal"
         >
           <Logo
-            href={homeHref("home")}
+            href={pageHref("home")}
             onClick={handlePageLink}
           />
           <nav className="mobile-nav-list">
