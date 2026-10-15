@@ -1436,8 +1436,9 @@ function App() {
           );
         if (cup) cup.style.transform = `translate3d(${y * 0.1}px,${y * -0.12}px,0) rotate(${y * 0.017}deg)`;
       }
+      const scrollProgress = Math.min(1, Math.max(0, window.scrollY / maxScroll));
       if (progress.current)
-        progress.current.style.transform = `scaleX(${Math.min(1, Math.max(0, y / maxScroll))})`;
+        progress.current.style.transform = `scaleX(${scrollProgress})`;
     };
     const handle = () => {
       if (!frame) frame = requestAnimationFrame(paint);
