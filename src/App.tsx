@@ -1756,6 +1756,7 @@ function App() {
             muted
             loop
             playsInline
+            disablePictureInPicture
             preload="metadata"
             aria-hidden="true"
             tabIndex={-1}
