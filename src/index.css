@@ -7164,6 +7164,10 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   gap: 16px;
 }
 
+.menu-section > .home-sticky + .product-grid {
+  padding-top: 12px;
+}
+
 @media (max-width: 640px) {
   .home-sticky .menu-toolbar-signature-row {
     flex-direction: row;
