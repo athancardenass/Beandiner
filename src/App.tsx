@@ -1949,9 +1949,6 @@ function App() {
                     width={300}
                     height={420}
                   />
-                  <span className="product-add">
-                    <Icon name="plus" size={22} />
-                  </span>
                 </button>
                 <div className="product-card-title">
                   <h3>

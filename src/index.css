@@ -1353,30 +1353,6 @@ main {
   border-bottom: none;
   z-index: 3;
 }
-/* ↓ PRODUCT ADD: Plus icon button on hover */
-.product-add {
-  position: absolute;
-  bottom: 18px;
-  right: 18px;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border: 1px solid rgba(110, 98, 86, 0.45);
-  background: rgba(255, 240, 214, 0.9);
-  color: var(--dark-brown, #121212);
-  border-radius: 50%;
-  z-index: 3;
-  transition:
-    background 0.25s,
-    color 0.25s,
-    border-color 0.25s;
-}
-.product-image-button:hover .product-add {
-  background: var(--pine-wood, #D49E77);
-  color: var(--near-black, #121212);
-  border-color: var(--pine-wood, #D49E77);
-}
 /* ↓ PRODUCT CARD TITLE: Name and price row */
 .product-card-title {
   display: flex;
@@ -3555,15 +3531,6 @@ main {
     padding: 3px 6px;
     border-radius: 4px;
     border-bottom: none;
-  }
-  .product-add {
-    width: 44px;
-    height: 44px;
-    right: 10px;
-    bottom: 10px;
-  }
-  .product-add svg {
-    width: 16px;
   }
   .product-card-title {
     margin-top: 10px;
