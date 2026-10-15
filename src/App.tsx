@@ -9,6 +9,8 @@ import {
 } from "react";
 import DinerBitesPage from "./DinerBitesPage";
 import BeveragesPage from "./BeveragesPage";
+import { usePageBackground } from "./ui/usePageBackground";
+
 import { dinerBites, type DinerBite } from "./dinerBites";
 import {
   allBeverages,
@@ -22,7 +24,6 @@ import {
   FadeImage,
   PlusIcon,
   StickyMenuBar,
-  scrollListIntoView,
   useStickyHeaderOffset,
 } from "./ui/menu";
 
@@ -69,6 +70,7 @@ const clickScrollBehavior = (): ScrollBehavior =>
     ? "instant"
     : "smooth";
 
+
 const handleAnchorLink = (event: MouseEvent<HTMLAnchorElement>) => {
   if (
     event.defaultPrevented || event.button !== 0 || event.metaKey ||
@@ -106,14 +108,21 @@ type Product = {
   note: string;
   description: string;
   price: number;
+  defaultSize?: string;
+  sizePrices?: { size: string; price: number }[];
   color: string;
   word: string;
   ingredients: string[];
   type: "Coffee" | "Not coffee";
   hot?: boolean;
+  fixedTemperature?: "Iced" | "Hot";
+  allowMilkCustomization?: boolean;
   badge?: string;
+  tabLabel?: string;
   photo: string;
 };
+const productImage = (product: Product) =>
+  product.photo.startsWith("./") ? product.photo : image(product.id);
 // ↓ DATA: Six signature drink products matching Bean Diner sample photos
 const products: Product[] = [
   {
@@ -225,10 +234,135 @@ const products: Product[] = [
   },
 ];
 
+type FeaturedDrinkPresentation = {
+  menuId: string;
+  name?: string;
+  short: string;
+  note: string;
+  color: string;
+  word: string;
+  ingredients: string[];
+  photo: string;
+  tabLabel: string;
+};
+const createFeaturedDrink = ({
+  menuId,
+  name,
+  short,
+  note,
+  color,
+  word,
+  ingredients,
+  photo,
+  tabLabel,
+}: FeaturedDrinkPresentation): Product => {
+  const menuItem = allBeverages.find((item) => item.id === menuId);
+  if (!menuItem) throw new Error(`Missing featured drink in beverages menu: ${menuId}`);
+  const sizePrices = Object.entries(menuItem.prices).map(([size, price]) => ({
+    size: size.replace(/(\d+)oz/i, "$1 oz"),
+    price,
+  }));
+  const defaultSize = menuItem.defaultSize.replace(/(\d+)oz/i, "$1 oz");
+
+  return {
+    id: menuItem.id,
+    name: name ?? menuItem.name,
+    short,
+    note,
+    description: menuItem.description,
+    price: menuItem.prices[menuItem.defaultSize],
+    defaultSize,
+    sizePrices,
+    color,
+    word,
+    ingredients,
+    type: menuItem.type === "Coffee" ? "Coffee" : "Not coffee",
+    hot: menuItem.hot,
+    fixedTemperature: "Iced",
+    allowMilkCustomization: false,
+    badge: menuItem.badge,
+    tabLabel,
+    photo,
+  };
+};
+const heroSelectorProducts: Product[] = [
+  createFeaturedDrink({
+    menuId: "butterfly-pea-tea",
+    short: "Butterfly pea tea, natural honey & fresh lemon",
+    note: "Violet tea brightened with honey and fresh lemon.",
+    color: "#e4e0ee",
+    word: "Citrus bloom.",
+    ingredients: ["Butterfly pea tea", "Natural honey", "Fresh lemon juice"],
+    photo: "./images/hero-drinks/drink-01-honey-lemon.webp",
+    tabLabel: "Honey Lemon",
+  }),
+  createFeaturedDrink({
+    menuId: "strawberry-milk",
+    short: "Real strawberry puree & cold fresh milk",
+    note: "Sweet strawberry layered with creamy chilled milk.",
+    color: "#f6d9dd",
+    word: "Berry cloud.",
+    ingredients: ["Real strawberry puree", "Cold fresh milk", "Creamy finish"],
+    photo: "./images/hero-drinks/drink-02-strawberry-milk.webp",
+    tabLabel: "Strawberry",
+  }),
+  createFeaturedDrink({
+    menuId: "shake-oreo",
+    name: "Oreo Milkshake",
+    short: "Thick cookies & cream with Oreo pieces",
+    note: "A creamy shake packed with dark Oreo cookie crunch.",
+    color: "#d8c8ba",
+    word: "Cookie crush.",
+    ingredients: ["Oreo cookie pieces", "Creamy milkshake", "Dark cookie crunch"],
+    photo: "./images/hero-drinks/drink-03-oreo-milkshake.webp",
+    tabLabel: "Oreo Shake",
+  }),
+  createFeaturedDrink({
+    menuId: "blend-double-dutch",
+    short: "Double chocolate, vanilla bean & espresso",
+    note: "A thick chocolate frappe with chips in every sip.",
+    color: "#edcbb5",
+    word: "Double chocolate.",
+    ingredients: ["Double chocolate", "Vanilla bean", "Chocolate chips & espresso"],
+    photo: "./images/hero-drinks/drink-04-double-dutch.webp",
+    tabLabel: "Double Dutch",
+  }),
+  createFeaturedDrink({
+    menuId: "blend-choco-pistachio",
+    short: "Dark chocolate & Mediterranean pistachio",
+    note: "A rich chocolate frappe blended with pistachio paste.",
+    color: "#e7ccbd",
+    word: "Nutty cocoa.",
+    ingredients: ["Dark chocolate", "Mediterranean pistachio", "Creamy frappe"],
+    photo: "./images/hero-drinks/drink-05-choco-pistachio.webp",
+    tabLabel: "Choco Pistachio",
+  }),
+  createFeaturedDrink({
+    menuId: "iced-matcha-latte",
+    short: "Ceremonial Japanese matcha & chilled milk",
+    note: "Earthy ceremonial matcha whisked smooth over ice.",
+    color: "#dce4b8",
+    word: "Matcha moment.",
+    ingredients: ["Ceremonial green tea", "Chilled milk", "Smooth earthy finish"],
+    photo: "./images/hero-drinks/drink-06-matcha-latte.webp",
+    tabLabel: "Matcha Latte",
+  }),
+];
+const allProducts = [...products, ...heroSelectorProducts];
+const findProduct = (id: string) => allProducts.find((product) => product.id === id);
+
 const spanishLatte = products.find((product) => product.id === "latte")!;
-const spanishLatteBundlePrice = 250;
-const spanishLatteBundleSavings =
-  spanishLatte.price * 2 - spanishLatteBundlePrice;
+const coffeeDateSaltedCaramel = allBeverages.find(
+  (beverage) => beverage.id === "iced-salted-caramel",
+)!;
+const coffeeDateMatcha = allBeverages.find(
+  (beverage) => beverage.id === "iced-matcha-latte",
+)!;
+const coffeeDatePairSize = "16oz";
+const coffeeDatePairSizeLabel = "16 oz";
+const coffeeDatePairPrice =
+  coffeeDateSaltedCaramel.prices[coffeeDatePairSize] +
+  coffeeDateMatcha.prices[coffeeDatePairSize];
 // ↓ TYPE: Shopping cart item shape
 type CartItem = {
   key: string;
@@ -250,7 +384,6 @@ const formatOrderMessage = (
   customerName: string,
   customerPhone: string,
   totalAmount: number,
-  bundleDiscount: number = 0,
   orderType: "pickup" | "dine-in" | "delivery" = "pickup",
   extraInfo: string = "",
   payment: CheckoutPayment = "gcash",
@@ -258,7 +391,7 @@ const formatOrderMessage = (
   orderNote: string = "",
 ) => {
   const lines = items.map((item) => {
-    const p = products.find((p) => p.id === item.id);
+    const p = findProduct(item.id);
     const b = dinerBites.find((b) => b.id === item.id);
     const bev = allBeverages.find((bev) => bev.id === item.id);
     const mod = [...beverageAddOns, ...beverageSubs].find((m) => m.id === item.id);
@@ -312,7 +445,6 @@ const formatOrderMessage = (
     ``,
     ...lines,
     ``,
-    bundleDiscount > 0 ? `Bundle Discount: -${money(bundleDiscount)}` : null,
     orderTypeLine,
     timingLine,
     `Payment: ${payment === "gcash" ? "GCash" : payment === "maya" ? "Maya" : "Cash upon pickup/delivery"}`,
@@ -719,40 +851,31 @@ function ProductModal({
   product,
   onClose,
   onAdd,
-  bagOfferCups,
 }: {
   product: Product;
   onClose: () => void;
   onAdd: (item: CartItem) => void;
-  bagOfferCups: number;
 }) {
-  const isIcedDrink = product.name.toLowerCase().includes("iced");
-  const isHotDrink = product.name.toLowerCase().includes("hot");
-  const [size, setSize] = useState("16 oz");
+  const isIcedDrink = product.fixedTemperature === "Iced" || product.name.toLowerCase().includes("iced");
+  const isHotDrink = product.fixedTemperature === "Hot" || product.name.toLowerCase().includes("hot");
+  const fixedTemperature = product.fixedTemperature ?? (isIcedDrink ? "Iced" : isHotDrink ? "Hot" : product.hot ? "Hot" : undefined);
+  const sizeOptions = product.sizePrices ?? [
+    { size: "16 oz", price: product.price },
+    { size: "22 oz", price: product.price + 30 },
+  ];
+  const [size, setSize] = useState(product.defaultSize ?? sizeOptions[0].size);
   const [milk, setMilk] = useState("Regular");
   const [temperature, setTemperature] = useState(
-    isIcedDrink ? "Iced" : isHotDrink ? "Hot" : product.hot ? "Hot" : "Iced"
+    fixedTemperature ?? "Iced"
   );
   const [sweetness, setSweetness] = useState("100% Sweet");
   const [iceLevel, setIceLevel] = useState("Regular Ice");
   const [quantity, setQuantity] = useState(1);
   const [note, setNote] = useState("");
-  const hasMilk = true;
+  const hasMilk = product.allowMilkCustomization ?? true;
   const price =
-    product.price + (size === "22 oz" ? 30 : 0) + (milk === "Oat" ? 35 : 0);
-
-  // Offer hint mirrors the cart rule: latte, 16 oz, regular milk, iced.
-  const isOfferDrink = product.id === spanishLatte.id;
-  const qualifies =
-    isOfferDrink && size === "16 oz" && milk === "Regular" && temperature === "Iced";
-  const cupsAfterAdd = bagOfferCups + (qualifies ? quantity : 0);
-  const offerHint = !isOfferDrink
-    ? ""
-    : !qualifies
-      ? `Two-cup offer (2 for ${money(spanishLatteBundlePrice)}) needs 16 oz, regular milk, iced.`
-      : cupsAfterAdd >= 2
-        ? `Two-cup offer applies: save ${money(spanishLatteBundleSavings * Math.floor(cupsAfterAdd / 2))} at checkout.`
-        : `Add one more cup for 2 for ${money(spanishLatteBundlePrice)}.`;
+    (sizeOptions.find((option) => option.size === size)?.price ?? product.price) +
+    (hasMilk && milk === "Oat" ? 35 : 0);
 
   return (
     <Modal
@@ -761,7 +884,7 @@ function ProductModal({
       className="product-modal"
     >
       <div className="customize-image" style={{ background: product.color }}>
-        <img src={image(product.id)} alt="" />
+        <img src={productImage(product)} alt="" />
       </div>
       <form
         className="customize-form"
@@ -786,11 +909,11 @@ function ProductModal({
       >
         <div className="customize-head">
           <h2>{product.name}</h2>
-          <p className="customize-price">{money(product.price)}</p>
+          <p className="customize-price">{money(price)}</p>
         </div>
         <p className="customize-desc">{product.description}</p>
 
-        {!isIcedDrink && !isHotDrink && (
+        {!fixedTemperature && (
           <Segmented
             legend="Hot or iced"
             name="temperature"
@@ -802,22 +925,30 @@ function ProductModal({
             ]}
           />
         )}
-        {(isIcedDrink || isHotDrink) && (
+        {fixedTemperature && (
           <p className="customize-fixed">
-            {isIcedDrink ? "Served iced" : "Served hot"}
+            {fixedTemperature === "Iced" ? "Served iced" : "Served hot"}
           </p>
         )}
 
-        <Segmented
-          legend="Size"
-          name="size"
-          value={size}
-          onChange={setSize}
-          options={[
-            { value: "16 oz", label: "16 oz" },
-            { value: "22 oz", label: "22 oz", extra: "+₱30" },
-          ]}
-        />
+        {sizeOptions.length > 1 ? (
+          <Segmented
+            legend="Size"
+            name="size"
+            value={size}
+            onChange={setSize}
+            options={sizeOptions.map((option, index) => ({
+              value: option.size,
+              label: option.size,
+              extra:
+                index > 0 && option.price > sizeOptions[0].price
+                  ? `+${money(option.price - sizeOptions[0].price)}`
+                  : undefined,
+            }))}
+          />
+        ) : (
+          <p className="customize-fixed">Size: {sizeOptions[0].size}</p>
+        )}
 
         {hasMilk && (
           <Segmented
@@ -869,14 +1000,6 @@ function ProductModal({
           />
         </div>
 
-        <p
-          className={`offer-hint${qualifies ? " is-on" : ""}`}
-          aria-live="polite"
-          aria-atomic="true"
-        >
-          {offerHint}
-        </p>
-
         <div className="add-row">
           <div className="quantity" role="group" aria-label="Quantity">
             <button
@@ -906,222 +1029,6 @@ function ProductModal({
         </div>
       </form>
     </Modal>
-  );
-}
-// ↓ SCROLL STORY: Horizontal scroll-driven product showcase
-function ScrollStory({ onSelect }: { onSelect: (p: Product) => void }) {
-  const section = useRef<HTMLElement>(null);
-  const stage = useRef<HTMLDivElement>(null);
-  const tabsRef = useRef<HTMLDivElement>(null);
-  const [active, setActive] = useState(0);
-  const activeRef = useRef(0);
-  const previousActive = useRef(active);
-  useEffect(() => {
-    if (previousActive.current === active) return;
-    previousActive.current = active;
-    const container = tabsRef.current;
-    if (!container) return;
-    // Only scroll tabs horizontally on mobile viewports where overflow exists
-    if (container.scrollWidth > container.clientWidth) {
-      const activeBtn = container.querySelector<HTMLButtonElement>("button.active");
-      if (activeBtn) {
-        const targetScroll =
-          activeBtn.offsetLeft -
-          container.clientWidth / 2 +
-          activeBtn.clientWidth / 2;
-        container.scrollTo({
-          left: Math.max(0, targetScroll),
-          behavior: "instant",
-        });
-      }
-    }
-  }, [active]);
-  useEffect(() => {
-    const el = section.current!;
-    const stageEl = stage.current!;
-    const media = matchMedia("(prefers-reduced-motion: reduce)");
-    const cups = Array.from(stageEl.querySelectorAll<HTMLElement>(".story-product"));
-    const bean = stageEl.querySelector<HTMLElement>(".story-bean");
-    const ice = stageEl.querySelector<HTMLElement>(".story-ice");
-    const leaf = stageEl.querySelector<HTMLElement>(".story-leaf");
-    let sectionTop = 0;
-    let sectionHeight = 0;
-    let viewportHeight = innerHeight;
-    let previousProgress = -1;
-    let frame = 0;
-    const update = () => {
-      frame = 0;
-      const top = sectionTop - scrollY;
-      if (top + sectionHeight < 0 || top > viewportHeight) return;
-      const p = Math.max(
-        0,
-        Math.min(5, (-top / Math.max(1, sectionHeight - viewportHeight)) * 5),
-      );
-      if (p === previousProgress) return;
-      previousProgress = p;
-      const index = Math.round(p);
-      if (index !== activeRef.current) {
-        activeRef.current = index;
-        setActive(index);
-      }
-      const reduced = media.matches;
-      cups.forEach((cup, i) => {
-        const d = i - p;
-        const opacity = `${Math.max(0, 1 - Math.abs(d) * 1.35)}`;
-        const promotion = !reduced && opacity !== "0" ? "transform, opacity" : "auto";
-        if (cup.style.willChange !== promotion) cup.style.willChange = promotion;
-        if (cup.style.opacity !== opacity) cup.style.opacity = opacity;
-        if (reduced) cup.style.transform = "none";
-        else if (opacity !== "0") {
-          cup.style.transform = `translate3d(${d * 90}%,${Math.abs(d) * 28}%,0) rotate(${d * 27 - 5}deg) scale(${1 - Math.min(Math.abs(d) * 0.15, 0.35)})`;
-        }
-      });
-      if (bean) bean.style.transform = reduced ? "none" : `translate3d(${p * -10}px,0,0) rotate(${p * 100}deg)`;
-      if (ice) ice.style.transform = reduced ? "none" : `translate3d(0,${p * 10}px,0) rotate(${p * 65}deg)`;
-      if (leaf) leaf.style.transform = reduced ? "none" : `rotate(${p * -35}deg)`;
-    };
-    const request = () => {
-      if (!frame) frame = requestAnimationFrame(update);
-    };
-    const measure = () => {
-      sectionTop = el.getBoundingClientRect().top + scrollY;
-      sectionHeight = el.offsetHeight;
-      viewportHeight = innerHeight;
-      request();
-    };
-    const motionChanged = () => {
-      previousProgress = -1;
-      request();
-    };
-    const resizeObserver = new ResizeObserver(measure);
-    resizeObserver.observe(el);
-    resizeObserver.observe(document.body);
-    const heroElement = document.querySelector(".hero");
-    if (heroElement) resizeObserver.observe(heroElement);
-    window.addEventListener("scroll", request, { passive: true });
-    window.addEventListener("resize", measure);
-    media.addEventListener("change", motionChanged);
-    measure();
-    return () => {
-      window.removeEventListener("scroll", request);
-      window.removeEventListener("resize", measure);
-      media.removeEventListener("change", motionChanged);
-      resizeObserver.disconnect();
-      cancelAnimationFrame(frame);
-    };
-  }, []);
-  const goTo = (index: number) => {
-    const el = section.current!;
-    const y =
-      el.getBoundingClientRect().top +
-      scrollY +
-      ((el.offsetHeight - innerHeight) * index) / 5;
-    window.scrollTo({
-      top: y + 1,
-      behavior: clickScrollBehavior(),
-    });
-  };
-  const product = products[active];
-  return (
-    <section
-      className="scroll-story"
-      ref={section}
-      id="flavors"
-      aria-label="Explore the six Bean Diner drinks"
-    >
-      <div
-        ref={stage}
-        className="story-stage"
-        style={{ backgroundColor: product.color }}
-      >
-        <div className="story-top">
-          <span className="eyebrow">CRAFTED FOR EVERY KIND OF MOOD</span>
-          <a className="text-link" href="#menu" onClick={handleAnchorLink}>
-            Skip to the menu <Icon name="arrow" size={18} />
-          </a>
-        </div>
-        <span className="story-giant" key={product.word} aria-hidden="true">
-          {product.word}
-        </span>
-        <div className="story-copy" key={product.id}>
-          <span className="eyebrow">{product.short}</span>
-          <h2>{product.name}</h2>
-          <p>{product.description}</p>
-          <div className="story-action-row">
-            <div className="story-details">
-              <span>{money(product.price)}</span>
-              <small>{product.hot ? "HOT" : "ICED"} / 16 OZ</small>
-            </div>
-            <button className="button" onClick={() => onSelect(product)}>
-              This is my cup <Icon name="plus" size={18} />
-            </button>
-          </div>
-        </div>
-        <div className="story-art">
-          {products.map((p, i) => (
-            <img
-              key={p.id}
-              src={image(p.id)}
-              className="story-product"
-              style={{ opacity: i === 0 ? 1 : 0 }}
-              alt={active === i ? p.short : ""}
-              aria-hidden={active !== i}
-              loading="lazy"
-              width="500"
-              height="700"
-            />
-          ))}
-          <Ingredient kind="bean" className="story-bean" />
-          <Ingredient kind="ice" className="story-ice" />
-          <Ingredient kind="leaf" className="story-leaf" />
-        </div>
-        <div className="ingredient-notes" key={`${product.id}-notes`}>
-          <span className="handwritten">the good stuff</span>
-          {product.ingredients.map((ingredient, i) => (
-            <div key={ingredient}>
-              <span>0{i + 1}</span>
-              {ingredient}
-            </div>
-          ))}
-        </div>
-        <div className="story-navigation">
-          <div className="story-count">
-            <span>0{active + 1}</span> / 06
-          </div>
-          <div className="flavor-tabs" ref={tabsRef} role="group" aria-label="Select a flavor">
-            {products.map((p, i) => (
-              <button
-                key={p.id}
-                onClick={() => goTo(i)}
-                className={active === i ? "active" : ""}
-                aria-label={`Explore ${p.name}`}
-                aria-pressed={active === i}
-              >
-                <span />
-                {p.id === "latte"
-                  ? "Spanish Latte"
-                  : p.id === "matcha"
-                    ? "Matcha Latte"
-                    : p.id === "caramel"
-                      ? "Caramel Macchiato"
-                      : p.id === "strawberry"
-                        ? "Strawberry Latte"
-                        : p.id === "chai"
-                          ? "Chai Latte"
-                          : "Hot Roast"}
-              </button>
-            ))}
-          </div>
-          <button
-            className="icon-button next-flavor"
-            aria-label="Next flavor"
-            onClick={() => goTo((active + 1) % 6)}
-          >
-            <Icon name="arrow" />
-          </button>
-        </div>
-      </div>
-    </section>
   );
 }
 // ↓ APP COMPONENT: Root component with state, cart, and all sections
@@ -1247,6 +1154,7 @@ function App() {
     return "home";
   });
   const isFoodPage = currentPage === "diner-bites";
+  usePageBackground(currentPage);
   const isBeveragesPage = currentPage === "beverages";
   const navigationFrame = useRef(0);
   const foodHref = pageHref("diner-bites");
@@ -1368,7 +1276,7 @@ function App() {
         ? value
             .filter(
               (item: CartItem) =>
-                (products.some((p) => p.id === item.id) ||
+                (!!findProduct(item.id) ||
                   dinerBites.some(
                     (b) => b.id === item.id && !b.sample && b.price !== null,
                   ) ||
@@ -1398,7 +1306,47 @@ function App() {
     }
   });
   const hero = useRef<HTMLElement>(null);
+  const videoHero = useRef<HTMLVideoElement>(null);
+  const videoPlaybackTime = useRef(0);
   const progress = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const video = videoHero.current;
+    if (!video) return;
+
+    if (videoPlaybackTime.current > 0) {
+      video.currentTime = videoPlaybackTime.current;
+    }
+    const rememberPlaybackTime = () => {
+      if (Number.isFinite(video.currentTime)) {
+        videoPlaybackTime.current = video.currentTime;
+      }
+    };
+    video.addEventListener("timeupdate", rememberPlaybackTime);
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let isVisible = false;
+    const syncPlayback = () => {
+      if (reducedMotion.matches || !isVisible) {
+        video.pause();
+        return;
+      }
+      void video.play().catch(() => {});
+    };
+    const observer = new IntersectionObserver(([entry]) => {
+      isVisible = entry.isIntersecting;
+      syncPlayback();
+    }, { threshold: 0.05 });
+
+    observer.observe(video);
+    reducedMotion.addEventListener("change", syncPlayback);
+    return () => {
+      rememberPlaybackTime();
+      observer.disconnect();
+      reducedMotion.removeEventListener("change", syncPlayback);
+      video.removeEventListener("timeupdate", rememberPlaybackTime);
+      video.pause();
+    };
+  }, [currentPage]);
   useEffect(() => {
     document.title = isFoodPage
       ? "Diner Bites & Comfort Plates | Bean Diner"
@@ -1462,18 +1410,30 @@ function App() {
   useEffect(() => {
     let frame = 0;
     const reduced = matchMedia("(prefers-reduced-motion: reduce)");
-    const heading = hero.current?.querySelector<HTMLElement>("h1");
+    const heroSection = hero.current;
+    const heading = hero.current?.querySelector<HTMLElement>("h2");
     const cup = hero.current?.querySelector<HTMLElement>(".hero-product-wrap");
     let viewportHeight = innerHeight;
+    let snapOffset = Number.parseFloat(
+      getComputedStyle(document.documentElement).scrollPaddingTop,
+    ) || 0;
     let maxScroll = 1;
     const paint = () => {
       frame = 0;
-      const y = scrollY;
+      const sectionTop = heroSection?.getBoundingClientRect().top ?? viewportHeight;
+      const y = Math.min(
+        viewportHeight * 1.5,
+        Math.max(0, snapOffset - sectionTop),
+      );
       if (reduced.matches) {
-        if (heading) heading.style.transform = "none";
+        heading?.style.removeProperty("translate");
         if (cup) cup.style.transform = "none";
-      } else if (y < viewportHeight * 1.5) {
-        if (heading) heading.style.transform = `translate3d(${y * -0.08}px,${y * -0.06}px,0)`;
+      } else {
+        if (heading)
+          heading.style.setProperty(
+            "translate",
+            `${y * -0.08}px ${y * -0.06}px`,
+          );
         if (cup) cup.style.transform = `translate3d(${y * 0.1}px,${y * -0.12}px,0) rotate(${y * 0.017}deg)`;
       }
       if (progress.current)
@@ -1484,6 +1444,9 @@ function App() {
     };
     const measure = () => {
       viewportHeight = innerHeight;
+      snapOffset = Number.parseFloat(
+        getComputedStyle(document.documentElement).scrollPaddingTop,
+      ) || 0;
       maxScroll = Math.max(1, document.documentElement.scrollHeight - viewportHeight);
       handle();
     };
@@ -1602,6 +1565,41 @@ function App() {
     add(item);
   };
 
+  const addCoffeeDatePair = () => {
+    const pairItems: CartItem[] = [
+      coffeeDateSaltedCaramel,
+      coffeeDateMatcha,
+    ].map((beverage) => ({
+      key: `bev-${beverage.id}-${coffeeDatePairSize}`,
+      id: beverage.id,
+      name: `${beverage.name} (${coffeeDatePairSizeLabel})`,
+      size: coffeeDatePairSize,
+      temperature: "Over Iced",
+      quantity: 1,
+      price: beverage.prices[coffeeDatePairSize],
+      isFood: false,
+    }));
+
+    announceAdd("Salted Caramel + Matcha coffee date");
+    setCart((current) =>
+      pairItems.reduce((items, item) => {
+        const existing = items.find((candidate) => candidate.key === item.key);
+        return existing
+          ? items.map((candidate) =>
+              candidate.key === item.key
+                ? {
+                    ...candidate,
+                    quantity: Math.min(20, candidate.quantity + item.quantity),
+                  }
+                : candidate,
+            )
+          : [...items, item];
+      }, current),
+    );
+    setSelected(null);
+    setReceipt(false);
+  };
+
   // ↓ ADD MODIFIER: Add add-on or milk substitution to bag
   const addModifier = (mod: BeverageModifier, type: "Add-on" | "Sub") => {
     const item: CartItem = {
@@ -1617,17 +1615,6 @@ function App() {
   };
   const cartCount = cart.reduce((n, i) => n + i.quantity, 0);
   const subtotal = cart.reduce((n, i) => n + i.price * i.quantity, 0);
-  // ↓ BUNDLE DISCOUNT: Two Iced Spanish Lattes for ₱250
-  const eligible = cart
-    .filter(
-      (i) =>
-        i.id === "latte" &&
-        i.size === "16 oz" &&
-        i.milk === "Regular" &&
-        i.temperature === "Iced",
-    )
-    .reduce((n, i) => n + i.quantity, 0);
-  const discount = Math.floor(eligible / 2) * spanishLatteBundleSavings;
   const removeItem = (key: string) =>
     setCart((items) => items.filter((item) => item.key !== key));
   const changeQuantity = (key: string, difference: number) =>
@@ -1646,10 +1633,12 @@ function App() {
       ?.scrollIntoView({ behavior: clickScrollBehavior() });
   };
   // ↓ PRODUCT FILTER: All drinks, Best sellers, Coffee, Not coffee
-  const visibleProducts = products.filter(
+  const isFeaturedBestSeller = (product: Product) =>
+    ["BEST SELLER", "POPULAR", "FAVORITE"].includes(product.badge ?? "");
+  const visibleProducts = heroSelectorProducts.filter(
     (p) =>
       filter === "All drinks" ||
-      (filter === "Best sellers" ? !!p.badge : p.type === filter),
+      (filter === "Best sellers" ? isFeaturedBestSeller(p) : p.type === filter),
   );
   return (
     <>
@@ -1670,36 +1659,16 @@ function App() {
       <a href="#main" className="skip-link">
         Skip to content
       </a>
-      {/* ↓ ANNOUNCEMENT BAR: Promotional banner */}
-      <div className="announcement">
-        <span className="announcement-brand">GOOD FOOD. GREAT COFFEE.</span>
-        <span className="announcement-promo">
-          Two Iced Spanish Lattes for {money(spanishLatteBundlePrice)}.
-        </span>
-        <a href={homeHref("together")} onClick={handlePageLink}>
-          Make it a coffee date <span>↗</span>
-        </a>
-        <span
-          className={`store-status-badge announcement-store-status ${storeStatus.isOpen ? "is-open" : "is-closed"}`}
-          role="status"
-        >
-          <span className="store-status-dot" aria-hidden="true" />
-          {storeStatus.text}
-        </span>
-      </div>
       {/* ↓ HEADER: Logo, navigation, order button, bag */}
       <header className="header" id="home">
-        <Logo href={homeHref("home")} onClick={handlePageLink} />
-        <nav aria-label="Main navigation" className="header-nav">
+        <nav aria-label="Main navigation" className="header-nav header-nav-left">
           <a
             href={beveragesHref}
             onClick={handlePageLink}
             className="nav-item"
             aria-current={isBeveragesPage ? "page" : undefined}
           >
-            <span className="nav-num">01</span>
-            <span className="nav-label">Beverages menu</span>
-            <span className="nav-badge">60+</span>
+            <span className="nav-label">Menu</span>
           </a>
           <a
             href={foodHref}
@@ -1707,70 +1676,58 @@ function App() {
             className="nav-item"
             aria-current={isFoodPage ? "page" : undefined}
           >
-            <span className="nav-num">02</span>
             <span className="nav-label">Diner bites</span>
-            <span className="nav-badge">₱99</span>
           </a>
           <a href={homeHref("menu")} onClick={handlePageLink} className="nav-item">
-            <span className="nav-num">03</span>
-            <span className="nav-label">Top 6 signatures</span>
-          </a>
-          <a href={homeHref("story")} onClick={handlePageLink} className="nav-item">
-            <span className="nav-num">04</span>
-            <span className="nav-label">Our story</span>
-          </a>
-          <a href={homeHref("together")} onClick={handlePageLink} className="nav-item nav-together">
-            <span className="nav-num">05</span>
-            <span className="nav-label">Better together</span>
-            <span className="nav-coffee">✦</span>
-          </a>
-          <a
-            href="https://www.facebook.com/beandiner"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="nav-fb-pill"
-          >
-            <span className="fb-dot" />
-            <span className="fb-text">Facebook</span>
-            <span className="fb-arrow">↗</span>
+            <span className="nav-label">Best sellers</span>
           </a>
         </nav>
-        <div className="header-actions">
-          <a
-            className="button header-order"
-            href={isFoodPage ? "#food-menu" : isBeveragesPage ? "#drinks-menu" : "#menu"}
-            onClick={(e) => {
-              if (cart.length > 0) {
-                e.preventDefault();
+        <Logo href={pageHref("home")} onClick={handlePageLink} />
+        <div className="header-right">
+          <nav aria-label="About and offers" className="header-nav header-nav-right">
+            <a href={homeHref("story")} onClick={handlePageLink} className="nav-item">
+              <span className="nav-label">Our story</span>
+            </a>
+            <a href={homeHref("together")} onClick={handlePageLink} className="nav-item nav-together">
+              <span className="nav-label">Better together</span>
+            </a>
+            <a
+              href="https://www.facebook.com/beandiner"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="nav-fb-icon"
+              aria-label="Visit Bean Diner on Facebook"
+              title="Facebook"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M13.36 21v-8.2h2.76l.41-3.2h-3.17V7.56c0-.93.26-1.57 1.59-1.57h1.7V3.12C16.35 3.04 15.16 3 13.79 3c-2.86 0-4.81 1.75-4.81 4.97V9.6H6v3.2h2.98V21h4.38Z" />
+              </svg>
+            </a>
+          </nav>
+          <div className="header-actions">
+            <button
+              key={`header-bag-${bagBump}`}
+              className={`bag-button ${bagBump > 0 ? "bag-bump-animate" : ""}`}
+              aria-label={`Open bag, ${cartCount} items`}
+              onClick={() => {
                 setBagOpen(true);
                 setReceipt(false);
-              }
-            }}
-          >
-            Order now <Icon name="arrow" size={17} />
-          </a>
-          <button
-            key={`header-bag-${bagBump}`}
-            className={`bag-button ${bagBump > 0 ? "bag-bump-animate" : ""}`}
-            aria-label={`Open bag, ${cartCount} items`}
-            onClick={() => {
-              setBagOpen(true);
-              setReceipt(false);
-              setCheckoutStep("bag");
-            }}
-          >
-            <Icon name="bag" />
-            <span>{cartCount}</span>
-          </button>
-          <button
-            className="icon-button mobile-menu"
-            onClick={() => setNavOpen(true)}
-            aria-label="Open navigation"
-            aria-expanded={navOpen}
-            aria-haspopup="dialog"
-          >
-            <Icon name="menu" />
-          </button>
+                setCheckoutStep("bag");
+              }}
+            >
+              <Icon name="bag" />
+              <span>{cartCount}</span>
+            </button>
+            <button
+              className="icon-button mobile-menu"
+              onClick={() => setNavOpen(true)}
+              aria-label="Open navigation"
+              aria-expanded={navOpen}
+              aria-haspopup="dialog"
+            >
+              <Icon name="menu" />
+            </button>
+          </div>
         </div>
       </header>
       <main id="main">
@@ -1790,51 +1747,75 @@ function App() {
           />
         ) : (
           <>
-        {/* ↓ HERO SECTION: Main landing area with floating cup animation */}
-        <section className="hero" ref={hero}>
+        <section className="video-hero" aria-labelledby="video-hero-title">
+          <video
+            ref={videoHero}
+            className="video-hero-media"
+            poster="./images/bean-diner-video-poster.webp"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            aria-hidden="true"
+            tabIndex={-1}
+          >
+            <source src="./videos/bean-diner-hero-4k30.mp4" type="video/mp4" />
+          </video>
+          <div className="video-hero-content">
+            <h1 id="video-hero-title">
+              Good Coffee,
+              <br />
+              Good Days.
+            </h1>
+            <p>
+              Every day deserves a good cup of coffee. At Bean Diner, we make every sip worth enjoying.
+            </p>
+          </div>
+          <a
+            className="video-hero-scroll"
+            href="#drink-hero"
+            onClick={(event) => {
+              event.preventDefault();
+              document.getElementById("drink-hero")?.scrollIntoView({
+                behavior: clickScrollBehavior(),
+              });
+            }}
+          >
+            <span>Scroll to discover</span>
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 4v15m0 0 6-6m-6 6-6-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </a>
+        </section>
+        {/* ↓ DRINK HERO: Existing signature drink section */}
+        <section id="drink-hero" className="hero" ref={hero}>
           <div className="hero-oval" />
           <div className="hero-heading">
-            <span className="eyebrow">
-              <span className="tiny-star">✦</span> GEN. ANTONIO LUNA ST. ·
-              BAYAMBANG, PANGASINAN
-            </span>
-            <h1>
-              Good food.
-              <br />
-              Great coffee.
-            </h1>
-          </div>
-          <div className="hero-copy">
-            <p>
-              Founded by a Chef trained in the US and a Barista skilled in the
-              Middle East.
-              <br />
-              Authentic diner comfort food &amp; specialty coffee on Antonio Luna Street.
-            </p>
-            <div className="hero-ctas">
-              <a
-                className="button"
-                href="#menu"
-                onClick={(e) => {
-                  if (cart.length > 0) {
-                    e.preventDefault();
-                    setBagOpen(true);
-                    setReceipt(false);
-                  } else handleAnchorLink(e);
-                }}
-              >
-                Order for pickup <Icon name="arrow" />
-              </a>
-              <a className="text-link" href={foodHref} onClick={handlePageLink}>
-                Diner comfort bites <span>↘</span>
-              </a>
+            <div className="hero-heading-copy">
+              <span className="eyebrow">
+                <span className="tiny-star">✦</span> GEN. ANTONIO LUNA ST. ·
+                BAYAMBANG, PANGASINAN
+              </span>
+              <h2>
+                Good food.
+                <br />
+                Great coffee.
+              </h2>
             </div>
+            <a
+              className="button hero-order-cta"
+              href={beveragesHref}
+              onClick={handlePageLink}
+            >
+              Order now <Icon name="arrow" size={17} />
+            </a>
           </div>
           <div className="hero-product-wrap">
             <img
               className="hero-product"
-              src={image("latte")}
-              alt="Bean Diner signature Iced Spanish Latte with espresso, condensed milk, and caramel"
+              src="./images/hero-drinks/salted-caramel-macchiato-header.webp"
+              alt="Bean Diner Iced Salted Caramel Macchiato with sea salt caramel, chilled milk, and espresso"
               fetchPriority="high"
               width="500"
               height="700"
@@ -1856,22 +1837,6 @@ function App() {
             </svg>
             <Sun />
           </div>
-          <div className="hero-scribble">
-            <span className="scribble-star">✦</span>
-            <span className="handwritten">
-              where food heals,
-              <br />
-              coffee understands.
-            </span>
-            <svg viewBox="0 0 100 70" fill="none" aria-hidden="true">
-              <path
-                d="M84 6C83 45 47 65 13 36m1 0 3 18M13 36l21 2"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
           <Ingredient kind="bean" className="hero-bean bean-one" />
           <Ingredient kind="bean" className="hero-bean bean-two" />
           <Ingredient kind="bean" className="hero-bean bean-three" />
@@ -1884,21 +1849,6 @@ function App() {
           <span className="drawn-spark spark-two" aria-hidden="true">
             ✧
           </span>
-          <div className="hero-product-caption">
-            <span className="caption-line" />
-            <div>
-              <span className="eyebrow">BAYAMBANG BEST SELLER</span>
-              <p>
-                {spanishLatte.name} <span>{money(spanishLatte.price)}</span>
-              </p>
-            </div>
-          </div>
-          <a className="scroll-cue" href="#flavors" onClick={handleAnchorLink}>
-            <span>↓</span> A good day starts with a scroll
-          </a>
-          <div className="hero-bottom-note">
-            WHERE THE FOOD HEALS &amp; THE COFFEE UNDERSTANDS
-          </div>
           <svg
             className="hero-wave"
             viewBox="0 0 1440 65"
@@ -1922,8 +1872,7 @@ function App() {
           <span>Bayambang, Pangasinan</span>
           <Sun />
         </div>
-        {/* ↓ SCROLL STORY: Interactive product showcase */}
-        <ScrollStory onSelect={setSelected} />
+
         {/* ↓ MENU SECTION: Product grid with filters */}
         <section id="menu" className="menu-section">
           <div className="menu-heading reveal">
@@ -1935,29 +1884,47 @@ function App() {
               Specialty brews, creamy Oatside lattes, and comforting diner sips.
             </p>
           </div>
-          <section className="social-ordering-guide" aria-labelledby="social-ordering-title">
-            <h3 id="social-ordering-title">How Social Ordering Works</h3>
-            <OrderingSteps />
-          </section>
           <StickyMenuBar label="Signature drink filters" className="home-sticky">
             <div className="menu-toolbar-signature-row">
               <CategoryTabs
                 tabs={[
-                  { id: "All drinks", label: "All drinks", count: 6 },
-                  { id: "Best sellers", label: "Best sellers", count: 3 },
-                  { id: "Coffee", label: "Coffee", count: 4 },
-                  { id: "Not coffee", label: "Not coffee", count: 2 },
+                  {
+                    id: "All drinks",
+                    label: "All drinks",
+                    count: heroSelectorProducts.length,
+                  },
+                  {
+                    id: "Best sellers",
+                    label: "Best sellers",
+                    count: heroSelectorProducts.filter(isFeaturedBestSeller).length,
+                  },
+                  {
+                    id: "Coffee",
+                    label: "Coffee",
+                    count: heroSelectorProducts.filter((p) => p.type === "Coffee").length,
+                  },
+                  {
+                    id: "Not coffee",
+                    label: "Not coffee",
+                    count: heroSelectorProducts.filter((p) => p.type === "Not coffee").length,
+                  },
                 ]}
                 active={filter}
                 onChange={(tabId) => {
-                  setFilter(tabId as any);
-                  requestAnimationFrame(() =>
-                    scrollListIntoView(document.getElementById("drink-menu-products")),
-                  );
+                  const filterRail = document.querySelector<HTMLElement>(".home-sticky");
+                  const previousTop = filterRail?.getBoundingClientRect().top;
+                  setFilter(tabId);
+                  requestAnimationFrame(() => {
+                    if (!filterRail || previousTop === undefined) return;
+                    const offset = filterRail.getBoundingClientRect().top - previousTop;
+                    if (Math.abs(offset) > 0.5) {
+                      window.scrollBy({ top: offset, behavior: "instant" });
+                    }
+                  });
                 }}
                 label="Filter drinks"
               />
-              <span className="menu-size">SIGNATURE 16 OZ CUPS</span>
+              <span className="menu-size">MENU PRICES & SIZES</span>
             </div>
           </StickyMenuBar>
           <div className="product-grid" id="drink-menu-products">
@@ -1971,20 +1938,10 @@ function App() {
                 >
                   {p.badge && <span className="product-badge">{p.badge}</span>}
                   <span className="product-art-word" aria-hidden="true">
-                    {p.id === "latte"
-                      ? "spanish!"
-                      : p.id === "matcha"
-                        ? "matcha!"
-                        : p.id === "caramel"
-                          ? "caramel!"
-                          : p.id === "strawberry"
-                            ? "berry!"
-                            : p.id === "chai"
-                              ? "chai!"
-                              : "roast!"}
+                    {p.word.split(" ")[0].toLowerCase()}!
                   </span>
                   <FadeImage
-                    src={image(p.id)}
+                    src={productImage(p)}
                     alt={p.name}
                     loading="lazy"
                     width={300}
@@ -2002,7 +1959,9 @@ function App() {
                 </div>
                 <p>
                   {p.short}
-                  <span>{p.hot ? "HOT" : "ICED"} / 16 OZ</span>
+                  <span>
+                    {p.fixedTemperature ?? (p.hot ? "Hot" : "Iced")} / {p.defaultSize ?? "16 oz"}
+                  </span>
                 </p>
                 <div className="product-card-actions">
                   <button
@@ -2022,6 +1981,10 @@ function App() {
               Explore beverages menu (60+ brews) <Icon name="arrow" size={18} />
             </a>
           </div>
+          <section className="social-ordering-guide" aria-labelledby="social-ordering-title">
+            <h3 id="social-ordering-title">How Social Ordering Works</h3>
+            <OrderingSteps />
+          </section>
           <p className="menu-footnote">
             Every cup crafted with Benguet highland beans and creamy Oatside oat
             milk. Ask our barista about custom sweetness!
@@ -2035,11 +1998,6 @@ function App() {
               Diner bites &amp;{" "}
               <span className="serif-italic">comfort plates.</span>
             </h2>
-            <p>
-              Crispy chicken wings, loaded nachos, and savory skillets.
-              <br />
-              Student-budget approved, chef-crafted with real flavor.
-            </p>
           </div>
           <div className="product-grid bites-grid bites-preview-grid">
             {dinerBites.slice(0, 2).map((bite) => (
@@ -2121,7 +2079,7 @@ function App() {
             <Sun />
           </div>
         </section>
-        {/* ↓ TOGETHER SECTION: Two-cup bundle offer */}
+        {/* ↓ TOGETHER SECTION: Salted Caramel + Matcha pair */}
         <section className="together-section" id="together">
           <Ingredient kind="bean" className="offer-bean" />
           <div className="offer-copy reveal">
@@ -2137,48 +2095,35 @@ function App() {
               Study sessions, afternoon catchups, or cozy diner merienda on
               Antonio Luna Street.
               <br />
-              Two signature Iced Spanish Lattes, one friendly price.
+              Salted Caramel Macchiato + Matcha Latte, together for one price.
             </p>
             <div className="offer-price">
-              2 cups. {money(spanishLatteBundlePrice)}.{" "}
-              <span>Usually {money(spanishLatte.price * 2)}</span>
+              {money(coffeeDatePairPrice)}
             </div>
             <button
               className="button"
-              onClick={() =>
-                add({
-                  key: "latte-16 oz-Regular-Iced",
-                  id: "latte",
-                  size: "16 oz",
-                  milk: "Regular",
-                  temperature: "Iced",
-                  quantity: 2,
-                  price: spanishLatte.price,
-                })
-              }
+              onClick={addCoffeeDatePair}
             >
               Make it a coffee date <Icon name="arrow" />
             </button>
             <small>
-              Two 16 oz signature Iced Spanish Lattes with regular milk.
-              <br />
-              Bundle savings applied automatically in your bag.
+              One 16 oz Salted Caramel Macchiato + one 16 oz Matcha Latte.
             </small>
           </div>
           <div className="offer-art">
             <span className="offer-orbit" />
             <img
               className="offer-cup cup-left"
-              src={image("latte")}
-              alt="First iced Spanish Latte in the two-cup bundle"
+              src="./images/hero-drinks/salted-caramel-macchiato-header.webp"
+              alt="16 oz Iced Salted Caramel Macchiato"
               loading="lazy"
               width="400"
               height="600"
             />
             <img
               className="offer-cup cup-right"
-              src={image("latte")}
-              alt="Second iced Spanish Latte in the two-cup bundle"
+              src="./images/hero-drinks/drink-06-matcha-latte.webp"
+              alt="16 oz Iced Matcha Latte"
               loading="lazy"
               width="400"
               height="600"
@@ -2234,11 +2179,9 @@ function App() {
             <div className="footer-pill-links">
               <a href={beveragesHref} onClick={handlePageLink} className="footer-pill">
                 <span>Beverages menu</span>
-                <small>60+ artisanal brews</small>
               </a>
               <a href={foodHref} onClick={handlePageLink} className="footer-pill">
                 <span>Diner bites</span>
-                <small>₱99 wings & comfort</small>
               </a>
               <a href={homeHref("menu")} onClick={handlePageLink} className="footer-pill">
                 <span>Top 6 signatures</span>
@@ -2247,21 +2190,6 @@ function App() {
               <a href={homeHref("story")} onClick={handlePageLink} className="footer-pill">
                 <span>Our story</span>
                 <small>Two crafts, one home</small>
-              </a>
-              <a
-                href={getMessengerUrl()}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="footer-pill footer-pill-fb"
-                onClick={(e) => {
-                  if (isMobileDevice() && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
-                    e.preventDefault();
-                    openMessengerApp();
-                  }
-                }}
-              >
-                <span>Chat on Messenger</span>
-                <small>Order & table inquiry</small>
               </a>
             </div>
           </div>
@@ -2325,6 +2253,27 @@ function App() {
           </div>
         </div>
 
+      {/* ↓ FOOTER MESSENGER BUTTON: Direct chat with Bean Diner */}
+      <a
+        href={getMessengerUrl()}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="footer-messenger"
+        aria-label="Chat with Bean Diner on Facebook Messenger"
+        onClick={(e) => {
+          if (isMobileDevice() && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+            e.preventDefault();
+            openMessengerApp();
+          }
+        }}
+      >
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.03 2 11c0 2.87 1.5 5.43 3.84 7.02l-.65 2.45a.75.75 0 0 0 .97.9l2.84-1.22c.96.28 1.97.43 3 .43 5.52 0 10-4.03 10-9s-4.48-9-10-9zm1.06 12.15-2.58-2.75-5.04 2.75 5.54-5.88 2.64 2.75 4.98-2.75-5.54 5.88z" />
+        </svg>
+        <span>Chat with us on Messenger</span>
+      </a>
+
+
         <div className="footer-bottom-bar">
           <div className="footer-copy">
             <span>
@@ -2368,7 +2317,6 @@ function App() {
           product={selected}
           onClose={() => setSelected(null)}
           onAdd={add}
-          bagOfferCups={eligible}
         />
       )}
       {customizingBite && (
@@ -2592,7 +2540,7 @@ function App() {
                 </button>
                 <div className="cart-items">
                   {cart.map((item) => {
-                    const p = products.find((p) => p.id === item.id);
+                    const p = findProduct(item.id);
                     const b = dinerBites.find((b) => b.id === item.id);
                     const bev = allBeverages.find((bev) => bev.id === item.id);
                     const mod = [...beverageAddOns, ...beverageSubs].find((m) => m.id === item.id);
@@ -2620,7 +2568,7 @@ function App() {
                       <div className="cart-item" key={item.key}>
                         {p ? (
                           <img
-                            src={image(p.id)}
+                            src={productImage(p)}
                             alt={p.name}
                             style={{ background: p.color }}
                           />
@@ -2678,26 +2626,14 @@ function App() {
                     );
                   })}
                 </div>
-                {discount > 0 && (
-                  <div className="bundle-note">
-                    <Icon name="check" size={17} />
-                    Better together! Your coffee-date savings are in.
-                  </div>
-                )}
                 <div className="cart-totals">
                   <div>
                     <span>Subtotal</span>
                     <span>{money(subtotal)}</span>
                   </div>
-                  {discount > 0 && (
-                    <div>
-                      <span>Coffee-date savings</span>
-                      <span>−{money(discount)}</span>
-                    </div>
-                  )}
                   <div className="cart-total">
                     <span>Total</span>
-                    <strong aria-live="polite">{money(subtotal - discount)}</strong>
+                    <strong aria-live="polite">{money(subtotal)}</strong>
                   </div>
                 </div>
                 <div className="bag-actions-bar">
@@ -2777,8 +2713,7 @@ function App() {
                         cart,
                         customerName,
                         customerPhone,
-                        subtotal - discount,
-                        discount,
+                        subtotal,
                         checkoutOrderType,
                         checkoutExtra.trim(),
                         checkoutPayment,
@@ -2798,271 +2733,275 @@ function App() {
                       setCheckoutErrors({});
                     }}
                   >
-                    {/* Customer Name */}
-                    <div className="form-group">
-                      <label htmlFor="order-name">
-                        {checkoutOrderType === "dine-in"
-                          ? "Your name for table service"
-                          : checkoutOrderType === "delivery"
-                            ? "Recipient name for delivery"
-                            : "Your name for pickup"}
-                        <span className="required-star"> *</span>
-                      </label>
-                      <input
-                        id="order-name"
-                        name="name"
-                        className={showNameError ? "input-error" : ""}
-                        value={checkoutName}
-                        onChange={(e) => setCheckoutName(e.target.value)}
-                        onFocus={() => {
-                          setFocusedField("name");
-                          setCheckoutErrors((prev) => ({ ...prev, name: null }));
-                        }}
-                        onBlur={() => {
-                          setFocusedField(null);
-                          setCheckoutErrors((prev) => ({
-                            ...prev,
-                            name: validateCustomerName(checkoutName),
-                          }));
-                        }}
-                        aria-invalid={showNameError ? "true" : "false"}
-                        aria-describedby={showNameError ? "order-name-error" : undefined}
-                        autoComplete="name"
-                        placeholder="e.g. Karl Santos"
-                        maxLength={50}
-                      />
-                      {showNameError && (
-                        <span id="order-name-error" className="form-field-error" role="alert">
-                          <Icon name="alert-circle" size={14} /> {checkoutErrors.name}
-                        </span>
-                      )}
-                    </div>
+                    <div className="checkout-form-section">
+                      <fieldset className="checkout-fieldset">
+                        <legend>Order type</legend>
+                        <div className="choice-row order-type-row">
+                          {[
+                            { id: "pickup", label: "For pick up" },
+                            { id: "dine-in", label: "Dine in" },
+                            { id: "delivery", label: "Door to door" },
+                          ].map((t) => (
+                            <label
+                              className={checkoutOrderType === t.id ? "selected" : ""}
+                              key={t.id}
+                            >
+                              <input
+                                type="radio"
+                                name="checkoutOrderType"
+                                checked={checkoutOrderType === t.id}
+                                onChange={() => {
+                                  setCheckoutOrderType(t.id as any);
+                                  setCheckoutExtra("");
+                                  setCheckoutErrors((prev) => ({ ...prev, address: null }));
+                                }}
+                              />
+                              <span>{t.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </fieldset>
 
-                    {/* Pickup / Preferred Time */}
-                    <fieldset className="checkout-fieldset">
-                      <legend>Pickup / Preferred timing</legend>
-                      <div className="timing-choice-row">
-                        {[
-                          "ASAP (~15-20 mins)",
-                          "In 30 mins",
-                          "In 1 hour",
-                          "Custom time",
-                        ].map((timeOption) => (
-                          <label
-                            key={timeOption}
-                            className={checkoutPickupTime === timeOption ? "selected" : ""}
-                          >
-                            <input
-                              type="radio"
-                              name="checkoutPickupTime"
-                              checked={checkoutPickupTime === timeOption}
-                              onChange={() => {
-                                setCheckoutPickupTime(timeOption);
-                                setCheckoutErrors((prev) => ({ ...prev, time: null }));
-                              }}
-                            />
-                            <span>{timeOption}</span>
-                          </label>
-                        ))}
-                      </div>
-                      {checkoutPickupTime === "Custom time" && (
-                        <div className="custom-time-field">
-                          <label htmlFor="checkout-custom-time">Specify time today:</label>
+                      {checkoutOrderType === "dine-in" && (
+                        <div className="order-extra-field">
+                          <label htmlFor="checkout-table">Table number (if seated):</label>
                           <input
-                            id="checkout-custom-time"
-                            name="customTime"
-                            className={showTimeError ? "input-error" : ""}
-                            placeholder="e.g. 2:45 PM or 5:30 PM"
-                            value={checkoutCustomTime}
-                            onChange={(e) => {
-                              setCheckoutCustomTime(e.target.value);
-                              setCheckoutErrors((prev) => ({ ...prev, time: null }));
-                            }}
+                            id="checkout-table"
+                            name="table"
+                            placeholder="e.g. Table 4"
+                            value={checkoutExtra}
+                            onChange={(e) => setCheckoutExtra(e.target.value)}
+                            maxLength={20}
+                          />
+                        </div>
+                      )}
+
+                      {checkoutOrderType === "delivery" && (
+                        <div className="order-extra-field">
+                          <label htmlFor="checkout-address">Delivery address &amp; landmark:</label>
+                          <input
+                            id="checkout-address"
+                            name="address"
+                            className={showAddressError ? "input-error" : ""}
+                            placeholder="Street, Barangay, and Landmark in Bayambang"
+                            value={checkoutExtra}
+                            onChange={(e) => setCheckoutExtra(e.target.value)}
                             onFocus={() => {
-                              setFocusedField("customTime");
-                              setCheckoutErrors((prev) => ({ ...prev, time: null }));
+                              setFocusedField("address");
+                              setCheckoutErrors((prev) => ({ ...prev, address: null }));
                             }}
                             onBlur={() => {
                               setFocusedField(null);
-                              if (!checkoutCustomTime.trim()) {
-                                setCheckoutErrors((prev) => ({
-                                  ...prev,
-                                  time: "Please specify your preferred time",
-                                }));
-                              }
+                              setCheckoutErrors((prev) => ({
+                                ...prev,
+                                address: validateDeliveryAddress(checkoutExtra, checkoutOrderType),
+                              }));
                             }}
-                            aria-invalid={showTimeError ? "true" : "false"}
-                            aria-describedby={showTimeError ? "checkout-time-error" : undefined}
-                            maxLength={30}
+                            aria-invalid={showAddressError ? "true" : "false"}
+                            aria-describedby={showAddressError ? "checkout-address-error" : undefined}
+                            maxLength={150}
                           />
-                          {showTimeError && (
-                            <span id="checkout-time-error" className="form-field-error" role="alert">
-                              <Icon name="alert-circle" size={14} /> {checkoutErrors.time}
+                          {showAddressError && (
+                            <span id="checkout-address-error" className="form-field-error" role="alert">
+                              <Icon name="alert-circle" size={14} /> {checkoutErrors.address}
                             </span>
                           )}
                         </div>
                       )}
-                    </fieldset>
 
-                    {/* Order Note */}
-                    <div className="form-group">
-                      <label htmlFor="order-note">
-                        Order note / special request <small>(optional)</small>
-                      </label>
-                      <input
-                        id="order-note"
-                        name="note"
-                        placeholder="e.g. separate syrup, extra napkins, less sweet"
-                        value={checkoutNote}
-                        onChange={(e) => setCheckoutNote(e.target.value)}
-                        maxLength={140}
-                      />
+                      {checkoutOrderType === "pickup" && (
+                        <div className="pickup-notice">
+                          <small>Pickup: Bean Diner · Gen. Antonio Luna St., Zone 2, Bayambang</small>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Order Type */}
-                    <fieldset className="checkout-fieldset">
-                      <legend>Order type</legend>
-                      <div className="choice-row order-type-row">
-                        {[
-                          { id: "pickup", label: "For pick up" },
-                          { id: "dine-in", label: "Dine in" },
-                          { id: "delivery", label: "Door to door" },
-                        ].map((t) => (
-                          <label
-                            className={checkoutOrderType === t.id ? "selected" : ""}
-                            key={t.id}
-                          >
-                            <input
-                              type="radio"
-                              name="checkoutOrderType"
-                              checked={checkoutOrderType === t.id}
-                              onChange={() => {
-                                setCheckoutOrderType(t.id as any);
-                                setCheckoutExtra("");
-                                setCheckoutErrors((prev) => ({ ...prev, address: null }));
-                              }}
-                            />
-                            <span>{t.label}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </fieldset>
-
-                    {checkoutOrderType === "dine-in" && (
-                      <div className="order-extra-field">
-                        <label htmlFor="checkout-table">Table number (if seated):</label>
+                    <section className="checkout-form-section" aria-labelledby="checkout-contact-heading">
+                      <h3 className="checkout-section-heading" id="checkout-contact-heading">Contact details</h3>
+                      <div className="form-group">
+                        <label htmlFor="order-name">
+                          {checkoutOrderType === "dine-in"
+                            ? "Your name for table service"
+                            : checkoutOrderType === "delivery"
+                              ? "Recipient name for delivery"
+                              : "Your name for pickup"}
+                          <span className="required-star"> *</span>
+                        </label>
                         <input
-                          id="checkout-table"
-                          name="table"
-                          placeholder="e.g. Table 4"
-                          value={checkoutExtra}
-                          onChange={(e) => setCheckoutExtra(e.target.value)}
-                          maxLength={20}
-                        />
-                      </div>
-                    )}
-
-                    {checkoutOrderType === "delivery" && (
-                      <div className="order-extra-field">
-                        <label htmlFor="checkout-address">Delivery address &amp; landmark:</label>
-                        <input
-                          id="checkout-address"
-                          name="address"
-                          className={showAddressError ? "input-error" : ""}
-                          placeholder="Street, Barangay, and Landmark in Bayambang"
-                          value={checkoutExtra}
-                          onChange={(e) => setCheckoutExtra(e.target.value)}
+                          id="order-name"
+                          name="name"
+                          className={showNameError ? "input-error" : ""}
+                          value={checkoutName}
+                          onChange={(e) => setCheckoutName(e.target.value)}
                           onFocus={() => {
-                            setFocusedField("address");
-                            setCheckoutErrors((prev) => ({ ...prev, address: null }));
+                            setFocusedField("name");
+                            setCheckoutErrors((prev) => ({ ...prev, name: null }));
                           }}
                           onBlur={() => {
                             setFocusedField(null);
                             setCheckoutErrors((prev) => ({
                               ...prev,
-                              address: validateDeliveryAddress(checkoutExtra, checkoutOrderType),
+                              name: validateCustomerName(checkoutName),
                             }));
                           }}
-                          aria-invalid={showAddressError ? "true" : "false"}
-                          aria-describedby={showAddressError ? "checkout-address-error" : undefined}
-                          maxLength={150}
+                          aria-invalid={showNameError ? "true" : "false"}
+                          aria-describedby={showNameError ? "order-name-error" : undefined}
+                          autoComplete="name"
+                          placeholder="e.g. Karl Santos"
+                          maxLength={50}
                         />
-                        {showAddressError && (
-                          <span id="checkout-address-error" className="form-field-error" role="alert">
-                            <Icon name="alert-circle" size={14} /> {checkoutErrors.address}
+                        {showNameError && (
+                          <span id="order-name-error" className="form-field-error" role="alert">
+                            <Icon name="alert-circle" size={14} /> {checkoutErrors.name}
                           </span>
                         )}
                       </div>
-                    )}
-
-                    {checkoutOrderType === "pickup" && (
-                      <div className="pickup-notice">
-                        <small>Pickup: Bean Diner · Gen. Antonio Luna St., Zone 2, Bayambang</small>
+                      <div className="form-group">
+                        <label htmlFor="order-phone">
+                          Contact number <span className="required-star">*</span>
+                        </label>
+                        <input
+                          id="order-phone"
+                          name="phone"
+                          type="tel"
+                          inputMode="numeric"
+                          className={showPhoneError ? "input-error" : ""}
+                          value={checkoutPhone}
+                          onChange={(e) => setCheckoutPhone(formatPhoneNumber(e.target.value))}
+                          onFocus={() => {
+                            setFocusedField("phone");
+                            setCheckoutErrors((prev) => ({ ...prev, phone: null }));
+                          }}
+                          onBlur={() => {
+                            setFocusedField(null);
+                            setCheckoutErrors((prev) => ({
+                              ...prev,
+                              phone: validateCustomerPhone(checkoutPhone),
+                            }));
+                          }}
+                          aria-invalid={showPhoneError ? "true" : "false"}
+                          aria-describedby={showPhoneError ? "order-phone-error" : undefined}
+                          autoComplete="tel"
+                          placeholder="09XX-XXX-XXXX"
+                          maxLength={20}
+                        />
+                        {showPhoneError && (
+                          <span id="order-phone-error" className="form-field-error" role="alert">
+                            <Icon name="alert-circle" size={14} /> {checkoutErrors.phone}
+                          </span>
+                        )}
                       </div>
-                    )}
+                    </section>
 
-                    {/* Contact Number */}
-                    <div className="form-group">
-                      <label htmlFor="order-phone">
-                        Contact number <span className="required-star">*</span>
-                      </label>
-                      <input
-                        id="order-phone"
-                        name="phone"
-                        type="tel"
-                        inputMode="numeric"
-                        className={showPhoneError ? "input-error" : ""}
-                        value={checkoutPhone}
-                        onChange={(e) => setCheckoutPhone(formatPhoneNumber(e.target.value))}
-                        onFocus={() => {
-                          setFocusedField("phone");
-                          setCheckoutErrors((prev) => ({ ...prev, phone: null }));
-                        }}
-                        onBlur={() => {
-                          setFocusedField(null);
-                          setCheckoutErrors((prev) => ({
-                            ...prev,
-                            phone: validateCustomerPhone(checkoutPhone),
-                          }));
-                        }}
-                        aria-invalid={showPhoneError ? "true" : "false"}
-                        aria-describedby={showPhoneError ? "order-phone-error" : undefined}
-                        autoComplete="tel"
-                        placeholder="09XX-XXX-XXXX"
-                        maxLength={20}
-                      />
-                      {showPhoneError && (
-                        <span id="order-phone-error" className="form-field-error" role="alert">
-                          <Icon name="alert-circle" size={14} /> {checkoutErrors.phone}
-                        </span>
-                      )}
+                    <div className="checkout-form-section">
+                      <fieldset className="checkout-fieldset">
+                        <legend>Pickup / Preferred timing</legend>
+                        <div className="timing-choice-row">
+                          {[
+                            "ASAP (~15-20 mins)",
+                            "In 30 mins",
+                            "In 1 hour",
+                            "Custom time",
+                          ].map((timeOption) => (
+                            <label
+                              key={timeOption}
+                              className={checkoutPickupTime === timeOption ? "selected" : ""}
+                            >
+                              <input
+                                type="radio"
+                                name="checkoutPickupTime"
+                                checked={checkoutPickupTime === timeOption}
+                                onChange={() => {
+                                  setCheckoutPickupTime(timeOption);
+                                  setCheckoutErrors((prev) => ({ ...prev, time: null }));
+                                }}
+                              />
+                              <span>{timeOption}</span>
+                            </label>
+                          ))}
+                        </div>
+                        {checkoutPickupTime === "Custom time" && (
+                          <div className="custom-time-field">
+                            <label htmlFor="checkout-custom-time">Specify time today:</label>
+                            <input
+                              id="checkout-custom-time"
+                              name="customTime"
+                              className={showTimeError ? "input-error" : ""}
+                              placeholder="e.g. 2:45 PM or 5:30 PM"
+                              value={checkoutCustomTime}
+                              onChange={(e) => {
+                                setCheckoutCustomTime(e.target.value);
+                                setCheckoutErrors((prev) => ({ ...prev, time: null }));
+                              }}
+                              onFocus={() => {
+                                setFocusedField("customTime");
+                                setCheckoutErrors((prev) => ({ ...prev, time: null }));
+                              }}
+                              onBlur={() => {
+                                setFocusedField(null);
+                                if (!checkoutCustomTime.trim()) {
+                                  setCheckoutErrors((prev) => ({
+                                    ...prev,
+                                    time: "Please specify your preferred time",
+                                  }));
+                                }
+                              }}
+                              aria-invalid={showTimeError ? "true" : "false"}
+                              aria-describedby={showTimeError ? "checkout-time-error" : undefined}
+                              maxLength={30}
+                            />
+                            {showTimeError && (
+                              <span id="checkout-time-error" className="form-field-error" role="alert">
+                                <Icon name="alert-circle" size={14} /> {checkoutErrors.time}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </fieldset>
                     </div>
 
-                    {/* Payment Method */}
-                    <fieldset className="checkout-payment-fieldset">
-                      <legend>Payment method</legend>
-                      <div className="payment-choice-row">
-                        {([
-                          { id: "gcash", label: "GCash" },
-                          { id: "maya", label: "Maya" },
-                          { id: "cash", label: "Cash" },
-                        ] as const).map((payment) => (
-                          <label
-                            className={checkoutPayment === payment.id ? "selected" : ""}
-                            key={payment.id}
-                          >
-                            <input
-                              type="radio"
-                              name="checkoutPayment"
-                              value={payment.id}
-                              checked={checkoutPayment === payment.id}
-                              onChange={() => setCheckoutPayment(payment.id)}
-                            />
-                            <span>{payment.label}</span>
-                          </label>
-                        ))}
+                    <div className="checkout-form-section">
+                      <fieldset className="checkout-payment-fieldset">
+                        <legend>Payment method</legend>
+                        <div className="payment-choice-row">
+                          {([
+                            { id: "gcash", label: "GCash" },
+                            { id: "maya", label: "Maya" },
+                            { id: "cash", label: "Cash" },
+                          ] as const).map((payment) => (
+                            <label
+                              className={checkoutPayment === payment.id ? "selected" : ""}
+                              key={payment.id}
+                            >
+                              <input
+                                type="radio"
+                                name="checkoutPayment"
+                                value={payment.id}
+                                checked={checkoutPayment === payment.id}
+                                onChange={() => setCheckoutPayment(payment.id)}
+                              />
+                              <span>{payment.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </fieldset>
+                    </div>
+
+                    <section className="checkout-form-section checkout-form-section-note" aria-labelledby="checkout-note-label">
+                      <div className="form-group">
+                        <label className="checkout-note-label" id="checkout-note-label" htmlFor="order-note">
+                          Order note / special request <small>(optional)</small>
+                        </label>
+                        <input
+                          id="order-note"
+                          name="note"
+                          placeholder="e.g. separate syrup, extra napkins, less sweet"
+                          value={checkoutNote}
+                          onChange={(e) => setCheckoutNote(e.target.value)}
+                          maxLength={140}
+                        />
                       </div>
-                    </fieldset>
+                    </section>
 
                     {/* Prominent Send Order via Messenger button */}
                     <div className="checkout-actions-block">
@@ -3095,7 +3034,7 @@ function App() {
 
                     <div className="checkout-summary-items">
                       {cart.map((item) => {
-                        const p = products.find((p) => p.id === item.id);
+                        const p = findProduct(item.id);
                         const b = dinerBites.find((b) => b.id === item.id);
                         const bev = allBeverages.find((bev) => bev.id === item.id);
                         const mod = [...beverageAddOns, ...beverageSubs].find((m) => m.id === item.id);
@@ -3124,15 +3063,9 @@ function App() {
                         <span>Subtotal ({cartCount} {cartCount === 1 ? "item" : "items"})</span>
                         <span>{money(subtotal)}</span>
                       </div>
-                      {discount > 0 && (
-                        <div className="checkout-summary-row savings">
-                          <span>Coffee-date savings</span>
-                          <span>−{money(discount)}</span>
-                        </div>
-                      )}
                       <div className="checkout-summary-row total">
                         <span>Total</span>
-                        <strong aria-live="polite">{money(subtotal - discount)}</strong>
+                        <strong aria-live="polite">{money(subtotal)}</strong>
                       </div>
                     </div>
 
@@ -3155,23 +3088,20 @@ function App() {
           className="nav-modal"
         >
           <Logo
-            href={homeHref("home")}
+            href={pageHref("home")}
             onClick={handlePageLink}
           />
           <nav className="mobile-nav-list">
             {[
               {
                 num: "01",
-                label: "Beverages menu (60+)",
+                label: "Beverages menu",
                 sub: "Espresso, matcha, teas & cold frappes",
-                badge: "60+ BREWS",
                 href: beveragesHref,
               },
               {
                 num: "02",
                 label: "Diner bites",
-                sub: "₱99 crispy wings & comfort plates",
-                badge: "₱99 WINGS",
                 href: foodHref,
               },
               {
@@ -3190,9 +3120,8 @@ function App() {
                 num: "05",
                 label: "Better together",
                 sub:
-                  "Two-cup coffee date bundle for " +
-                  money(spanishLatteBundlePrice),
-                badge: "SAVE " + money(spanishLatteBundleSavings),
+                  "Salted Caramel + Matcha for " +
+                  money(coffeeDatePairPrice),
                 href: homeHref("together"),
               },
               {
@@ -3216,9 +3145,6 @@ function App() {
                   <div className="mobile-nav-titles">
                     <div className="mobile-nav-heading">
                       <span className="mobile-nav-label">{item.label}</span>
-                      {item.badge && (
-                        <span className="mobile-nav-badge">{item.badge}</span>
-                      )}
                     </div>
                     <span className="mobile-nav-sub">{item.sub}</span>
                   </div>
@@ -3247,30 +3173,13 @@ function App() {
           }}
           aria-label={`View order bag with ${cartCount} items`}
         >
-          <span className="floating-bag-badge">{cartCount}</span>
-          <span className="floating-bag-text">View Order Bag</span>
-          <span className="floating-bag-price">{money(subtotal - discount)}</span>
+          <span className="floating-bag-surface">
+            <span className="floating-bag-badge">{cartCount}</span>
+            <span className="floating-bag-text">View Order Bag</span>
+            <span className="floating-bag-price">{money(subtotal)}</span>
+          </span>
         </button>
       )}
-      {/* ↓ FLOATING MESSENGER BUTTON: Direct chat with Bean Diner */}
-      <a
-        href={getMessengerUrl()}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="floating-messenger"
-        aria-label="Chat with Bean Diner on Facebook Messenger"
-        onClick={(e) => {
-          if (isMobileDevice() && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
-            e.preventDefault();
-            openMessengerApp();
-          }
-        }}
-      >
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-          <path d="M12 2C6.48 2 2 6.03 2 11c0 2.87 1.5 5.43 3.84 7.02l-.65 2.45a.75.75 0 0 0 .97.9l2.84-1.22c.96.28 1.97.43 3 .43 5.52 0 10-4.03 10-9s-4.48-9-10-9zm1.06 12.15-2.58-2.75-5.04 2.75 5.54-5.88 2.64 2.75 4.98-2.75-5.54 5.88z" />
-        </svg>
-        <span>Message Us</span>
-      </a>
     </>
   );
 }
