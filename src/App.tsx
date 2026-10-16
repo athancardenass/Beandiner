@@ -9,6 +9,7 @@ import {
 } from "react";
 import DinerBitesPage from "./DinerBitesPage";
 import BeveragesPage from "./BeveragesPage";
+import OurStoryPage from "./OurStoryPage";
 import { usePageBackground } from "./ui/usePageBackground";
 
 import { dinerBites, type DinerBite } from "./dinerBites";
@@ -20,10 +21,11 @@ import {
   type BeverageModifier,
 } from "./beverages";
 import {
-  CategoryTabs,
   FadeImage,
+  matchesQuery,
+  normalizeQuery,
   PlusIcon,
-  StickyMenuBar,
+  scrollListIntoView,
   useStickyHeaderOffset,
 } from "./ui/menu";
 
@@ -54,12 +56,16 @@ const image = (name: string) => {
   if (name === "hot") return "./images/optimized/hotroast.webp";
   return `./images/optimized/${name}.webp`;
 };
-const menuImage = (name: string) => `./images/menu/${name}.webp`;
-type AppPage = "home" | "diner-bites" | "beverages";
+type AppPage = "home" | "diner-bites" | "beverages" | "our-story";
+const pageFromSearch = (search: string): AppPage => {
+  const page = new URLSearchParams(search).get("page");
+  return page === "diner-bites" || page === "beverages" || page === "our-story"
+    ? page
+    : "home";
+};
 const pageHref = (page: AppPage, anchor = "") => {
   const url = new URL(window.location.href);
-  if (page === "diner-bites") url.searchParams.set("page", "diner-bites");
-  else if (page === "beverages") url.searchParams.set("page", "beverages");
+  if (page !== "home") url.searchParams.set("page", page);
   else url.searchParams.delete("page");
   url.hash = anchor;
   return url.href;
@@ -71,31 +77,16 @@ const clickScrollBehavior = (): ScrollBehavior =>
     : "smooth";
 
 
-const handleAnchorLink = (event: MouseEvent<HTMLAnchorElement>) => {
-  if (
-    event.defaultPrevented || event.button !== 0 || event.metaKey ||
-    event.ctrlKey || event.shiftKey || event.altKey
-  ) return;
-  const url = new URL(event.currentTarget.href);
-  const target = document.getElementById(url.hash.slice(1));
-  if (!target) return;
-  event.preventDefault();
-  if (url.href !== window.location.href) window.history.pushState(null, "", url);
-  const hadTabIndex = target.hasAttribute("tabindex");
-  if (!hadTabIndex) target.tabIndex = -1;
-  target.focus({ preventScroll: true });
-  if (!hadTabIndex) {
-    target.addEventListener("blur", () => target.removeAttribute("tabindex"), { once: true });
-  }
-  target.scrollIntoView({ behavior: clickScrollBehavior() });
-};
-
 const scrollToPageAnchor = (animate = false) => {
   const anchor = window.location.hash.slice(1);
   const behavior = animate ? clickScrollBehavior() : "instant";
   if (!anchor || anchor === "home" || anchor === "top") {
     window.scrollTo({ top: 0, left: 0, behavior });
   } else {
+    if (["drink-menu-products", "signature-drinks", "best-sellers"].includes(anchor)) {
+      scrollListIntoView(document.getElementById("drink-menu-products"), behavior);
+      return;
+    }
     document.getElementById(anchor)?.scrollIntoView({ behavior });
   }
 };
@@ -918,7 +909,9 @@ function ProductModal({
             legend="Hot or iced"
             name="temperature"
             value={temperature}
-            onChange={setTemperature}
+            onChange={(value) => {
+              if (value === "Hot" || value === "Iced") setTemperature(value);
+            }}
             options={[
               { value: "Iced", label: "Iced" },
               { value: "Hot", label: "Hot" },
@@ -1147,24 +1140,24 @@ function BiteCustomizeModal({
 
 function App() {
   useStickyHeaderOffset();
-  const [currentPage, setCurrentPage] = useState<AppPage>(() => {
-    const p = new URLSearchParams(window.location.search).get("page");
-    if (p === "diner-bites") return "diner-bites";
-    if (p === "beverages") return "beverages";
-    return "home";
-  });
+  const [currentPage, setCurrentPage] = useState<AppPage>(() => pageFromSearch(window.location.search));
   const isFoodPage = currentPage === "diner-bites";
   usePageBackground(currentPage);
   const isBeveragesPage = currentPage === "beverages";
+  const isStoryPage = currentPage === "our-story";
   const navigationFrame = useRef(0);
   const foodHref = pageHref("diner-bites");
   const beveragesHref = pageHref("beverages");
+  const storyHref = pageHref("our-story");
+  const signatureHref = pageHref("beverages", "drink-menu-products");
+  const bestSellersHref = pageHref("beverages", "best-sellers");
   const homeHref = (anchor: string) => pageHref("home", anchor);
   const [selected, setSelected] = useState<Product | null>(null);
   const [customizingBite, setCustomizingBite] = useState<DinerBite | null>(null);
   const [bagOpen, setBagOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
-  const [filter, setFilter] = useState("All drinks");
+  const [beverageCategory, setBeverageCategory] = useState("top-6");
+  const [beverageQuery, setBeverageQuery] = useState("");
   const [receipt, setReceipt] = useState(false);
   const [toast, setToast] = useState("");
   const [lastOrder, setLastOrder] = useState("");
@@ -1246,23 +1239,29 @@ function App() {
     if (e) e.preventDefault();
     window.scrollTo({ top: 0, left: 0, behavior: clickScrollBehavior() });
   };
+  const navigateToUrl = (url: URL) => {
+    if (pageFromSearch(url.search) === "beverages") {
+      if (url.hash === "#best-sellers") {
+        setBeverageCategory("best-seller");
+        setBeverageQuery("");
+      } else if (!isBeveragesPage || ["#drink-menu-products", "#signature-drinks"].includes(url.hash)) {
+        setBeverageCategory("top-6");
+        setBeverageQuery("");
+      }
+    }
+    if (url.href !== window.location.href) window.history.pushState(null, "", url);
+    setCurrentPage(pageFromSearch(url.search));
+    setNavOpen(false);
+    cancelAnimationFrame(navigationFrame.current);
+    navigationFrame.current = requestAnimationFrame(() => scrollToPageAnchor(true));
+  };
   const handlePageLink = (event: MouseEvent<HTMLAnchorElement>) => {
     if (
       event.defaultPrevented || event.button !== 0 || event.metaKey ||
       event.ctrlKey || event.shiftKey || event.altKey
     ) return;
     event.preventDefault();
-    const url = new URL(event.currentTarget.href);
-    if (url.href !== window.location.href) {
-      window.history.pushState(null, "", url);
-    }
-    const pageParam = url.searchParams.get("page");
-    if (pageParam === "diner-bites") setCurrentPage("diner-bites");
-    else if (pageParam === "beverages") setCurrentPage("beverages");
-    else setCurrentPage("home");
-    setNavOpen(false);
-    cancelAnimationFrame(navigationFrame.current);
-    navigationFrame.current = requestAnimationFrame(() => scrollToPageAnchor(true));
+    navigateToUrl(new URL(event.currentTarget.href));
   };
   // ↓ CART STATE: Persisted to localStorage with backwards compatibility
   const [cart, setCart] = useState<CartItem[]>(() => {
@@ -1352,16 +1351,20 @@ function App() {
       ? "Diner Bites & Comfort Plates | Bean Diner"
       : isBeveragesPage
       ? "Artisanal Brews & Specialty Sips | Bean Diner"
+      : isStoryPage
+      ? "Our Story | Bean Diner Bayambang"
       : "Bean Diner | Good Food. Great Coffee. Warm Vibes.";
     const description = isFoodPage
       ? "Crispy chicken wings, loaded nachos, rice plates, pasta, sandwiches, and warm croffles at Bean Diner in Bayambang, Pangasinan."
       : isBeveragesPage
       ? "Hot and iced coffee, matcha, chai, milkshakes, and plant-based add-ons at Bean Diner in Bayambang, Pangasinan."
+      : isStoryPage
+      ? "Meet the US-trained Chef and Middle East specialty coffee Barista behind Bean Diner in Bayambang, Pangasinan."
       : "Bean Diner in Bayambang, Pangasinan. Founded by a US-trained Chef & Middle East-skilled Barista. Comfort food, Oatside creations, Benguet highland coffee, and warm community vibes.";
     document
       .querySelector<HTMLMetaElement>('meta[name="description"]')
       ?.setAttribute("content", description);
-  }, [isFoodPage, isBeveragesPage]);
+  }, [isFoodPage, isBeveragesPage, isStoryPage]);
   useEffect(() => {
     const updateStoreStatus = () => setStoreStatus(getStoreStatus());
     const interval = window.setInterval(updateStoreStatus, 60_000);
@@ -1374,10 +1377,11 @@ function App() {
   // Keep browser history and in-page anchors in sync without remounting the cart.
   useEffect(() => {
     const syncLocation = () => {
-      const pageParam = new URLSearchParams(window.location.search).get("page");
-      if (pageParam === "diner-bites") setCurrentPage("diner-bites");
-      else if (pageParam === "beverages") setCurrentPage("beverages");
-      else setCurrentPage("home");
+      setCurrentPage(pageFromSearch(window.location.search));
+      if (pageFromSearch(window.location.search) === "beverages") {
+        setBeverageCategory(window.location.hash === "#best-sellers" ? "best-seller" : "top-6");
+        setBeverageQuery("");
+      }
       setNavOpen(false);
       cancelAnimationFrame(navigationFrame.current);
       navigationFrame.current = requestAnimationFrame(() => scrollToPageAnchor());
@@ -1629,17 +1633,74 @@ function App() {
         .filter((i) => i.quantity > 0),
     );
   const scrollToMenu = () => {
-    document
-      .querySelector(isFoodPage ? "#food-menu" : "#menu")
-      ?.scrollIntoView({ behavior: clickScrollBehavior() });
+    navigateToUrl(new URL(pageHref(isFoodPage ? "diner-bites" : "beverages", isFoodPage ? "food-menu" : "drinks-menu")));
   };
-  // ↓ PRODUCT FILTER: All drinks, Best sellers, Coffee, Not coffee
+  // ↓ PRODUCT FILTER: Top 6, Best seller
   const isFeaturedBestSeller = (product: Product) =>
     ["BEST SELLER", "POPULAR", "FAVORITE"].includes(product.badge ?? "");
   const visibleProducts = heroSelectorProducts.filter(
     (p) =>
-      filter === "All drinks" ||
-      (filter === "Best sellers" ? isFeaturedBestSeller(p) : p.type === filter),
+      (beverageCategory !== "best-seller" || isFeaturedBestSeller(p)) &&
+      matchesQuery(normalizeQuery(beverageQuery), p.name, p.short, p.badge),
+  );
+  const signatureSection = (
+        <section id="signature-drinks" className="signature-menu-section" aria-labelledby="signature-menu-title">
+          <div className="menu-heading">
+            <h3 id="signature-menu-title">
+              {beverageCategory === "best-seller" ? "Best seller" : "Top 6"}{" "}
+              <span className="serif-italic">signatures.</span>
+            </h3>
+            <p>
+              Specialty brews, creamy Oatside lattes, and comforting diner sips.
+            </p>
+          </div>
+          <div className="product-grid">
+            {visibleProducts.map((p) => (
+              <article className="product-card" key={p.id}>
+                <button
+                  className="product-image-button"
+                  style={{ backgroundColor: p.color }}
+                  onClick={() => setSelected(p)}
+                  aria-label={`Customize ${p.name}`}
+                >
+                  {p.badge && <span className="product-badge">{p.badge}</span>}
+                  <span className="product-art-word" aria-hidden="true">
+                    {p.word.split(" ")[0].toLowerCase()}!
+                  </span>
+                  <FadeImage
+                    src={productImage(p)}
+                    alt={p.name}
+                    loading="lazy"
+                    width={300}
+                    height={420}
+                  />
+                </button>
+                <div className="product-card-title">
+                  <h3>
+                    <button onClick={() => setSelected(p)}>{p.name}</button>
+                  </h3>
+                  <span>{money(p.price)}</span>
+                </div>
+                <p>
+                  {p.short}
+                  <span>
+                    {p.fixedTemperature ?? (p.hot ? "Hot" : "Iced")} / {p.defaultSize ?? "16 oz"}
+                  </span>
+                </p>
+                <div className="product-card-actions">
+                  <button
+                    type="button"
+                    className="button menu-add-btn"
+                    onClick={() => setSelected(p)}
+                    aria-label={`Customize ${p.name}`}
+                  >
+                    <PlusIcon size={14} /> Add
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
   );
   return (
     <>
@@ -1679,14 +1740,14 @@ function App() {
           >
             <span className="nav-label">Diner bites</span>
           </a>
-          <a href={homeHref("menu")} onClick={handlePageLink} className="nav-item">
+          <a href={bestSellersHref} onClick={handlePageLink} className="nav-item">
             <span className="nav-label">Best sellers</span>
           </a>
         </nav>
         <Logo href={pageHref("home")} onClick={handlePageLink} />
         <div className="header-right">
           <nav aria-label="About and offers" className="header-nav header-nav-right">
-            <a href={homeHref("story")} onClick={handlePageLink} className="nav-item">
+            <a href={storyHref} onClick={handlePageLink} className="nav-item" aria-current={isStoryPage ? "page" : undefined}>
               <span className="nav-label">Our story</span>
             </a>
             <a href={homeHref("together")} onClick={handlePageLink} className="nav-item nav-together">
@@ -1735,17 +1796,24 @@ function App() {
         {isFoodPage ? (
           <DinerBitesPage
             onAdd={addBite}
-            drinksHref={beveragesHref}
-            onNavigate={handlePageLink}
           />
         ) : isBeveragesPage ? (
           <BeveragesPage
             onAdd={addBeverage}
             onAddModifier={addModifier}
-            foodHref={foodHref}
-            signatureHref={homeHref("menu")}
-            onNavigate={handlePageLink}
+            signatureSection={signatureSection}
+            activeCategory={beverageCategory}
+            onCategoryChange={setBeverageCategory}
+            query={beverageQuery}
+            onQueryChange={setBeverageQuery}
+            signatureCounts={{
+              top6: heroSelectorProducts.length,
+              bestSeller: heroSelectorProducts.filter(isFeaturedBestSeller).length,
+              matches: visibleProducts.length,
+            }}
           />
+        ) : isStoryPage ? (
+          <OurStoryPage />
         ) : (
           <>
         <section className="video-hero" aria-labelledby="video-hero-title">
@@ -1859,224 +1927,9 @@ function App() {
           >
             <path
               d="M0 31C220 80 380 0 690 26s510 66 750-7v46H0Z"
-              fill="var(--cream, #FFF0D6)"
+              fill="var(--surface-dark, #121212)"
             />
           </svg>
-        </section>
-        {/* ↓ MANIFESTO STRIP: Brand tagline marquee */}
-        <div className="manifesto-strip">
-          <span>Where the food heals</span>
-          <Sun />
-          <span>Good food, great coffee</span>
-          <Sun />
-          <span>Warm community vibes</span>
-          <Sun />
-          <span>Bayambang, Pangasinan</span>
-          <Sun />
-        </div>
-
-        {/* ↓ MENU SECTION: Product grid with filters */}
-        <section id="menu" className="menu-section">
-          <div className="menu-heading reveal">
-            <span className="eyebrow">FRESHLY BREWED IN BAYAMBANG</span>
-            <h2>
-              What's your <span className="serif-italic">order?</span>
-            </h2>
-            <p>
-              Specialty brews, creamy Oatside lattes, and comforting diner sips.
-            </p>
-          </div>
-          <StickyMenuBar label="Signature drink filters" className="home-sticky">
-            <div className="menu-toolbar-signature-row">
-              <CategoryTabs
-                tabs={[
-                  {
-                    id: "All drinks",
-                    label: "All drinks",
-                    count: heroSelectorProducts.length,
-                  },
-                  {
-                    id: "Best sellers",
-                    label: "Best sellers",
-                    count: heroSelectorProducts.filter(isFeaturedBestSeller).length,
-                  },
-                  {
-                    id: "Coffee",
-                    label: "Coffee",
-                    count: heroSelectorProducts.filter((p) => p.type === "Coffee").length,
-                  },
-                  {
-                    id: "Not coffee",
-                    label: "Not coffee",
-                    count: heroSelectorProducts.filter((p) => p.type === "Not coffee").length,
-                  },
-                ]}
-                active={filter}
-                onChange={(tabId) => {
-                  const filterRail = document.querySelector<HTMLElement>(".home-sticky");
-                  const previousTop = filterRail?.getBoundingClientRect().top;
-                  setFilter(tabId);
-                  requestAnimationFrame(() => {
-                    if (!filterRail || previousTop === undefined) return;
-                    const offset = filterRail.getBoundingClientRect().top - previousTop;
-                    if (Math.abs(offset) > 0.5) {
-                      window.scrollBy({ top: offset, behavior: "instant" });
-                    }
-                  });
-                }}
-                label="Filter drinks"
-              />
-              <span className="menu-size">MENU PRICES & SIZES</span>
-            </div>
-          </StickyMenuBar>
-          <div className="product-grid" id="drink-menu-products">
-            {visibleProducts.map((p) => (
-              <article className="product-card" key={p.id}>
-                <button
-                  className="product-image-button"
-                  onClick={() => setSelected(p)}
-                  aria-label={`Customize ${p.name}`}
-                  style={{ backgroundColor: p.color }}
-                >
-                  {p.badge && <span className="product-badge">{p.badge}</span>}
-                  <span className="product-art-word" aria-hidden="true">
-                    {p.word.split(" ")[0].toLowerCase()}!
-                  </span>
-                  <FadeImage
-                    src={productImage(p)}
-                    alt={p.name}
-                    loading="lazy"
-                    width={300}
-                    height={420}
-                  />
-                </button>
-                <div className="product-card-title">
-                  <h3>
-                    <button onClick={() => setSelected(p)}>{p.name}</button>
-                  </h3>
-                  <span>{money(p.price)}</span>
-                </div>
-                <p>
-                  {p.short}
-                  <span>
-                    {p.fixedTemperature ?? (p.hot ? "Hot" : "Iced")} / {p.defaultSize ?? "16 oz"}
-                  </span>
-                </p>
-                <div className="product-card-actions">
-                  <button
-                    type="button"
-                    className="button menu-add-btn"
-                    onClick={() => setSelected(p)}
-                    aria-label={`Customize ${p.name}`}
-                  >
-                    <PlusIcon size={14} /> Add
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-          <div className="bites-preview-link">
-            <a className="button button-outline" href={beveragesHref} onClick={handlePageLink}>
-              Explore beverages menu (60+ brews) <Icon name="arrow" size={18} />
-            </a>
-          </div>
-          <section className="social-ordering-guide" aria-labelledby="social-ordering-title">
-            <h3 id="social-ordering-title">How Social Ordering Works</h3>
-            <OrderingSteps />
-          </section>
-          <p className="menu-footnote">
-            Every cup crafted with Benguet highland beans and creamy Oatside oat
-            milk. Ask our barista about custom sweetness!
-          </p>
-        </section>
-        {/* ↓ DINER BITES SECTION: US-Trained Chef comfort kitchen plates */}
-        <section id="bites" className="menu-section bites-section">
-          <div className="menu-heading reveal">
-            <span className="eyebrow">US-TRAINED CHEF'S COMFORT KITCHEN</span>
-            <h2>
-              Diner bites &amp;{" "}
-              <span className="serif-italic">comfort plates.</span>
-            </h2>
-          </div>
-          <div className="product-grid bites-grid bites-preview-grid">
-            {dinerBites.slice(0, 2).map((bite) => (
-              <article className="product-card bite-card" key={bite.id}>
-                <div className="bite-top-badge">
-                  <span className="product-badge">{bite.badge}</span>
-                  <span className="bite-subtag">{bite.tag}</span>
-                </div>
-                <div className="bite-card-body">
-                  <span className="bite-subheading">{bite.subtitle}</span>
-                  <h3>{bite.name}</h3>
-                  <p>{bite.description}</p>
-                </div>
-                <div className="bite-card-footer">
-                  <div className="bite-price-block">
-                    <span className="bite-price-label">Price</span>
-                    <strong>
-                      {bite.price === null ? "Price TBD" : money(bite.price)}
-                    </strong>
-                  </div>
-                  <button
-                    className="button button-small"
-                    onClick={() => addBite(bite)}
-                    aria-label={`Add ${bite.name} to bag`}
-                  >
-                    Add to bag <Icon name="plus" size={16} />
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-          <div className="bites-preview-link">
-            <a className="button" href={foodHref} onClick={handlePageLink}>
-              Explore all diner bites <Icon name="arrow" size={18} />
-            </a>
-          </div>
-          <p className="menu-footnote">
-            Freshly prepared to order on Antonio Luna Street. Dine in or take
-            away!
-          </p>
-        </section>
-        {/* ↓ BRAND STORY: Editorial photo + brand narrative */}
-        <section className="brand-story" id="story">
-          <div className="brand-photo reveal">
-            <img
-              src={menuImage("diner-showcase")}
-              alt="Refreshing Bean Diner signature ice drinks served at Bayambang café"
-              loading="lazy"
-              width="1000"
-              height="750"
-            />
-            <span className="photo-note handwritten">
-              Good coffee tastes better when it’s shared. Tara, kape tayo sa Bean Diner.
-            </span>
-          </div>
-          <div className="brand-copy reveal">
-            <span className="eyebrow">
-              TWO CRAFTS. ONE COMMUNITY. BAYAMBANG, PANGASINAN.
-            </span>
-            <h2>
-              Not just coffee.
-              <br />A true <em>diner home.</em>
-            </h2>
-            <p>
-              Bean Diner was founded by a Chef trained in the culinary kitchens
-              of the US and a Barista skilled in the specialty coffee culture of
-              the Middle East.
-            </p>
-            <p>
-              Right here on Gen. Antonio Luna Street in Bayambang, we bring
-              together honest comfort food—from our ₱99 student-budget honey
-              butter wings to loaded Mexican nachos—with specialty third-wave
-              coffee brewed from Benguet highland farms and creamy Oatside oat
-              milk.
-            </p>
-            <span className="brand-signature handwritten">
-              Tara, kain at kape tayo.
-            </span>
-            <Sun />
-          </div>
         </section>
         {/* ↓ TOGETHER SECTION: Salted Caramel + Matcha pair */}
         <section className="together-section" id="together">
@@ -2143,7 +1996,7 @@ function App() {
             <br />
             <em>Another cup?</em>
           </h2>
-          <a href="#menu" className="button" onClick={handleAnchorLink}>
+          <a href={beveragesHref} className="button" onClick={handlePageLink}>
             Explore the menu <Icon name="arrow" />
           </a>
           <Ingredient kind="cherry" className="final-cherry" />
@@ -2154,6 +2007,7 @@ function App() {
         )}
       </main>
       {/* ↓ FOOTER: Elevated artisanal diner footer */}
+      {!isFoodPage && !isBeveragesPage && !isStoryPage && (
       <footer className="footer-artisanal">
         <div className="footer-inner">
           <div className="footer-brand-col">
@@ -2182,11 +2036,11 @@ function App() {
               <a href={foodHref} onClick={handlePageLink} className="footer-pill">
                 <span>Diner bites</span>
               </a>
-              <a href={homeHref("menu")} onClick={handlePageLink} className="footer-pill">
+              <a href={signatureHref} onClick={handlePageLink} className="footer-pill">
                 <span>Top 6 signatures</span>
                 <small>Bestsellers & lattes</small>
               </a>
-              <a href={homeHref("story")} onClick={handlePageLink} className="footer-pill">
+              <a href={storyHref} onClick={handlePageLink} className="footer-pill" aria-current={isStoryPage ? "page" : undefined}>
                 <span>Our story</span>
                 <small>Two crafts, one home</small>
               </a>
@@ -2291,6 +2145,7 @@ function App() {
           </a>
         </div>
       </footer>
+      )}
       {/* ↓ TOAST: Add-to-bag confirmation with Undo */}
       {toast && (
         <div role="status" className="toast toast-with-undo" aria-live="polite">
@@ -2533,7 +2388,10 @@ function App() {
                 <button
                   type="button"
                   className="button button-order-more"
-                  onClick={() => setBagOpen(false)}
+                  onClick={() => {
+                    setBagOpen(false);
+                    scrollToMenu();
+                  }}
                 >
                   + Order More / Browse Menu
                 </button>
@@ -3107,13 +2965,13 @@ function App() {
                 num: "03",
                 label: "Top 6 signatures",
                 sub: "Benguet highland coffee & Oatside lattes",
-                href: homeHref("menu"),
+                href: signatureHref,
               },
               {
                 num: "04",
                 label: "Our story",
                 sub: "US Chef & Middle East Barista roots",
-                href: homeHref("story"),
+                href: storyHref,
               },
               {
                 num: "05",
@@ -3136,6 +2994,7 @@ function App() {
                 href={item.href}
                 target={item.isExternal ? "_blank" : undefined}
                 rel={item.isExternal ? "noopener noreferrer" : undefined}
+                aria-current={isStoryPage && item.href === storyHref ? "page" : undefined}
                 onClick={item.isExternal ? () => setNavOpen(false) : handlePageLink}
                 className={`mobile-nav-item ${item.isExternal ? "mobile-nav-fb" : ""}`}
               >

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type MouseEvent } from "react";
+import { useMemo, useRef, useState } from "react";
 import { foodCategories, type DinerBite } from "./dinerBites";
 import {
   CategoryTabs,
@@ -15,8 +15,6 @@ import {
 
 type DinerBitesPageProps = {
   onAdd: (bite: DinerBite) => void;
-  drinksHref: string;
-  onNavigate: (event: MouseEvent<HTMLAnchorElement>) => void;
 };
 
 const money = (amount: number | null) =>
@@ -64,12 +62,12 @@ function FoodItem({
 
 export default function DinerBitesPage({
   onAdd,
-  drinksHref,
-  onNavigate,
 }: DinerBitesPageProps) {
-  const [activeCategory, setActiveCategory] = useState<string>("all");
+  const [activeCategory, setActiveCategory] = useState(foodCategories[0].id);
+  const [mobileCategoriesOpen, setMobileCategoriesOpen] = useState(false);
   const [query, setQuery] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
+  const mobileCategoryTriggerRef = useRef<HTMLButtonElement>(null);
 
   const totalDishes = foodCategories.reduce(
     (acc, cat) => acc + cat.items.length,
@@ -81,7 +79,7 @@ export default function DinerBitesPage({
   const visibleCategories = useMemo(
     () =>
       foodCategories
-        .filter((cat) => activeCategory === "all" || cat.id === activeCategory)
+        .filter((cat) => cat.id === activeCategory)
         .map((cat) => ({
           ...cat,
           items: cat.items.filter((bite) =>
@@ -106,18 +104,32 @@ export default function DinerBitesPage({
     0,
   );
 
-  const tabs = [
-    { id: "all", label: "All Menu", count: totalDishes },
-    ...foodCategories.map((cat) => ({
-      id: cat.id,
-      label: cat.name,
-      count: cat.items.length,
-    })),
-  ];
+  const tabs = foodCategories.map((cat) => ({
+    id: cat.id,
+    label: cat.name,
+    count: cat.items.length,
+  }));
+  const mobileFeaturedTabs = tabs.slice(0, 2).map(({ id, label }) => ({
+    id,
+    label: id === "croffles" ? "Croffles" : label,
+  }));
+  const moreCategoryTabs = tabs.slice(2);
+  const activeCategoryLabel =
+    tabs.find((tab) => tab.id === activeCategory)?.label ?? tabs[0].label;
+  const mobileCategoryTriggerLabel =
+    mobileFeaturedTabs.some((tab) => tab.id === activeCategory)
+      ? "Browse categories"
+      : activeCategoryLabel;
 
   const changeCategory = (id: string) => {
+    setMobileCategoriesOpen(false);
     setActiveCategory(id);
-    scrollListIntoView(listRef.current);
+    requestAnimationFrame(() => scrollListIntoView(listRef.current));
+  };
+
+  const changeMobileCategory = (id: string) => {
+    changeCategory(id);
+    mobileCategoryTriggerRef.current?.focus({ preventScroll: true });
   };
 
   return (
@@ -167,15 +179,75 @@ export default function DinerBitesPage({
               value={query}
               onChange={setQuery}
               label="Search diner bites"
-              placeholder="Search comfort plates or bites..."
+              placeholder="Search this category..."
             />
           )}
           <CategoryTabs
+            className="food-category-tabs-desktop"
             tabs={tabs}
             active={activeCategory}
             onChange={changeCategory}
             label="Food categories"
           />
+          <div className="food-category-tabs-mobile">
+            <CategoryTabs
+              className="food-category-tabs-mobile__tabs"
+              tabs={mobileFeaturedTabs}
+              active={activeCategory}
+              onChange={changeCategory}
+              label="Featured food categories"
+            />
+            <button
+              type="button"
+              className="food-category-disclosure__trigger"
+              ref={mobileCategoryTriggerRef}
+              aria-expanded={mobileCategoriesOpen}
+              aria-controls="food-category-mobile-list"
+              aria-label={`Browse categories. Currently browsing ${activeCategoryLabel}`}
+              onClick={() => setMobileCategoriesOpen((open) => !open)}
+            >
+              <span className="food-category-disclosure__trigger-label">
+                {mobileCategoryTriggerLabel}
+              </span>
+            </button>
+            <div
+              className="food-category-disclosure__panel"
+              id="food-category-mobile-list"
+              hidden={!mobileCategoriesOpen}
+            >
+              <p className="food-category-disclosure__current">
+                Currently browsing <strong>{activeCategoryLabel}</strong>
+              </p>
+              <div
+                className="food-category-disclosure__list"
+                role="group"
+                aria-label="More food categories"
+              >
+                {moreCategoryTabs.map((tab) => {
+                  const isActive = tab.id === activeCategory;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      data-tab={tab.id}
+                      className={`chip menu-tab${isActive ? " active" : ""}`}
+                      aria-pressed={isActive}
+                      onClick={() => changeMobileCategory(tab.id)}
+                    >
+                      <span>{tab.label}</span>
+                      {isActive ? (
+                        <span className="food-category-current-marker">Selected</span>
+                      ) : (
+                        <span className="menu-tab-count" aria-label={`${tab.count} items`}>
+                          {tab.count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </StickyMenuBar>
 
         <MenuResultsNote query={q ? query : ""} count={resultCount} />
@@ -184,20 +256,18 @@ export default function DinerBitesPage({
         <div className="food-categories-container" ref={listRef}>
           {q && resultCount === 0 && (
             <div className="menu-empty">
-              <h3>Nothing on the menu by that name.</h3>
+              <h3>No matches found.</h3>
               <p>
-                Try searching for wings, fries, nachos, or pasta, or browse every
-                category.
+                Try a different search or clear it to return to the selected category.
               </p>
               <button
                 type="button"
                 className="button"
                 onClick={() => {
                   setQuery("");
-                  setActiveCategory("all");
                 }}
               >
-                Show all menu items
+                Clear search
               </button>
             </div>
           )}
@@ -233,21 +303,6 @@ export default function DinerBitesPage({
             </section>
           ))}
         </div>
-
-        <p className="food-page-menu-note">
-          Freshly prepared to order on Antonio Luna Street. Dine in or take
-          away!
-        </p>
-      </section>
-
-      <section className="food-page-drinks" aria-labelledby="food-page-drinks-title">
-        <h2 id="food-page-drinks-title">
-          Something to <em>sip with that?</em>
-        </h2>
-        <p>Specialty brews, creamy Oatside lattes, and comforting diner sips.</p>
-        <a className="button" href={drinksHref} onClick={onNavigate}>
-          Explore our drinks
-        </a>
       </section>
     </>
   );

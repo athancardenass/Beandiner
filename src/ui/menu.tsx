@@ -237,14 +237,17 @@ export function CategoryTabs({
   onChange,
   label,
   className = "",
+  scrollControls = false,
 }: {
   tabs: MenuTab[];
   active: string;
   onChange: (id: string) => void;
   label: string;
   className?: string;
+  scrollControls?: boolean;
 }) {
   const rail = useRef<HTMLDivElement>(null);
+  const [scrollState, setScrollState] = useState({ left: false, right: false });
 
   useEffect(() => {
     const button = rail.current?.querySelector<HTMLButtonElement>(
@@ -259,7 +262,78 @@ export function CategoryTabs({
     });
   }, [active]);
 
-  return (
+  useEffect(() => {
+    const container = rail.current;
+    if (!container || !scrollControls) return;
+
+    let frame = 0;
+    const update = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const bounds = container.getBoundingClientRect();
+        const buttons = container.querySelectorAll<HTMLButtonElement>(".menu-tab");
+        buttons.forEach((button) => {
+          const buttonBounds = button.getBoundingClientRect();
+          button.dataset.edgeClipped = String(
+            buttonBounds.left < bounds.left - 0.5 ||
+              buttonBounds.right > bounds.right + 0.5,
+          );
+        });
+
+        const firstButton = buttons[0];
+        const startOffset = firstButton
+          ? Math.max(
+              0,
+              container.scrollLeft + firstButton.getBoundingClientRect().left - bounds.left - 4,
+            )
+          : 0;
+        const next = {
+          left: container.scrollLeft > startOffset + 1,
+          right: container.scrollLeft + container.clientWidth < container.scrollWidth - 1,
+        };
+        setScrollState((previous) =>
+          previous.left === next.left && previous.right === next.right ? previous : next,
+        );
+      });
+    };
+
+    update();
+    container.addEventListener("scroll", update, { passive: true });
+    const resizeObserver = new ResizeObserver(update);
+    resizeObserver.observe(container);
+    container.querySelectorAll(".menu-tab").forEach((button) => resizeObserver.observe(button));
+
+    return () => {
+      cancelAnimationFrame(frame);
+      container.removeEventListener("scroll", update);
+      resizeObserver.disconnect();
+    };
+  }, [scrollControls, tabs.length]);
+
+  const scrollToNextCategory = (direction: -1 | 1) => {
+    const container = rail.current;
+    if (!container) return;
+
+    const bounds = container.getBoundingClientRect();
+    const buttons = Array.from(container.querySelectorAll<HTMLButtonElement>(".menu-tab"));
+    const target =
+      direction > 0
+        ? buttons.find((button) => button.getBoundingClientRect().right > bounds.right - 0.5)
+        : [...buttons]
+            .reverse()
+            .find((button) => button.getBoundingClientRect().left < bounds.left + 0.5);
+
+    if (!target) return;
+
+    const targetLeft =
+      container.scrollLeft + target.getBoundingClientRect().left - bounds.left - 4;
+    container.scrollTo({
+      left: Math.max(0, targetLeft),
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+    });
+  };
+
+  const tabsRail = (
     <div ref={rail} className={`chips menu-tabs${className ? ` ${className}` : ""}`} role="group" aria-label={label}>
       {tabs.map((tab) => {
         const isActive = tab.id === active;
@@ -283,10 +357,40 @@ export function CategoryTabs({
       })}
     </div>
   );
+
+  if (!scrollControls) return tabsRail;
+
+  return (
+    <div className={`menu-tabs-scroll-frame${className ? ` ${className}-frame` : ""}`}>
+      <button
+        type="button"
+        className="bev-category-scroll-control"
+        aria-label={`Scroll ${label.toLowerCase()} left`}
+        disabled={!scrollState.left}
+        onClick={() => scrollToNextCategory(-1)}
+      >
+        <svg aria-hidden="true" viewBox="0 0 16 16">
+          <path d="m10 3-5 5 5 5" />
+        </svg>
+      </button>
+      {tabsRail}
+      <button
+        type="button"
+        className="bev-category-scroll-control"
+        aria-label={`Scroll ${label.toLowerCase()} right`}
+        disabled={!scrollState.right}
+        onClick={() => scrollToNextCategory(1)}
+      >
+        <svg aria-hidden="true" viewBox="0 0 16 16">
+          <path d="m6 3 5 5-5 5" />
+        </svg>
+      </button>
+    </div>
+  );
 }
 
 /* Smooth scroll so list top sits just below the pinned toolbar. */
-export function scrollListIntoView(list: HTMLElement | null) {
+export function scrollListIntoView(list: HTMLElement | null, behavior?: ScrollBehavior) {
   if (!list) return;
   const bar = document.querySelector<HTMLElement>(".menu-sticky");
 
@@ -294,7 +398,7 @@ export function scrollListIntoView(list: HTMLElement | null) {
   const stickyTop =
     parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--sticky-top")) || 0;
   const target = list.getBoundingClientRect().top + window.scrollY - stickyTop - bar.offsetHeight - 12;
-  window.scrollTo({ top: target, behavior: prefersReducedMotion() ? "auto" : "smooth" });
+  window.scrollTo({ top: target, behavior: behavior ?? (prefersReducedMotion() ? "auto" : "smooth") });
 }
 
 /* Publishes the pinned header height (mobile only, where the header is sticky)

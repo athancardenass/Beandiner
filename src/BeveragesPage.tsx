@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type MouseEvent } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import {
   beverageCategories,
   beverageAddOns,
@@ -22,9 +22,12 @@ import {
 type BeveragesPageProps = {
   onAdd: (bev: BeverageItem, size: string, price: number) => void;
   onAddModifier: (mod: BeverageModifier, type: "Add-on" | "Sub") => void;
-  foodHref: string;
-  signatureHref: string;
-  onNavigate: (event: MouseEvent<HTMLAnchorElement>) => void;
+  signatureSection: ReactNode;
+  activeCategory: string;
+  onCategoryChange: (id: string) => void;
+  query: string;
+  onQueryChange: (query: string) => void;
+  signatureCounts: { top6: number; bestSeller: number; matches: number };
 };
 
 const money = (amount: number) =>
@@ -106,13 +109,16 @@ function BeverageCard({
 export default function BeveragesPage({
   onAdd,
   onAddModifier,
-  foodHref,
-  signatureHref,
-  onNavigate,
+  signatureSection,
+  activeCategory,
+  onCategoryChange,
+  query,
+  onQueryChange,
+  signatureCounts,
 }: BeveragesPageProps) {
-  const [activeCategory, setActiveCategory] = useState<string>("all");
-  const [query, setQuery] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
+  const [mobileCategoriesOpen, setMobileCategoriesOpen] = useState(false);
+  const mobileCategoryTriggerRef = useRef<HTMLButtonElement>(null);
 
   const totalDrinks = beverageCategories.reduce(
     (acc, cat) => acc + cat.items.length,
@@ -124,7 +130,7 @@ export default function BeveragesPage({
   const visibleCategories = useMemo(
     () =>
       beverageCategories
-        .filter((cat) => activeCategory === "all" || cat.id === activeCategory)
+        .filter((cat) => q || cat.id === activeCategory)
         .map((cat) => ({
           ...cat,
           items: cat.items.filter((bev) =>
@@ -135,22 +141,25 @@ export default function BeveragesPage({
     [activeCategory, q],
   );
 
-  const modifiersInView =
-    activeCategory === "all" || activeCategory === "modifiers";
   const addOns = beverageAddOns.filter((m) => matchesQuery(q, m.name));
   const subs = beverageSubs.filter((m) => matchesQuery(q, m.name));
   const showModifiers =
-    modifiersInView && (addOns.length > 0 || subs.length > 0);
+    activeCategory === "modifiers" && (addOns.length > 0 || subs.length > 0);
 
   const drinkMatches = visibleCategories.reduce(
     (n, cat) => n + cat.items.length,
     0,
   );
   const modifierMatches = showModifiers ? addOns.length + subs.length : 0;
-  const resultCount = drinkMatches + modifierMatches;
+  const isSignatureCategory =
+    !q && (activeCategory === "top-6" || activeCategory === "best-seller");
+  const resultCount = isSignatureCategory
+    ? signatureCounts.matches
+    : drinkMatches + modifierMatches;
 
   const tabs = [
-    { id: "all", label: "All drinks", count: totalDrinks },
+    { id: "top-6", label: "Top 6 signatures", count: signatureCounts.top6 },
+    { id: "best-seller", label: "Best seller", count: signatureCounts.bestSeller },
     ...beverageCategories.map((cat) => ({
       id: cat.id,
       label: cat.name.replace(/^Hot Beverage - (Hot )?/, "Hot ").replace(" - ", ": "),
@@ -162,10 +171,27 @@ export default function BeveragesPage({
       count: beverageAddOns.length + beverageSubs.length,
     },
   ];
+  const mobileFeaturedTabs = [
+    { id: tabs[0].id, label: "Top 6" },
+    { id: tabs[1].id, label: tabs[1].label },
+  ];
+  const moreCategoryTabs = tabs.slice(2);
+  const activeCategoryLabel =
+    tabs.find((tab) => tab.id === activeCategory)?.label ?? tabs[0].label;
+  const mobileCategoryTriggerLabel =
+    activeCategory === "top-6" || activeCategory === "best-seller"
+      ? "Browse categories"
+      : activeCategoryLabel;
 
   const changeCategory = (id: string) => {
-    setActiveCategory(id);
-    scrollListIntoView(listRef.current);
+    setMobileCategoriesOpen(false);
+    onCategoryChange(id);
+    requestAnimationFrame(() => scrollListIntoView(listRef.current));
+  };
+
+  const changeMobileCategory = (id: string) => {
+    changeCategory(id);
+    mobileCategoryTriggerRef.current?.focus({ preventScroll: true });
   };
 
   return (
@@ -179,24 +205,6 @@ export default function BeveragesPage({
           <h1 id="bev-page-title">
             Artisanal brews &amp; <em>specialty sips.</em>
           </h1>
-          <div className="bev-page-hero-bottom">
-            <p>
-              Double-shot espresso extracts, velvety Oatside lattes, creamy cloudy specials,
-              freshly shaken teas, and dessert-grade frappes. Crafted fresh on Antonio Luna Street.
-            </p>
-            <div className="bev-hero-actions">
-              <a className="button bev-page-hero-link" href="#drinks-menu">
-                Browse beverages menu
-              </a>
-              <a
-                className="button button-outline bev-page-hero-link-alt"
-                href={signatureHref}
-                onClick={onNavigate}
-              >
-                Top 6 signatures
-              </a>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -222,42 +230,101 @@ export default function BeveragesPage({
           {showSearch && (
             <MenuSearch
               value={query}
-              onChange={setQuery}
+              onChange={onQueryChange}
               label="Search beverages"
-              placeholder="Search drinks or flavors..."
+              placeholder="Search all drinks or flavors..."
             />
           )}
           <CategoryTabs
+            className="bev-category-tabs-desktop"
             tabs={tabs}
             active={activeCategory}
             onChange={changeCategory}
             label="Beverage categories"
+            scrollControls
           />
+          <div className="bev-category-tabs-mobile">
+            <CategoryTabs
+              className="bev-category-tabs-mobile__tabs"
+              tabs={mobileFeaturedTabs}
+              active={activeCategory}
+              onChange={changeCategory}
+              label="Featured beverage categories"
+            />
+            <button
+              type="button"
+              className="bev-category-disclosure__trigger"
+              ref={mobileCategoryTriggerRef}
+              aria-expanded={mobileCategoriesOpen}
+              aria-controls="bev-category-mobile-list"
+              aria-label={`Browse categories. Currently browsing ${activeCategoryLabel}`}
+              onClick={() => setMobileCategoriesOpen((open) => !open)}
+            >
+              <span className="bev-category-disclosure__trigger-label">
+                {mobileCategoryTriggerLabel}
+              </span>
+            </button>
+            <div
+              className="bev-category-disclosure__panel"
+              id="bev-category-mobile-list"
+              hidden={!mobileCategoriesOpen}
+            >
+              <p className="bev-category-disclosure__current">
+                Currently browsing <strong>{activeCategoryLabel}</strong>
+              </p>
+              <div
+                className="bev-category-disclosure__list"
+                role="group"
+                aria-label="More beverage categories"
+              >
+                {moreCategoryTabs.map((tab) => {
+                  const isActive = tab.id === activeCategory;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      data-tab={tab.id}
+                      className={`chip menu-tab${isActive ? " active" : ""}`}
+                      aria-pressed={isActive}
+                      onClick={() => changeMobileCategory(tab.id)}
+                    >
+                      <span>{tab.label}</span>
+                      {isActive ? (
+                        <span className="bev-category-current-marker">Selected</span>
+                      ) : (
+                        <span className="menu-tab-count" aria-label={`${tab.count} items`}>
+                          {tab.count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </StickyMenuBar>
 
         <MenuResultsNote query={q ? query : ""} count={resultCount} />
 
         {/* Categories: EXACTLY ONE representative picture or hero banner per category */}
-        <div className="bev-categories-container" ref={listRef}>
+        <div className="bev-categories-container" id="drink-menu-products" ref={listRef}>
+          <div id="best-sellers" aria-hidden="true" />
           {q && resultCount === 0 && (
             <div className="menu-empty">
-              <h3>Nothing on the menu by that name.</h3>
-              <p>
-                Try a flavor like caramel, matcha or chocolate, or browse every
-                category.
-              </p>
+              <h3>No matches found.</h3>
+              <p>Try another search or clear it to browse the menu.</p>
               <button
                 type="button"
                 className="button"
                 onClick={() => {
-                  setQuery("");
-                  setActiveCategory("all");
+                  onQueryChange("");
                 }}
               >
-                Show all drinks
+                Clear search
               </button>
             </div>
           )}
+          {isSignatureCategory && signatureCounts.matches > 0 && signatureSection}
           {visibleCategories.map((cat) => (
             <section
               key={cat.id}
@@ -378,27 +445,6 @@ export default function BeveragesPage({
               </div>
             </section>
           )}
-        </div>
-
-        <p className="bev-page-menu-note">
-          Espresso pulled fresh with temperature-stable extraction on Gen. Antonio Luna Street.
-          Dine-in, pick-up, or door-to-door delivery!
-        </p>
-      </section>
-
-      {/* Cross-navigation banner to Food Menu */}
-      <section className="bev-page-cross" aria-labelledby="bev-cross-title">
-        <div className="bev-page-cross-inner">
-          <span className="eyebrow">HUNGRY FOR COMFORT BITES?</span>
-          <h2 id="bev-cross-title">
-            Pair your coffee with <em>comfort plates.</em>
-          </h2>
-          <p>
-            Crispy chicken wings, loaded Mexican nachos, savory skillets, and warm croffles.
-          </p>
-          <a className="button" href={foodHref} onClick={onNavigate}>
-            Browse Diner Bites Menu
-          </a>
         </div>
       </section>
     </>
