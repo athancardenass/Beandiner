@@ -4152,7 +4152,7 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   }
   .header {
     position: sticky;
-    top: 0;
+    top: var(--header-sticky-top, 0px);
     box-shadow: 0 5px 18px rgba(0, 0, 0, 0.14);
   }
   .footer-bottom-bar {

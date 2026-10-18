@@ -408,19 +408,31 @@ export function useStickyHeaderOffset() {
     const header = document.querySelector<HTMLElement>(".header");
     if (!header) return;
     const root = document.documentElement;
+    const viewport = window.visualViewport;
     const update = () => {
       const pinned = getComputedStyle(header).position === "sticky";
       const h = pinned ? header.offsetHeight : 0;
-      root.style.setProperty("--sticky-top", `${h}px`);
-      root.style.setProperty("--header-h", `${h}px`);
+      const visualOffset =
+        pinned && viewport && Math.abs(viewport.scale - 1) < 0.01
+          ? Math.max(0, viewport.offsetTop)
+          : 0;
+      const stickyTop = h + visualOffset;
+      root.style.setProperty("--header-sticky-top", `${visualOffset}px`);
+      root.style.setProperty("--sticky-top", `${stickyTop}px`);
+      root.style.setProperty("--header-h", `${stickyTop}px`);
     };
     update();
     const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(update) : null;
     observer?.observe(header);
     window.addEventListener("resize", update);
+    viewport?.addEventListener("resize", update, { passive: true });
+    viewport?.addEventListener("scroll", update, { passive: true });
     return () => {
       observer?.disconnect();
       window.removeEventListener("resize", update);
+      viewport?.removeEventListener("resize", update);
+      viewport?.removeEventListener("scroll", update);
+      root.style.removeProperty("--header-sticky-top");
     };
   }, []);
 }
