@@ -4146,6 +4146,12 @@ body:has(.floating-bag-bubble) .footer-artisanal {
 .nav-modal .logo {
   color: var(--accent);
 }
+.nav-modal .logo-title {
+  color: var(--espresso);
+}
+.nav-modal .logo-location {
+  color: var(--accent-on-light);
+}
 
 /* Keep ordering reachable and touch controls comfortable on mobile. */
 @media (max-width: 820px) {
