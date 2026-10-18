@@ -9531,6 +9531,14 @@ html:has(.video-hero) {
   }
 }
 
+/* Keep the next section below the fold as mobile browser toolbars resize. */
+@media (max-width: 820px) {
+  .video-hero {
+    height: calc(100vh - var(--header-h, 80px));
+    height: calc(100dvh - var(--header-h, 80px));
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .video-hero-content {
     animation: none;
