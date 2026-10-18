@@ -9549,12 +9549,23 @@ html:has(.video-hero) {
 @media (max-width: 820px) {
   .video-hero {
     height: calc(100vh - var(--header-h, 80px));
-    height: calc(100lvh - var(--header-h, 80px));
   }
+}
 
-  .video-hero-content,
-  .video-hero-scroll {
-    margin-bottom: calc(100lvh - 100svh);
+@supports (height: 100lvh) and (height: 100svh) {
+  @media (max-width: 820px) {
+    html:has(.video-hero) {
+      --mobile-toolbar-range: calc(100lvh - 100svh);
+    }
+
+    .video-hero {
+      height: calc(100lvh - var(--header-h, 80px) + var(--mobile-toolbar-range, 0px));
+    }
+
+    .video-hero-content,
+    .video-hero-scroll {
+      margin-bottom: var(--mobile-toolbar-range, 0px);
+    }
   }
 }
 

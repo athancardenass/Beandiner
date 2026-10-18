@@ -1452,6 +1452,7 @@ function App() {
   useEffect(() => {
     let frame = 0;
     const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+    const coarsePointer = matchMedia("(pointer: coarse)");
     const heroSection = hero.current;
     const heading = hero.current?.querySelector<HTMLElement>("h2");
     const cup = hero.current?.querySelector<HTMLElement>(".hero-product-wrap");
@@ -1469,7 +1470,7 @@ function App() {
       frame = 0;
       const sectionTop = heroSection?.getBoundingClientRect().top ?? viewportHeight;
       const parallax = Math.min(1, Math.max(0, (snapOffset - sectionTop) / viewportHeight));
-      if (reduced.matches) {
+      if (reduced.matches || coarsePointer.matches) {
         heading?.style.removeProperty("translate");
         if (cup) cup.style.transform = "none";
       } else {
@@ -1501,6 +1502,7 @@ function App() {
     window.addEventListener("scroll", handle, { passive: true });
     window.addEventListener("resize", measure);
     reduced.addEventListener("change", handle);
+    coarsePointer.addEventListener("change", handle);
     measure();
     document.documentElement.classList.add("js-ready");
     const observer = new IntersectionObserver(
@@ -1519,6 +1521,7 @@ function App() {
       window.removeEventListener("scroll", handle);
       window.removeEventListener("resize", measure);
       reduced.removeEventListener("change", handle);
+      coarsePointer.removeEventListener("change", handle);
       resizeObserver.disconnect();
       heroVisibility?.disconnect();
       cancelAnimationFrame(frame);
