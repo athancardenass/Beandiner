@@ -4152,8 +4152,12 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   }
   .header {
     position: sticky;
-    top: var(--header-sticky-top, 0px);
+    top: 0;
     box-shadow: 0 5px 18px rgba(0, 0, 0, 0.14);
+  }
+  .header.header-menu-page {
+    position: relative;
+    top: auto;
   }
   .footer-bottom-bar {
     border-color: rgba(255, 255, 255, 0.2);

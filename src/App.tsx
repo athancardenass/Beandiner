@@ -1139,12 +1139,12 @@ function BiteCustomizeModal({
 }
 
 function App() {
-  useStickyHeaderOffset();
   const [currentPage, setCurrentPage] = useState<AppPage>(() => pageFromSearch(window.location.search));
   const isFoodPage = currentPage === "diner-bites";
-  usePageBackground(currentPage);
   const isBeveragesPage = currentPage === "beverages";
   const isStoryPage = currentPage === "our-story";
+  useStickyHeaderOffset(!isFoodPage && !isBeveragesPage);
+  usePageBackground(currentPage);
   const navigationFrame = useRef(0);
   const foodHref = pageHref("diner-bites");
   const beveragesHref = pageHref("beverages");
@@ -1766,7 +1766,10 @@ function App() {
         Skip to content
       </a>
       {/* ↓ HEADER: Logo, navigation, order button, bag */}
-      <header className="header" id="home">
+      <header
+        className={`header${isFoodPage || isBeveragesPage ? " header-menu-page" : ""}`}
+        id="home"
+      >
         <nav aria-label="Main navigation" className="header-nav header-nav-left">
           <a
             href={beveragesHref}
