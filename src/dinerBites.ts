@@ -26,7 +26,7 @@ export const foodCategories: FoodCategory[] = [
     "name": "Croffle (Croissant Waffle)",
     "subtitle": "FRESHLY PRESSED CROISSANT WAFFLES",
     "description": "Golden flaky butter croissants iron-pressed to order, finished with premium glazes and artisanal toppings.",
-    "categoryImage": "./images/optimized/food-croffles.webp",
+    "categoryImage": "./images/optimized/menu-categories/biscoff-caramel-croffle.webp",
     "items": [
       {
         "id": "plain-croffle",
@@ -107,7 +107,7 @@ export const foodCategories: FoodCategory[] = [
     "name": "Appetizer",
     "subtitle": "CRISPY BITES & SHARING PLATTERS",
     "description": "Chef-crafted chicken wings, loaded nachos, and savory comfort sides cooked fresh for the table.",
-    "categoryImage": "./images/optimized/food-appetizers.webp",
+    "categoryImage": "./images/optimized/menu-categories/mexican-nachos.webp",
     "items": [
       {
         "id": "quesadilla",
@@ -221,7 +221,7 @@ export const foodCategories: FoodCategory[] = [
     "name": "Rice Plate",
     "subtitle": "HEARTY DINER COMFORT MAINS",
     "description": "Filipino comfort staples and savory diner plates served hot with garlic or jasmine rice and egg.",
-    "categoryImage": "./images/optimized/food-rice-plates.webp",
+    "categoryImage": "./images/optimized/menu-categories/bd-crispy-chicken.webp",
     "items": [
       {
         "id": "bd-crispy-chicken",
@@ -304,7 +304,7 @@ export const foodCategories: FoodCategory[] = [
     "name": "Rice Bowl",
     "subtitle": "SAVORY SKILLET DONBURI BOWLS",
     "description": "Japanese-inspired donburi rice bowls and Asian comfort skillets packed with umami flavor.",
-    "categoryImage": "./images/optimized/food-rice-bowls.webp",
+    "categoryImage": "./images/optimized/menu-categories/korean-beef-mushroom.webp",
     "items": [
       {
         "id": "teriyaki-chicken-katsu",
@@ -349,7 +349,7 @@ export const foodCategories: FoodCategory[] = [
     "name": "Salad",
     "subtitle": "CRISP GREENS & CHEF DRESSINGS",
     "description": "Garden-fresh romaine lettuce, artisanal dressings, and protein-packed crunch.",
-    "categoryImage": "./images/optimized/food-salads.webp",
+    "categoryImage": "./images/optimized/menu-categories/salad.webp",
     "items": [
       {
         "id": "chicken-caesar-salad",
@@ -376,7 +376,7 @@ export const foodCategories: FoodCategory[] = [
     "name": "Pasta",
     "subtitle": "ARTISANAL CREAM, PESTO & WOK NOODLES",
     "description": "Hand-tossed pastas in rich cream sauces, fragrant sweet basil pestos, and savory wok noodles.",
-    "categoryImage": "./images/optimized/food-pasta.webp",
+    "categoryImage": "./images/optimized/menu-categories/chicken-pesto.webp",
     "items": [
       {
         "id": "chicken-alfredo-pasta",
@@ -459,7 +459,7 @@ export const foodCategories: FoodCategory[] = [
     "name": "Sandwich (w/ seasoned fries)",
     "subtitle": "HANDCRAFTED WRAPS & TRIPLE-DECKER TOASTS",
     "description": "Served hot with a side of crispy seasoned diner fries.",
-    "categoryImage": "./images/optimized/food-sandwiches.webp",
+    "categoryImage": "./images/optimized/menu-categories/chicken-caesar-wrap.webp",
     "items": [
       {
         "id": "chicken-caesar-wrap",
@@ -504,7 +504,7 @@ export const foodCategories: FoodCategory[] = [
     "name": "Food Add-Ons",
     "subtitle": "EXTRA SIDES, RICE & HANDCRAFTED DIPS",
     "description": "Complement your meal with steaming rice, extra protein, or handcrafted dipping sauces.",
-    "categoryImage": "./images/optimized/food-addons.webp",
+    "categoryImage": "./images/optimized/menu-categories/potato-feast.webp",
     "items": [
       {
         "id": "addon-rice",
