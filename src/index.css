@@ -9545,11 +9545,16 @@ html:has(.video-hero) {
   }
 }
 
-/* Keep the next section below the fold as mobile browser toolbars resize. */
+/* Cover Safari's translucent toolbar without resizing the hero during a drag. */
 @media (max-width: 820px) {
   .video-hero {
     height: calc(100vh - var(--header-h, 80px));
-    height: calc(100dvh - var(--header-h, 80px));
+    height: calc(100lvh - var(--header-h, 80px));
+  }
+
+  .video-hero-content,
+  .video-hero-scroll {
+    margin-bottom: calc(100lvh - 100svh);
   }
 }
 
