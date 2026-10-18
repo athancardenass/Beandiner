@@ -1324,12 +1324,35 @@ function App() {
 
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     let isVisible = false;
+    let disposed = false;
+    let lastTime = video.currentTime;
+    let stalledSince = 0;
+    let reloaded = false;
     const syncPlayback = () => {
-      if (reducedMotion.matches || !isVisible) {
+      if (disposed) return;
+      if (reducedMotion.matches || !isVisible || document.hidden) {
         video.pause();
+        stalledSince = 0;
         return;
       }
-      void video.play().catch(() => {});
+      if (video.paused) void video.play().catch(() => {
+        // Autoplay can be denied until the next user gesture.
+      });
+    };
+    const recoverPlayback = () => {
+      if (disposed || document.hidden || !isVisible || reducedMotion.matches) return;
+      if (video.currentTime !== lastTime) {
+        lastTime = video.currentTime;
+        stalledSince = 0;
+        reloaded = false;
+      } else if (!video.seeking) {
+        stalledSince ||= performance.now();
+        if (!reloaded && performance.now() - stalledSince >= 12000) {
+          reloaded = true;
+          video.load();
+        }
+      }
+      syncPlayback();
     };
     const observer = new IntersectionObserver(([entry]) => {
       isVisible = entry.isIntersecting;
@@ -1338,10 +1361,25 @@ function App() {
 
     observer.observe(video);
     reducedMotion.addEventListener("change", syncPlayback);
+    document.addEventListener("visibilitychange", syncPlayback);
+    window.addEventListener("pageshow", syncPlayback);
+    window.addEventListener("online", recoverPlayback);
+    document.addEventListener("pointerdown", syncPlayback, { passive: true });
+    document.addEventListener("keydown", syncPlayback);
+    video.addEventListener("canplay", syncPlayback);
+    const recoveryTimer = window.setInterval(recoverPlayback, 4000);
     return () => {
+      disposed = true;
+      window.clearInterval(recoveryTimer);
       rememberPlaybackTime();
       observer.disconnect();
       reducedMotion.removeEventListener("change", syncPlayback);
+      document.removeEventListener("visibilitychange", syncPlayback);
+      window.removeEventListener("pageshow", syncPlayback);
+      window.removeEventListener("online", recoverPlayback);
+      document.removeEventListener("pointerdown", syncPlayback);
+      document.removeEventListener("keydown", syncPlayback);
+      video.removeEventListener("canplay", syncPlayback);
       video.removeEventListener("timeupdate", rememberPlaybackTime);
       video.pause();
     };

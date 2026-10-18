@@ -24,7 +24,14 @@ export function usePageBackground(page: string) {
       if (viewport && Math.abs(viewport.scale - 1) > .01) return;
       const bottom = Math.min(innerHeight, (viewport?.offsetTop ?? 0) + (viewport?.height ?? innerHeight));
       const stack = document.elementsFromPoint(innerWidth / 2, Math.max(0, bottom - 4));
-      let color = getComputedStyle(root).getPropertyValue("--surface-page").trim() || "#FFFFFF";
+      // Rubber-band scrolling can expose the canvas with no element to sample.
+      // The footer still owns that area, including a changing browser toolbar.
+      const footer = document.querySelector("footer");
+      const atBottom = window.scrollY + bottom >= root.scrollHeight - 4;
+      let color = atBottom && footer
+        ? getComputedStyle(footer).backgroundColor
+        : root.style.getPropertyValue("--viewport-background") ||
+          getComputedStyle(root).getPropertyValue("--surface-page").trim() || "#FFFFFF";
       let transitioning = false;
       for (const element of stack) {
         if (element.closest(".floating-bag-bubble, .toast, .page-progress, .skip-link, dialog")) continue;
