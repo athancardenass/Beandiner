@@ -80,6 +80,8 @@ body {
 }
 /* Light canvas; dark sections declare their own surface. */
 main { background: var(--surface-page); }
+/* Keep the paint underneath full-bleed homepage sections dark during fast scrolls. */
+main:has(> .video-hero) { background: var(--espresso); }
 /* ↓ INTERACTIVE: Remove tap highlight on mobile */
 button,
 input,
