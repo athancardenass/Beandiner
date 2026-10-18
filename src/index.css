@@ -593,14 +593,28 @@ main {
   }
 }
 @media (prefers-reduced-motion: no-preference) {
-  .hero-heading-copy {
+  .hero.has-entered .hero-heading-copy {
     animation: home-headline-reveal 760ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both;
   }
-  .hero-order-cta {
+  .hero.has-entered .hero-order-cta {
     animation: hero-order-reveal 460ms ease-out 420ms both;
   }
-  .hero-copy {
+  .hero.has-entered .hero-copy {
     animation: home-copy-reveal 540ms cubic-bezier(0.16, 1, 0.3, 1) 300ms both;
+  }
+  .hero .hero-product,
+  .hero .happy-stamp,
+  .hero .hero-bean,
+  .hero .hero-leaf,
+  .hero .hero-ice {
+    animation-play-state: paused;
+  }
+  .hero.is-in-view .hero-product,
+  .hero.is-in-view .happy-stamp,
+  .hero.is-in-view .hero-bean,
+  .hero.is-in-view .hero-leaf,
+  .hero.is-in-view .hero-ice {
+    animation-play-state: running;
   }
 }
 @keyframes hero-order-reveal {

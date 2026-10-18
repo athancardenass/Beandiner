@@ -1460,13 +1460,15 @@ function App() {
       getComputedStyle(document.documentElement).scrollPaddingTop,
     ) || 0;
     let maxScroll = 1;
+    const heroVisibility = heroSection ? new IntersectionObserver(([entry]) => {
+      heroSection.classList.toggle("is-in-view", entry.isIntersecting);
+      if (entry.isIntersecting) heroSection.classList.add("has-entered");
+    }, { threshold: 0.05 }) : null;
+    if (heroSection) heroVisibility?.observe(heroSection);
     const paint = () => {
       frame = 0;
       const sectionTop = heroSection?.getBoundingClientRect().top ?? viewportHeight;
-      const y = Math.min(
-        viewportHeight * 1.5,
-        Math.max(0, snapOffset - sectionTop),
-      );
+      const parallax = Math.min(1, Math.max(0, (snapOffset - sectionTop) / viewportHeight));
       if (reduced.matches) {
         heading?.style.removeProperty("translate");
         if (cup) cup.style.transform = "none";
@@ -1474,9 +1476,9 @@ function App() {
         if (heading)
           heading.style.setProperty(
             "translate",
-            `${y * -0.08}px ${y * -0.06}px`,
+            `${parallax * -8}px ${parallax * -16}px`,
           );
-        if (cup) cup.style.transform = `translate3d(${y * 0.1}px,${y * -0.12}px,0) rotate(${y * 0.017}deg)`;
+        if (cup) cup.style.transform = `translate3d(${parallax * 16}px,${parallax * -24}px,0) rotate(${parallax * 3}deg)`;
       }
       const scrollProgress = Math.min(1, Math.max(0, window.scrollY / maxScroll));
       if (progress.current)
@@ -1518,6 +1520,7 @@ function App() {
       window.removeEventListener("resize", measure);
       reduced.removeEventListener("change", handle);
       resizeObserver.disconnect();
+      heroVisibility?.disconnect();
       cancelAnimationFrame(frame);
       observer.disconnect();
     };
