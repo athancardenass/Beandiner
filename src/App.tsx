@@ -731,14 +731,19 @@ function Modal({
     const updateBagViewport = () => {
       if (!el.matches(".bag-modal")) return;
       const height = viewport?.height ?? innerHeight;
+      const viewportTop = Math.floor(viewport?.offsetTop ?? 0);
+      const viewportBottom = Math.ceil(viewportTop + height);
       // Leave one CSS pixel for Safari's fractional visual viewport rounding.
       el.style.setProperty("--bag-viewport-height", `${Math.max(0, Math.floor(height) - 1)}px`);
       const nextKeyboardOpen = Boolean(viewport && height < innerHeight - 120);
       el.style.setProperty(
         "--bag-viewport-top",
-        `${nextKeyboardOpen ? Math.floor(viewport?.offsetTop ?? 0) : 0}px`,
+        `${nextKeyboardOpen ? viewportTop : 0}px`,
       );
       el.classList.toggle("is-keyboard-open", nextKeyboardOpen);
+      const dialogBottom = Math.min(viewportBottom, Math.ceil(el.getBoundingClientRect().bottom));
+      el.style.setProperty("--bag-dialog-bottom", `${Math.max(0, dialogBottom)}px`);
+      el.style.setProperty("--bag-viewport-bottom", `${Math.max(0, viewportBottom)}px`);
       if (nextKeyboardOpen && !keyboardOpen) {
         cancelAnimationFrame(viewportFrame);
         viewportFrame = requestAnimationFrame(() => {
@@ -796,6 +801,8 @@ function Modal({
       el.classList.remove("is-keyboard-open");
       el.style.removeProperty("--bag-viewport-height");
       el.style.removeProperty("--bag-viewport-top");
+      el.style.removeProperty("--bag-dialog-bottom");
+      el.style.removeProperty("--bag-viewport-bottom");
       if (el.open) el.close();
       document.body.style.overflow = oldOverflow;
       if (previous && typeof previous.focus === "function") {

@@ -23,7 +23,7 @@ for (const engine of [chromium, webkit]) {
     const pageContentVisibility = () => page.locator('.header').evaluate(el => getComputedStyle(el).visibility);
     const bagBackdrop = () => page.locator('dialog.bag-modal').evaluate(el => {
       const style = getComputedStyle(el, '::backdrop');
-      return { background: style.backgroundColor, filter: style.backdropFilter };
+      return { background: style.backgroundColor, image: style.backgroundImage, filter: style.backdropFilter };
     });
     await page.goto('http://127.0.0.1:5173/?page=beverages');
     await page.getByRole('button', { name: 'Customize Strawberry Milk', exact: true }).last().click();
@@ -35,9 +35,9 @@ for (const engine of [chromium, webkit]) {
     await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: '#FFFFFF' });
     await page.getByRole('button', { name: 'Open bag, 1 items', exact: true }).click();
     await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: '#FFFFFF' });
-    await expect.poll(viewportBackground).toBe('#FFFFFF');
-    await expect.poll(bagBackdrop).toEqual({ background: white, filter: 'none' });
-    await expect.poll(pageContentVisibility).toBe('hidden');
+    await expect.poll(viewportBackground).toBe('');
+    await expect.poll(bagBackdrop).toEqual({ background: 'rgba(18, 18, 18, 0.75)', image: 'none', filter: 'blur(5px)' });
+    await expect.poll(pageContentVisibility).toBe('visible');
     await page.getByRole('button', { name: 'Proceed to Details', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: 'Your order bag', exact: true });
     await page.getByRole('radio', { name: 'Custom time', exact: true }).check();
@@ -58,6 +58,41 @@ for (const engine of [chromium, webkit]) {
     await expect.poll(() => dialog.evaluate(el => el.style.getPropertyValue('--bag-viewport-top'))).toBe('24px');
     await expect.poll(() => dialog.evaluate(el => el.getBoundingClientRect().height)).toBeLessThanOrEqual(360);
     await expect.poll(() => page.locator('.bag-content').evaluate(el => el.getBoundingClientRect().height)).toBeLessThanOrEqual(360);
+    const keyboardBackdrop = await bagBackdrop();
+    assert.ok(keyboardBackdrop.image.startsWith('linear-gradient('), 'Keyboard-open backdrop should use a scoped white gap');
+    assert.ok(keyboardBackdrop.image.includes('rgb(255, 255, 255)'), 'Keyboard gap should be white');
+    assert.ok(keyboardBackdrop.image.includes('rgba(18, 18, 18, 0.75)'), 'Area above the keyboard gap should keep the dark backdrop');
+    assert.ok(keyboardBackdrop.image.indexOf('rgba(18, 18, 18, 0.75)') < keyboardBackdrop.image.indexOf('rgb(255, 255, 255)'), 'The white gap must begin below the dark top area');
+    assert.equal(keyboardBackdrop.filter, 'blur(5px)');
+    const bandBounds = await dialog.evaluate(el => ({
+      start: Number.parseFloat(el.style.getPropertyValue('--bag-dialog-bottom')),
+      end: Number.parseFloat(el.style.getPropertyValue('--bag-viewport-bottom')),
+      dialogBottom: Math.ceil(el.getBoundingClientRect().bottom),
+      viewportBottom: Math.ceil(window.visualViewport.offsetTop + window.visualViewport.height),
+    }));
+    assert.deepEqual(bandBounds, {
+      start: Math.min(bandBounds.viewportBottom, bandBounds.dialogBottom),
+      end: bandBounds.viewportBottom,
+      dialogBottom: bandBounds.dialogBottom,
+      viewportBottom: bandBounds.viewportBottom,
+    });
+    const bagScrollState = () => dialog.evaluate(el => {
+      const content = el.querySelector('.bag-content');
+      return {
+        dialogOverflow: getComputedStyle(el).overflowY,
+        contentOverflow: getComputedStyle(content).overflowY,
+        contentCanScroll: content.scrollHeight > content.clientHeight,
+      };
+    });
+    await expect.poll(bagScrollState).toEqual({ dialogOverflow: 'hidden', contentOverflow: 'auto', contentCanScroll: true });
+    const upwardScroll = await dialog.evaluate(el => {
+      const content = el.querySelector('.bag-content');
+      content.scrollTop = content.scrollHeight;
+      const bottom = content.scrollTop;
+      content.scrollTop = Math.max(0, bottom - 120);
+      return { bottom, after: content.scrollTop };
+    });
+    assert.ok(upwardScroll.bottom > 0 && upwardScroll.after < upwardScroll.bottom, 'Order Bag content must scroll upward while an input has focus');
     await expect.poll(() => note.evaluate(el => {
       const rect = el.getBoundingClientRect();
       const { offsetTop, height } = window.visualViewport;
@@ -131,21 +166,21 @@ for (const engine of [chromium, webkit]) {
     // Reopening and Escape must also restore the menu canvas without leaked state.
     await page.getByRole('button', { name: 'Open bag, 1 items', exact: true }).click();
     await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: '#FFFFFF' });
-    await expect.poll(viewportBackground).toBe('#FFFFFF');
+    await expect.poll(viewportBackground).toBe('');
     await page.keyboard.press('Escape');
     await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: '#FFFFFF' });
     await expect.poll(viewportBackground).toBe('');
     await page.goto('http://127.0.0.1:5173/');
     await expect.poll(viewportBackground).toBe('#121212');
     await page.getByRole('button', { name: 'Open bag, 1 items', exact: true }).click();
-    await expect.poll(viewportBackground).toBe('#FFFFFF');
-    await expect.poll(bagBackdrop).toEqual({ background: white, filter: 'none' });
-    await expect.poll(pageContentVisibility).toBe('hidden');
+    await expect.poll(viewportBackground).toBe('#121212');
+    await expect.poll(bagBackdrop).toEqual({ background: 'rgba(18, 18, 18, 0.75)', image: 'none', filter: 'blur(5px)' });
+    await expect.poll(pageContentVisibility).toBe('visible');
     await page.keyboard.press('Escape');
     await expect.poll(viewportBackground).toBe('#121212');
     await expect.poll(pageContentVisibility).toBe('visible');
     assert.deepEqual(errors, []);
-    console.log(`${engine.name()}: checkout options stay reachable with the keyboard open and browser chrome stays white`);
+    console.log(`${engine.name()}: order bag scrolls with the keyboard open and its white gap stays scoped`);
   } finally {
     await browser.close();
   }

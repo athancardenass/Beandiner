@@ -5609,21 +5609,30 @@ body:has(.floating-bag-bubble) .footer-artisanal {
     min-height: 54px;
     font-size: 13px;
   }
-  html:has(.bag-modal[open]) #root > :not(.bag-modal) {
-    visibility: hidden;
-  }
   .bag-modal[open] {
     width: 100%;
     min-height: 0;
     max-height: min(92svh, var(--bag-viewport-height, 92svh));
     height: auto;
-  }
-  html:has(.bag-modal[open]) {
-    --viewport-background: #FFFFFF;
+    overflow: hidden;
   }
   .bag-modal::backdrop {
-    background: #FFFFFF;
-    backdrop-filter: none;
+    background: rgba(18, 18, 18, 0.75);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+  }
+  .bag-modal.is-keyboard-open[open]::backdrop {
+    background: linear-gradient(
+      to bottom,
+      rgba(18, 18, 18, 0.75) 0,
+      rgba(18, 18, 18, 0.75) var(--bag-dialog-bottom, 100vh),
+      #FFFFFF var(--bag-dialog-bottom, 100vh),
+      #FFFFFF var(--bag-viewport-bottom, 100vh),
+      rgba(18, 18, 18, 0.75) var(--bag-viewport-bottom, 100vh),
+      rgba(18, 18, 18, 0.75) 100%
+    );
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
   }
   .bag-modal.is-keyboard-open[open] {
     position: fixed;
@@ -5637,6 +5646,8 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   .bag-content {
     max-height: min(92svh, var(--bag-viewport-height, 92svh));
     overflow-y: auto;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
     padding: 48px 20px calc(22px + env(safe-area-inset-bottom, 0px));
   }
   .bag-content h2 {
