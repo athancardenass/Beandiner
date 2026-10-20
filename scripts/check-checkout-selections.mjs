@@ -10,6 +10,21 @@ for (const engine of [chromium, webkit]) {
     await page.getByRole('button', { name: 'Add to bag ₱160', exact: true }).click();
     await page.getByRole('button', { name: 'Open bag, 1 items', exact: true }).click();
     await page.getByRole('button', { name: 'Proceed to Details', exact: true }).click();
+    const form = page.locator('#checkout-order-form');
+    assert.equal(await form.getAttribute('autocomplete'), 'off', 'Checkout must not offer contact autofill');
+    assert.equal(await page.locator('#order-name').getAttribute('autocomplete'), 'off');
+    assert.equal(await page.locator('#order-phone').getAttribute('autocomplete'), 'off');
+    for (const field of ['#order-name', '#order-phone', '#order-note']) {
+      const input = page.locator(field);
+      await input.focus();
+      const style = await input.evaluate(el => {
+        const computed = getComputedStyle(el);
+        return { border: computed.borderTopColor, shadow: computed.boxShadow, outline: computed.outlineStyle };
+      });
+      assert.equal(style.border, 'rgb(110, 98, 86)', `${field} should use a neutral focus border`);
+      assert.equal(style.shadow, 'none', `${field} should not add a focus glow`);
+      assert.equal(style.outline, 'none', `${field} should not add a focus outline`);
+    }
     const labels = page.locator('.timing-choice-row label');
     assert.ok(await labels.count());
     for (const label of await labels.all()) {

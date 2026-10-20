@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { chromium, webkit, expect } from '@playwright/test';
 
-const dark = 'rgb(18, 18, 18)';
 const white = 'rgb(255, 255, 255)';
 
 for (const engine of [chromium, webkit]) {
@@ -25,9 +24,9 @@ for (const engine of [chromium, webkit]) {
       await document.fonts.ready;
       window.scrollTo(0, 0);
     });
-    await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: white });
+    await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: '#FFFFFF' });
     await page.getByRole('button', { name: 'Open bag, 1 items', exact: true }).click();
-    await expect.poll(canvas).toEqual({ root: dark, body: dark, scheme: 'dark', theme: '#121212' });
+    await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: '#FFFFFF' });
     await page.getByRole('button', { name: 'Proceed to Details', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: 'Your order bag', exact: true });
     const note = page.locator('#order-note');
@@ -38,18 +37,45 @@ for (const engine of [chromium, webkit]) {
       const viewport = window.visualViewport;
       Object.defineProperty(viewport, 'height', { configurable: true, value: 360 });
       viewport.dispatchEvent(new Event('resize'));
+      Object.defineProperty(viewport, 'offsetTop', { configurable: true, value: 24 });
+      viewport.dispatchEvent(new Event('scroll'));
     });
+    await expect.poll(() => dialog.evaluate(el => el.style.getPropertyValue('--bag-viewport-top'))).toBe('24px');
     await expect.poll(() => dialog.evaluate(el => el.getBoundingClientRect().height)).toBeLessThanOrEqual(360);
     await expect.poll(() => page.locator('.bag-content').evaluate(el => el.getBoundingClientRect().height)).toBeLessThanOrEqual(360);
     await expect.poll(() => note.evaluate(el => {
       const rect = el.getBoundingClientRect();
-      return rect.top >= 0 && rect.bottom <= 360;
+      const { offsetTop, height } = window.visualViewport;
+      return rect.top >= offsetTop && rect.bottom <= offsetTop + height;
     })).toBe(true);
     const submit = page.getByRole('button', { name: 'Send order via Messenger', exact: true });
     await submit.evaluate(el => el.scrollIntoView({ block: 'end' }));
-    await expect.poll(() => submit.evaluate(el => el.getBoundingClientRect().bottom)).toBeLessThanOrEqual(360);
+    await expect.poll(() => submit.evaluate(el => {
+      const rect = el.getBoundingClientRect();
+      const { offsetTop, height } = window.visualViewport;
+      return rect.top >= offsetTop && rect.bottom <= offsetTop + height;
+    })).toBe(true);
+    for (const selector of [
+      '.order-type-row label',
+      '.timing-choice-row label',
+      '.payment-choice-row label',
+      '#order-name',
+      '#order-phone',
+      '#order-note',
+    ]) {
+      const controls = page.locator(selector);
+      for (const control of await controls.all()) {
+        await control.scrollIntoViewIfNeeded();
+        await expect.poll(() => control.evaluate(el => {
+          const rect = el.getBoundingClientRect();
+          const { offsetTop, height } = window.visualViewport;
+          return rect.top >= offsetTop && rect.bottom <= offsetTop + height;
+        })).toBe(true);
+      }
+    }
     await page.evaluate(() => {
       delete window.visualViewport.height;
+      delete window.visualViewport.offsetTop;
       window.visualViewport.dispatchEvent(new Event('resize'));
     });
     for (const height of [844, 460, 660, 900]) {
@@ -62,22 +88,22 @@ for (const engine of [chromium, webkit]) {
           }
         }, end);
         await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-        await expect.poll(canvas).toEqual({ root: dark, body: dark, scheme: 'dark', theme: '#121212' });
+        await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: '#FFFFFF' });
         assert.equal(await dialog.evaluate(el => getComputedStyle(el).backgroundColor), white, 'Checkout surface stays white');
       }
     }
     await page.getByRole('button', { name: 'Back to Bag', exact: true }).click();
-    await expect.poll(canvas).toEqual({ root: dark, body: dark, scheme: 'dark', theme: '#121212' });
+    await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: '#FFFFFF' });
     await page.getByRole('button', { name: 'Close dialog', exact: true }).click();
     await page.evaluate(() => window.scrollTo(0, 0));
-    await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: white });
+    await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: '#FFFFFF' });
     // Reopening and Escape must also restore the menu canvas without leaked state.
     await page.getByRole('button', { name: 'Open bag, 1 items', exact: true }).click();
-    await expect.poll(canvas).toEqual({ root: dark, body: dark, scheme: 'dark', theme: '#121212' });
+    await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: '#FFFFFF' });
     await page.keyboard.press('Escape');
-    await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: white });
+    await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: '#FFFFFF' });
     assert.deepEqual(errors, []);
-    console.log(`${engine.name()}: checkout fits the shrinking keyboard viewport, keeps dark browser chrome, and restores the menu canvas on close`);
+    console.log(`${engine.name()}: checkout options stay reachable with the keyboard open and browser chrome stays white`);
   } finally {
     await browser.close();
   }

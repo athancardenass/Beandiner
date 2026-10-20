@@ -748,6 +748,7 @@ function Modal({
     };
     updateBagViewport();
     viewport?.addEventListener("resize", updateBagViewport);
+    viewport?.addEventListener("scroll", updateBagViewport);
     window.addEventListener("resize", updateBagViewport);
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -786,6 +787,7 @@ function Modal({
       el.removeEventListener("keydown", handleKeyDown);
       cancelAnimationFrame(viewportFrame);
       viewport?.removeEventListener("resize", updateBagViewport);
+      viewport?.removeEventListener("scroll", updateBagViewport);
       window.removeEventListener("resize", updateBagViewport);
       el.classList.remove("is-keyboard-open");
       el.style.removeProperty("--bag-viewport-height");
@@ -1177,7 +1179,7 @@ function App() {
   const [selected, setSelected] = useState<Product | null>(null);
   const [customizingBite, setCustomizingBite] = useState<DinerBite | null>(null);
   const [bagOpen, setBagOpen] = useState(false);
-  usePageBackground(currentPage, bagOpen);
+  usePageBackground();
   const [navOpen, setNavOpen] = useState(false);
   const [beverageCategory, setBeverageCategory] = useState("top-6");
   const [beverageQuery, setBeverageQuery] = useState("");
@@ -2632,6 +2634,7 @@ function App() {
                   <form
                     id="checkout-order-form"
                     className="checkout-form checkout-form-compact"
+                    autoComplete="off"
                     noValidate
                     onSubmit={(e) => {
                       e.preventDefault();
@@ -2803,7 +2806,7 @@ function App() {
                           }}
                           aria-invalid={showNameError ? "true" : "false"}
                           aria-describedby={showNameError ? "order-name-error" : undefined}
-                          autoComplete="name"
+                          autoComplete="off"
                           placeholder="e.g. Karl Santos"
                           maxLength={50}
                         />
@@ -2834,7 +2837,7 @@ function App() {
                           }}
                           aria-invalid={showPhoneError ? "true" : "false"}
                           aria-describedby={showPhoneError ? "order-phone-error" : undefined}
-                          autoComplete="tel"
+                          autoComplete="off"
                           placeholder="09XX-XXX-XXXX"
                           maxLength={20}
                         />

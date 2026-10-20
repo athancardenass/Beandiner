@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { chromium, webkit, expect } from '@playwright/test';
 
-const dark = 'rgb(18, 18, 18)';
 const white = 'rgb(255, 255, 255)';
 
 for (const engine of [chromium, webkit]) {
@@ -28,7 +27,7 @@ for (const engine of [chromium, webkit]) {
           await Promise.all([...document.images].map(image => image.decode().catch(() => {})));
           window.scrollTo(0, document.documentElement.scrollHeight);
         });
-        await expect.poll(canvas).toEqual({ root: dark, body: dark, scheme: 'dark', theme: '#121212' });
+        await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: '#FFFFFF' });
         assert.equal(await page.locator('footer').count(), 0, 'Menu footer stays removed');
         assert.equal(await page.locator('main').evaluate(el => getComputedStyle(el).backgroundColor), white);
         await page.evaluate(async () => {
@@ -38,20 +37,20 @@ for (const engine of [chromium, webkit]) {
           window.dispatchEvent(new Event('scroll'));
           await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
         });
-        await expect.poll(canvas).toEqual({ root: dark, body: dark, scheme: 'dark', theme: '#121212' });
+        await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: '#FFFFFF' });
         await page.evaluate(async () => {
           document.elementsFromPoint = () => [];
           window.dispatchEvent(new Event('scroll'));
           await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
         });
-        await expect.poll(canvas).toEqual({ root: dark, body: dark, scheme: 'dark', theme: '#121212' });
+        await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: '#FFFFFF' });
         await page.evaluate(() => {
           document.elementsFromPoint = window.originalHitTest;
           window.scrollTo(0, Math.max(0, document.documentElement.scrollHeight - innerHeight - 300));
         });
-        await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: white });
+        await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: '#FFFFFF' });
       }
-      console.log(`${engine.name()}: ${route} keeps dark bottom chrome and white menu content at three viewport heights`);
+      console.log(`${engine.name()}: ${route} keeps white browser chrome and menu content at three viewport heights`);
     }
   } finally {
     await browser.close();
