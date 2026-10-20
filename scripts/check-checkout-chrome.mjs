@@ -55,6 +55,16 @@ for (const engine of [chromium, webkit]) {
       const { offsetTop, height } = window.visualViewport;
       return rect.top >= offsetTop && rect.bottom <= offsetTop + height;
     })).toBe(true);
+    const firstOrderType = page.locator('.order-type-row label').first();
+    await firstOrderType.scrollIntoViewIfNeeded();
+    const scrollBeforeViewportShift = await dialog.evaluate(el => [el.scrollTop, el.querySelector('.bag-content').scrollTop]);
+    await page.evaluate(async () => {
+      Object.defineProperty(window.visualViewport, 'offsetTop', { configurable: true, value: 32 });
+      window.visualViewport.dispatchEvent(new Event('scroll'));
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    });
+    const scrollAfterViewportShift = await dialog.evaluate(el => [el.scrollTop, el.querySelector('.bag-content').scrollTop]);
+    assert.deepEqual(scrollAfterViewportShift, scrollBeforeViewportShift, 'Safari viewport shifts must not pull the form back to the last focused input');
     for (const selector of [
       '.order-type-row label',
       '.timing-choice-row label',
@@ -75,6 +85,10 @@ for (const engine of [chromium, webkit]) {
     }
     await page.evaluate(() => {
       delete window.visualViewport.height;
+      window.visualViewport.dispatchEvent(new Event('resize'));
+    });
+    await expect.poll(() => dialog.evaluate(el => el.style.getPropertyValue('--bag-viewport-top'))).toBe('0px');
+    await page.evaluate(() => {
       delete window.visualViewport.offsetTop;
       window.visualViewport.dispatchEvent(new Event('resize'));
     });

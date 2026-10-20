@@ -10,7 +10,6 @@ import {
 import DinerBitesPage from "./DinerBitesPage";
 import BeveragesPage from "./BeveragesPage";
 import OurStoryPage from "./OurStoryPage";
-import { usePageBackground } from "./ui/usePageBackground";
 import {
   getStoreStatus,
   isPendingOrder,
@@ -728,16 +727,20 @@ function Modal({
     document.body.style.overflow = "hidden";
     const viewport = window.visualViewport;
     let viewportFrame = 0;
+    let keyboardOpen = false;
     const updateBagViewport = () => {
       if (!el.matches(".bag-modal")) return;
       const height = viewport?.height ?? innerHeight;
       // Leave one CSS pixel for Safari's fractional visual viewport rounding.
       el.style.setProperty("--bag-viewport-height", `${Math.max(0, Math.floor(height) - 1)}px`);
-      el.style.setProperty("--bag-viewport-top", `${Math.floor(viewport?.offsetTop ?? 0)}px`);
-      const keyboardOpen = Boolean(viewport && height < innerHeight - 120);
-      el.classList.toggle("is-keyboard-open", keyboardOpen);
-      cancelAnimationFrame(viewportFrame);
-      if (keyboardOpen) {
+      const nextKeyboardOpen = Boolean(viewport && height < innerHeight - 120);
+      el.style.setProperty(
+        "--bag-viewport-top",
+        `${nextKeyboardOpen ? Math.floor(viewport?.offsetTop ?? 0) : 0}px`,
+      );
+      el.classList.toggle("is-keyboard-open", nextKeyboardOpen);
+      if (nextKeyboardOpen && !keyboardOpen) {
+        cancelAnimationFrame(viewportFrame);
         viewportFrame = requestAnimationFrame(() => {
           const activeElement = document.activeElement;
           if (el.open && activeElement instanceof HTMLElement && el.contains(activeElement)) {
@@ -745,6 +748,7 @@ function Modal({
           }
         });
       }
+      keyboardOpen = nextKeyboardOpen;
     };
     updateBagViewport();
     viewport?.addEventListener("resize", updateBagViewport);
@@ -1179,7 +1183,6 @@ function App() {
   const [selected, setSelected] = useState<Product | null>(null);
   const [customizingBite, setCustomizingBite] = useState<DinerBite | null>(null);
   const [bagOpen, setBagOpen] = useState(false);
-  usePageBackground();
   const [navOpen, setNavOpen] = useState(false);
   const [beverageCategory, setBeverageCategory] = useState("top-6");
   const [beverageQuery, setBeverageQuery] = useState("");
