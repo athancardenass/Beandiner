@@ -716,6 +716,11 @@ function Modal({
     const el = ref.current;
     if (!el) return;
     const previous = document.activeElement as HTMLElement | null;
+    const isBagModal = el.matches(".bag-modal");
+    const shouldFreezeBagBackground = isBagModal &&
+      (navigator.maxTouchPoints > 0 || "ontouchstart" in window);
+    const pageScrollX = window.scrollX;
+    const pageScrollY = window.scrollY;
     if (!el.open) {
       try {
         el.showModal();
@@ -723,8 +728,25 @@ function Modal({
         /* Dialog already open */
       }
     }
-    const oldOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const body = document.body;
+    const root = document.documentElement;
+    const oldBodyStyles = {
+      overflow: body.style.overflow,
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      width: body.style.width,
+    };
+    const oldRootOverflow = root.style.overflow;
+    body.style.overflow = "hidden";
+    if (shouldFreezeBagBackground) {
+      // iOS Safari can still scroll the page behind a modal when body overflow is hidden.
+      root.style.overflow = "hidden";
+      body.style.position = "fixed";
+      body.style.top = `${-pageScrollY}px`;
+      body.style.left = `${-pageScrollX}px`;
+      body.style.width = "100%";
+    }
     const viewport = window.visualViewport;
     let viewportFrame = 0;
     let keyboardOpen = false;
@@ -804,7 +826,15 @@ function Modal({
       el.style.removeProperty("--bag-dialog-bottom");
       el.style.removeProperty("--bag-viewport-bottom");
       if (el.open) el.close();
-      document.body.style.overflow = oldOverflow;
+      body.style.overflow = oldBodyStyles.overflow;
+      if (shouldFreezeBagBackground) {
+        body.style.position = oldBodyStyles.position;
+        body.style.top = oldBodyStyles.top;
+        body.style.left = oldBodyStyles.left;
+        body.style.width = oldBodyStyles.width;
+        root.style.overflow = oldRootOverflow;
+        window.scrollTo(pageScrollX, pageScrollY);
+      }
       if (previous && typeof previous.focus === "function") {
         previous.focus();
       }

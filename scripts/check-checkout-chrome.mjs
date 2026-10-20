@@ -33,13 +33,43 @@ for (const engine of [chromium, webkit]) {
       window.scrollTo(0, 0);
     });
     await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: '#FFFFFF' });
-    await page.getByRole('button', { name: 'Open bag, 1 items', exact: true }).click();
+    await page.evaluate(() => window.scrollTo(0, 500));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+    const backgroundScrollBeforeBag = await page.evaluate(() => window.scrollY);
+    const backgroundBodyPosition = await page.evaluate(() => getComputedStyle(document.body).position);
+    await page.getByRole('button', { name: 'Open bag, 1 items', exact: true }).evaluate(button => button.click());
     await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: '#FFFFFF' });
     await expect.poll(viewportBackground).toBe('');
+    assert.equal(await page.evaluate(() => getComputedStyle(document.body).position), 'fixed', 'The Order Bag must lock the page behind it on iPhone Safari');
+    assert.equal(await page.evaluate(() => Math.round(document.body.getBoundingClientRect().top)), -backgroundScrollBeforeBag, 'Opening the Order Bag must keep the menu visually anchored');
     await expect.poll(bagBackdrop).toEqual({ background: 'rgba(18, 18, 18, 0.75)', image: 'none', filter: 'blur(5px)' });
     await expect.poll(pageContentVisibility).toBe('visible');
     await page.getByRole('button', { name: 'Proceed to Details', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: 'Your order bag', exact: true });
+    const bagContentForScroll = page.locator('.bag-content');
+    if (engine.name() === 'chromium') {
+      const bagContentBounds = await bagContentForScroll.boundingBox();
+      await page.mouse.move(bagContentBounds.x + bagContentBounds.width / 2, bagContentBounds.y + bagContentBounds.height / 2);
+      await page.mouse.wheel(0, 240);
+    } else {
+      await bagContentForScroll.evaluate(el => { el.scrollTop = 160; });
+    }
+    await expect.poll(() => bagContentForScroll.evaluate(el => el.scrollTop)).toBeGreaterThan(0);
+    assert.equal(await page.evaluate(() => Math.round(document.body.getBoundingClientRect().top)), -backgroundScrollBeforeBag, 'Scrolling the Order Bag must not move the menu behind it');
+    const fieldFontSizes = await dialog.evaluate(el => {
+      const probe = document.createElement('div');
+      probe.innerHTML = '<input type="text"><select><option>Option</option></select><textarea></textarea>';
+      el.querySelector('.bag-content').append(probe);
+      const sizes = Array.from(el.querySelectorAll('input, select, textarea'), control => ({
+        type: control.type ?? control.tagName.toLowerCase(),
+        size: Number.parseFloat(getComputedStyle(control).fontSize),
+      }));
+      probe.remove();
+      return sizes;
+    });
+    assert.ok(fieldFontSizes.length > 0, 'Order Bag should expose form controls');
+    assert.ok(fieldFontSizes.every(({ size }) => size >= 16), `Every Order Bag form control must be at least 16px: ${JSON.stringify(fieldFontSizes)}`);
+    assert.doesNotMatch(await page.locator('meta[name="viewport"]').getAttribute('content'), /maximum-scale|user-scalable\s*=\s*no/i, 'Viewport must keep pinch zoom available');
     await page.getByRole('radio', { name: 'Custom time', exact: true }).check();
     for (const selector of ['#order-name', '#order-phone', '#checkout-custom-time', '#order-note']) {
       assert.equal(await page.locator(selector).getAttribute('autocomplete'), 'off', `${selector} should opt out of browser autocomplete`);
@@ -159,6 +189,8 @@ for (const engine of [chromium, webkit]) {
     await page.getByRole('button', { name: 'Back to Bag', exact: true }).click();
     await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: '#FFFFFF' });
     await page.getByRole('button', { name: 'Close dialog', exact: true }).click();
+    assert.equal(await page.evaluate(() => getComputedStyle(document.body).position), backgroundBodyPosition, 'Closing the Order Bag must restore body positioning');
+    assert.equal(await page.evaluate(() => window.scrollY), backgroundScrollBeforeBag, 'Closing the Order Bag must restore the menu scroll position');
     await page.evaluate(() => window.scrollTo(0, 0));
     await expect.poll(pageContentVisibility).toBe('visible');
     await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: '#FFFFFF' });
@@ -180,7 +212,7 @@ for (const engine of [chromium, webkit]) {
     await expect.poll(viewportBackground).toBe('#121212');
     await expect.poll(pageContentVisibility).toBe('visible');
     assert.deepEqual(errors, []);
-    console.log(`${engine.name()}: order bag scrolls with the keyboard open and its white gap stays scoped`);
+    console.log(`${engine.name()}: Order Bag locks the menu, preserves 16px fields, and scopes the keyboard gap`);
   } finally {
     await browser.close();
   }

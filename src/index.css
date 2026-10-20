@@ -7533,7 +7533,7 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   align-items: center;
   gap: 6px;
   background: var(--surface-page);
-  border: 1px solid var(--button-border);
+  border: 0;
   font-size: 12.5px;
   font-weight: 650;
   color: var(--button-text);
@@ -7562,24 +7562,24 @@ body:has(.floating-bag-bubble) .footer-artisanal {
 .checkout-form-compact {
   display: flex;
   flex-direction: column;
-  gap: 0;
-  background: #fff;
-  border: 1px solid rgba(18, 18, 18, 0.08);
-  border-radius: 14px;
-  padding: 18px;
+  gap: 16px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
 }
 
 .checkout-form-section {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   min-width: 0;
-  padding-bottom: 16px;
+  padding: 0;
 }
 
 .checkout-form-section + .checkout-form-section {
-  padding-top: 16px;
-  border-top: 1px solid rgba(18, 18, 18, 0.1);
+  padding-top: 0;
+  border-top: 0;
 }
 
 .checkout-section-heading {
@@ -7628,6 +7628,10 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   flex-direction: column;
   gap: 6px;
 }
+.bag-modal .bag-content :is(input, select, textarea) {
+  font-size: 16px;
+}
+
 .checkout-form-compact input {
   width: 100%;
   min-height: 50px;
