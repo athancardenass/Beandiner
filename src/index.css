@@ -5612,11 +5612,20 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   .bag-modal[open] {
     width: 100%;
     min-height: 0;
-    max-height: 92svh;
+    max-height: min(92svh, var(--bag-viewport-height, 92svh));
     height: auto;
   }
+  .bag-modal.is-keyboard-open[open] {
+    position: fixed;
+    top: var(--bag-viewport-top, 0px);
+    right: 0;
+    bottom: auto;
+    left: 0;
+    margin: 0 auto;
+    animation: none;
+  }
   .bag-content {
-    max-height: 92svh;
+    max-height: min(92svh, var(--bag-viewport-height, 92svh));
     overflow-y: auto;
     padding: 48px 20px calc(22px + env(safe-area-inset-bottom, 0px));
   }

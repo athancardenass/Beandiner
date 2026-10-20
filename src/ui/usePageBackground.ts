@@ -8,6 +8,7 @@ export function usePageBackground(page: string, bagOpen: boolean) {
     const root = document.documentElement;
     const theme = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
     const originalTheme = theme?.content ?? "#121212";
+    const originalColorScheme = root.style.colorScheme;
     const media = matchMedia("(max-width: 820px)");
     const viewport = window.visualViewport;
     let frame = 0;
@@ -18,6 +19,8 @@ export function usePageBackground(page: string, bagOpen: boolean) {
       if (disposed) return;
       if (!media.matches) {
         root.style.removeProperty("--viewport-background");
+        if (originalColorScheme) root.style.colorScheme = originalColorScheme;
+        else root.style.removeProperty("color-scheme");
         if (theme) theme.content = originalTheme;
         return;
       }
@@ -31,6 +34,7 @@ export function usePageBackground(page: string, bagOpen: boolean) {
       const atBottom = window.scrollY + bottom >= root.scrollHeight - 4;
       // The bag scrolls independently of the document, including Checkout Details.
       const darkChrome = bagOpen || atBottom;
+      root.style.colorScheme = darkChrome ? "dark" : "light";
       let color = darkChrome
         ? footer ? getComputedStyle(footer).backgroundColor
           : getComputedStyle(root).getPropertyValue("--surface-dark").trim() || "#121212"
@@ -91,6 +95,8 @@ export function usePageBackground(page: string, bagOpen: boolean) {
       media.removeEventListener("change", schedule);
       document.removeEventListener("transitionend", schedule);
       root.style.removeProperty("--viewport-background");
+      if (originalColorScheme) root.style.colorScheme = originalColorScheme;
+      else root.style.removeProperty("color-scheme");
       if (theme) theme.content = originalTheme;
     };
   }, [page, bagOpen]);

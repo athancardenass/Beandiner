@@ -726,6 +726,29 @@ function Modal({
     }
     const oldOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    const viewport = window.visualViewport;
+    let viewportFrame = 0;
+    const updateBagViewport = () => {
+      if (!el.matches(".bag-modal")) return;
+      const height = viewport?.height ?? innerHeight;
+      // Leave one CSS pixel for Safari's fractional visual viewport rounding.
+      el.style.setProperty("--bag-viewport-height", `${Math.max(0, Math.floor(height) - 1)}px`);
+      el.style.setProperty("--bag-viewport-top", `${Math.floor(viewport?.offsetTop ?? 0)}px`);
+      const keyboardOpen = Boolean(viewport && height < innerHeight - 120);
+      el.classList.toggle("is-keyboard-open", keyboardOpen);
+      cancelAnimationFrame(viewportFrame);
+      if (keyboardOpen) {
+        viewportFrame = requestAnimationFrame(() => {
+          const activeElement = document.activeElement;
+          if (el.open && activeElement instanceof HTMLElement && el.contains(activeElement)) {
+            activeElement.scrollIntoView({ block: "nearest", inline: "nearest" });
+          }
+        });
+      }
+    };
+    updateBagViewport();
+    viewport?.addEventListener("resize", updateBagViewport);
+    window.addEventListener("resize", updateBagViewport);
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -761,6 +784,12 @@ function Modal({
 
     return () => {
       el.removeEventListener("keydown", handleKeyDown);
+      cancelAnimationFrame(viewportFrame);
+      viewport?.removeEventListener("resize", updateBagViewport);
+      window.removeEventListener("resize", updateBagViewport);
+      el.classList.remove("is-keyboard-open");
+      el.style.removeProperty("--bag-viewport-height");
+      el.style.removeProperty("--bag-viewport-top");
       if (el.open) el.close();
       document.body.style.overflow = oldOverflow;
       if (previous && typeof previous.focus === "function") {
