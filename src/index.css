@@ -5610,19 +5610,22 @@ body:has(.floating-bag-bubble) .footer-artisanal {
     font-size: 13px;
   }
   .bag-modal[open] {
+    position: fixed;
+    inset: var(--vvt, 0px) 0 auto;
+    display: flex;
+    flex-direction: column;
     width: 100%;
     min-height: 0;
-    max-height: min(92svh, var(--modal-viewport-height, 900px), 900px);
-    height: auto;
+    max-height: none;
+    height: var(--vvh, 100vh);
+    box-sizing: border-box;
+    margin: 0 auto;
+    background: var(--surface-page, #fff);
     overflow-x: hidden;
-    overflow-y: auto;
+    overflow-y: hidden;
     overscroll-behavior-y: contain;
-    -webkit-overflow-scrolling: touch;
   }
   .bag-modal.is-keyboard-open[open] {
-    position: fixed;
-    inset: auto 0 var(--modal-viewport-bottom-inset, 0px);
-    margin: 0 auto;
     animation: none;
   }
   .product-modal:not(.bite-customize-modal).is-keyboard-open[open] {
@@ -5642,9 +5645,29 @@ body:has(.floating-bag-bubble) .footer-artisanal {
     -webkit-backdrop-filter: blur(5px);
   }
   .bag-content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 var(--vvh, 100vh);
+    min-height: 0;
+    height: var(--vvh, 100vh);
+    box-sizing: border-box;
     max-height: none;
-    overflow: visible;
-    padding: 48px 20px calc(22px + env(safe-area-inset-bottom, 0px));
+    overflow: hidden;
+    padding: calc(48px + env(safe-area-inset-top, 0px)) 20px 0;
+  }
+  .bag-modal-header {
+    flex: 0 0 auto;
+  }
+  .bag-modal-body {
+    flex: 1 1 0%;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px) + var(--bag-keyboard-accessory-inset, 0px));
+    scroll-padding-block: 12px 84px;
   }
   .bag-content h2 {
     font-size: 36px;
@@ -9630,5 +9653,85 @@ html:has(.video-hero) {
 @media (prefers-reduced-motion: reduce) {
   .video-hero-content {
     animation: none;
+  }
+}
+
+/* Keep touch checkout sheets tied to the visual viewport in every phone orientation. */
+.bag-modal.is-touch-form-modal[open] {
+  position: fixed;
+  inset: var(--vvt, 0px) 0 auto;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+  max-width: 100%;
+  max-height: none;
+  height: var(--vvh, 100vh);
+  box-sizing: border-box;
+  margin: 0;
+  background: var(--surface-page, #fff);
+  overflow: hidden;
+  overscroll-behavior-y: contain;
+}
+
+.bag-modal.is-touch-form-modal .bag-content {
+  display: flex;
+  flex: 0 0 var(--vvh, 100vh);
+  flex-direction: column;
+  min-height: 0;
+  height: var(--vvh, 100vh);
+  max-height: none;
+  box-sizing: border-box;
+  overflow: hidden;
+  padding: calc(48px + env(safe-area-inset-top, 0px)) 20px 0;
+}
+
+.bag-modal.is-touch-form-modal .bag-modal-header {
+  flex: 0 0 auto;
+}
+
+.bag-modal.is-touch-form-modal .bag-modal-body {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px) + var(--bag-keyboard-accessory-inset, 0px));
+  scroll-padding-block: 12px 84px;
+}
+
+@media (max-height: 700px) {
+  .bag-modal.is-touch-form-modal.is-keyboard-open .bag-content {
+    padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 0;
+  }
+
+  .bag-modal.is-touch-form-modal.is-keyboard-open .bag-content h2 {
+    font-size: clamp(24px, 6vh, 32px);
+    margin: 4px 0 6px;
+    letter-spacing: -0.04em;
+  }
+
+  .bag-modal.is-touch-form-modal.is-keyboard-open .checkout-step-nav {
+    margin: 4px 0 6px;
+  }
+
+  .bag-modal.is-touch-form-modal.is-keyboard-open .checkout-step-btn {
+    min-height: 32px;
+    padding: 4px 10px;
+  }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .bag-modal.is-touch-form-modal.is-keyboard-open .bag-content {
+    padding-top: calc(8px + env(safe-area-inset-top, 0px));
+  }
+
+  .bag-modal.is-touch-form-modal.is-keyboard-open .bag-modal-header > :is(.eyebrow, h2) {
+    display: none;
+  }
+
+  .bag-modal.is-touch-form-modal.is-keyboard-open .checkout-step-nav {
+    margin: 0 0 6px;
   }
 }

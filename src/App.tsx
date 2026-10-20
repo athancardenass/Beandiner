@@ -723,16 +723,30 @@ function Modal({
     const pageScrollX = window.scrollX;
     const pageScrollY = window.scrollY;
     const viewport = (isBagModal || isTopSixProductModal) ? window.visualViewport : null;
+    const getViewportMetrics = () => ({
+      height: viewport?.height ?? window.innerHeight,
+      offsetTop: viewport?.offsetTop ?? 0,
+    });
+    let bagViewportBaselineHeight = isBagModal ? window.innerHeight : 0;
+    let bagViewportBaselineWidth = window.innerWidth;
+    const isBagKeyboardOpen = () => {
+      const { height } = getViewportMetrics();
+      return height < Math.max(window.innerHeight, bagViewportBaselineHeight) - 80;
+    };
     let revealFocusedFieldFrame = 0;
+    let bagRevealFocusTimer = 0;
+    let bagFocusSequence = 0;
+    let revealedBagFocusSequence = 0;
     const revealFocusedProductField = () => {
       if (!isTopSixProductModal || !el.classList.contains("is-keyboard-open") || !viewport) return;
       const active = document.activeElement;
       if (!(active instanceof HTMLElement) || !el.contains(active)) return;
 
+      const { height, offsetTop } = getViewportMetrics();
       const fieldRect = active.getBoundingClientRect();
       const modalRect = el.getBoundingClientRect();
-      const visibleTop = Math.max(viewport.offsetTop, modalRect.top) + 16;
-      const visibleBottom = Math.min(viewport.offsetTop + viewport.height, modalRect.bottom) - 16;
+      const visibleTop = Math.max(offsetTop, modalRect.top) + 16;
+      const visibleBottom = Math.min(offsetTop + height, modalRect.bottom) - 16;
       if (fieldRect.top < visibleTop) {
         el.scrollTop -= visibleTop - fieldRect.top;
       } else if (fieldRect.bottom > visibleBottom) {
@@ -746,9 +760,62 @@ function Modal({
         revealFocusedProductField();
       });
     };
+    const isTextEntryField = (target: EventTarget | null): target is HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement => {
+      if (target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) return true;
+      return target instanceof HTMLInputElement && !["button", "checkbox", "file", "hidden", "image", "radio", "reset", "submit"].includes(target.type);
+    };
+    const revealFocusedBagField = (focusSequence: number) => {
+      if (!isBagModal || focusSequence !== bagFocusSequence || revealedBagFocusSequence === focusSequence) return;
+      if (!isBagKeyboardOpen()) return;
+      const active = document.activeElement;
+      if (!isTextEntryField(active) || !el.contains(active)) return;
+      const body = el.querySelector<HTMLElement>(".bag-modal-body");
+      if (!body) return;
+
+      revealedBagFocusSequence = focusSequence;
+      window.scrollTo(0, 0);
+      const { height, offsetTop } = getViewportMetrics();
+      const keyboardOpen = isBagKeyboardOpen();
+      const fieldRect = active.getBoundingClientRect();
+      const bodyRect = body.getBoundingClientRect();
+      const viewportTop = Math.max(offsetTop, bodyRect.top) + (keyboardOpen && height < 240 ? 4 : 12);
+      const viewportBottom = Math.min(
+        offsetTop + height,
+        bodyRect.bottom,
+      ) - (keyboardOpen ? 56 : 12);
+      if (fieldRect.top < viewportTop || fieldRect.bottom > viewportBottom) {
+        const targetTop = viewportTop + Math.max(0, (viewportBottom - viewportTop - fieldRect.height) / 2);
+        body.scrollTop += fieldRect.top - targetTop;
+      }
+    };
+    const queueRevealFocusedBagField = (focusSequence = bagFocusSequence) => {
+      if (!isBagModal || !focusSequence || revealedBagFocusSequence === focusSequence || bagRevealFocusTimer) return;
+      bagRevealFocusTimer = window.setTimeout(() => {
+        bagRevealFocusTimer = 0;
+        revealFocusedBagField(focusSequence);
+      }, 300);
+    };
+    const handleBagFocusIn = (event: FocusEvent) => {
+      if (!isBagModal || !isTextEntryField(event.target) || !el.contains(event.target)) return;
+      bagFocusSequence += 1;
+      const focusSequence = bagFocusSequence;
+      if (bagRevealFocusTimer) {
+        window.clearTimeout(bagRevealFocusTimer);
+        bagRevealFocusTimer = 0;
+      }
+      queueRevealFocusedBagField(focusSequence);
+    };
     const updateFormModalViewport = () => {
-      if ((!isBagModal && !isTopSixProductModal) || !viewport) return;
-      const keyboardOpen = viewport.height < window.innerHeight - 120;
+      if (!isBagModal && !isTopSixProductModal) return;
+      const { height, offsetTop } = getViewportMetrics();
+      if (isBagModal) {
+        el.style.setProperty("--vvh", `${height}px`);
+        el.style.setProperty("--vvt", `${offsetTop}px`);
+      }
+      const keyboardOpen = isBagModal ? isBagKeyboardOpen() : height < window.innerHeight - 120;
+      if (isBagModal) {
+        el.style.setProperty("--bag-keyboard-accessory-inset", keyboardOpen ? "56px" : "0px");
+      }
       if (!keyboardOpen) {
         el.classList.remove("is-keyboard-open");
         el.style.removeProperty("--modal-viewport-height");
@@ -756,10 +823,10 @@ function Modal({
         return;
       }
 
-      const viewportBottom = viewport.offsetTop + viewport.height;
+      const viewportBottom = offsetTop + height;
       el.style.setProperty(
         "--modal-viewport-height",
-        `${Math.max(0, Math.floor(viewport.height) - 1)}px`,
+        `${Math.max(0, Math.floor(height) - 1)}px`,
       );
       el.style.setProperty(
         "--modal-viewport-bottom-inset",
@@ -767,6 +834,7 @@ function Modal({
       );
       el.classList.add("is-keyboard-open");
       queueRevealFocusedProductField();
+      queueRevealFocusedBagField();
     };
     if (!el.open) {
       try {
@@ -794,11 +862,31 @@ function Modal({
       body.style.left = `${-pageScrollX}px`;
       body.style.width = "100%";
     }
+    const usesTouchBagLayout = isBagModal && shouldFreezePageBackground && window.matchMedia("(max-width: 1100px)").matches;
+    if (usesTouchBagLayout) {
+      el.classList.add("is-touch-form-modal");
+    }
     updateFormModalViewport();
     viewport?.addEventListener("resize", updateFormModalViewport);
     viewport?.addEventListener("scroll", updateFormModalViewport);
-    window.addEventListener("resize", updateFormModalViewport);
+    const handleWindowResize = () => {
+      if (isBagModal && Math.abs(window.innerWidth - bagViewportBaselineWidth) >= 100) {
+        bagViewportBaselineHeight = window.innerHeight;
+        bagViewportBaselineWidth = window.innerWidth;
+      }
+      updateFormModalViewport();
+    };
+    const handleOrientationChange = () => {
+      if (isBagModal) {
+        bagViewportBaselineHeight = window.innerHeight;
+        bagViewportBaselineWidth = window.innerWidth;
+      }
+      updateFormModalViewport();
+    };
+    window.addEventListener("resize", handleWindowResize);
+    window.addEventListener("orientationchange", handleOrientationChange);
     el.addEventListener("focusin", queueRevealFocusedProductField);
+    el.addEventListener("focusin", handleBagFocusIn);
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
@@ -834,13 +922,20 @@ function Modal({
     return () => {
       el.removeEventListener("keydown", handleKeyDown);
       el.removeEventListener("focusin", queueRevealFocusedProductField);
+      el.removeEventListener("focusin", handleBagFocusIn);
       viewport?.removeEventListener("resize", updateFormModalViewport);
       viewport?.removeEventListener("scroll", updateFormModalViewport);
-      window.removeEventListener("resize", updateFormModalViewport);
+      window.removeEventListener("resize", handleWindowResize);
+      window.removeEventListener("orientationchange", handleOrientationChange);
       if (revealFocusedFieldFrame) window.cancelAnimationFrame(revealFocusedFieldFrame);
+      if (bagRevealFocusTimer) window.clearTimeout(bagRevealFocusTimer);
       el.classList.remove("is-keyboard-open");
+      if (usesTouchBagLayout) el.classList.remove("is-touch-form-modal");
       el.style.removeProperty("--modal-viewport-height");
       el.style.removeProperty("--modal-viewport-bottom-inset");
+      el.style.removeProperty("--vvh");
+      el.style.removeProperty("--vvt");
+      el.style.removeProperty("--bag-keyboard-accessory-inset");
       if (el.open) el.close();
       body.style.overflow = oldBodyStyles.overflow;
       if (shouldFreezePageBackground) {
@@ -1251,6 +1346,7 @@ function App() {
   const [beverageQuery, setBeverageQuery] = useState("");
   const [receipt, setReceipt] = useState(false);
   const [toast, setToast] = useState("");
+  const bagModalBodyRef = useRef<HTMLDivElement>(null);
   const [pendingOrder, setPendingOrder] = useState<PendingOrder | null>(readPendingOrder);
   const lastOrder = pendingOrder?.message ?? "";
   useEffect(() => {
@@ -1281,6 +1377,9 @@ function App() {
   }, [receipt, lastOrder]);
   const [storeStatus, setStoreStatus] = useState(getStoreStatus);
   const [checkoutStep, setCheckoutStep] = useState<"bag" | "details">("bag");
+  useEffect(() => {
+    if (bagOpen) bagModalBodyRef.current?.scrollTo({ top: 0, left: 0 });
+  }, [bagOpen, checkoutStep]);
   const [checkoutPickupTime, setCheckoutPickupTime] = useState(() =>
     validateOrderTiming("ASAP (~15-20 mins)", "") ? "Custom time" : "ASAP (~15-20 mins)",
   );
@@ -2343,30 +2442,31 @@ function App() {
           }}
         >
           <div className="bag-content">
-            <span className="eyebrow">BEAN DINER · BAYAMBANG</span>
-            <h2 ref={bagHeadingRef} tabIndex={receipt ? -1 : undefined}>
-              {receipt
-                ? "Your order is ready to send."
-                : checkoutStep === "details"
-                  ? "Checkout Details"
-                  : "Your Order Bag"}
-            </h2>
+            <div className="bag-modal-header">
+              <span className="eyebrow">BEAN DINER · BAYAMBANG</span>
+              <h2 ref={bagHeadingRef} tabIndex={receipt ? -1 : undefined}>
+                {receipt
+                  ? "Your order is ready to send."
+                  : checkoutStep === "details"
+                    ? "Checkout Details"
+                    : "Your Order Bag"}
+              </h2>
 
-            {!receipt && pendingOrder && (
-              <button
-                type="button"
-                className="button"
-                onClick={() => {
-                  if (isPendingOrder(pendingOrder)) setReceipt(true);
-                  else setPendingOrder(null);
-                }}
-              >
-                View pending order summary
-              </button>
-            )}
+              {!receipt && pendingOrder && (
+                <button
+                  type="button"
+                  className="button"
+                  onClick={() => {
+                    if (isPendingOrder(pendingOrder)) setReceipt(true);
+                    else setPendingOrder(null);
+                  }}
+                >
+                  View pending order summary
+                </button>
+              )}
 
-            {/* Step indicator (Bag, Details, Send) */}
-            <nav className="checkout-step-nav" aria-label="Checkout progress">
+              {/* Step indicator (Bag, Details, Send) */}
+              <nav className="checkout-step-nav" aria-label="Checkout progress">
               <ol className="checkout-steps">
                 <li
                   className={`checkout-step-item ${
@@ -2432,9 +2532,11 @@ function App() {
                   </span>
                 </li>
               </ol>
-            </nav>
+              </nav>
+            </div>
 
-            {receipt ? (
+            <div className="bag-modal-body" ref={bagModalBodyRef}>
+              {receipt ? (
               <div className="receipt">
                 <div className="receipt-diner-ticket">
                   {/* Ticket Header */}
@@ -3098,7 +3200,8 @@ function App() {
                   </small>
                 </div>
               </div>
-            )}
+              )}
+            </div>
           </div>
         </Modal>
       )}
