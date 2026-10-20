@@ -401,15 +401,14 @@ export function scrollListIntoView(list: HTMLElement | null, behavior?: ScrollBe
   window.scrollTo({ top: target, behavior: behavior ?? (prefersReducedMotion() ? "auto" : "smooth") });
 }
 
-/* Publishes the pinned header height (mobile only, where the header is sticky)
-   so menu bars stack under it instead of sliding beneath. */
-export function useStickyHeaderOffset() {
+/* Publishes the pinned header height so sticky menu bars stack under it. */
+export function useStickyHeaderOffset(stickyEnabled = true) {
   useEffect(() => {
     const header = document.querySelector<HTMLElement>(".header");
     if (!header) return;
     const root = document.documentElement;
     const update = () => {
-      const pinned = getComputedStyle(header).position === "sticky";
+      const pinned = stickyEnabled && getComputedStyle(header).position === "sticky";
       const h = pinned ? header.offsetHeight : 0;
       root.style.setProperty("--sticky-top", `${h}px`);
       root.style.setProperty("--header-h", `${h}px`);
@@ -422,5 +421,5 @@ export function useStickyHeaderOffset() {
       observer?.disconnect();
       window.removeEventListener("resize", update);
     };
-  }, []);
+  }, [stickyEnabled]);
 }

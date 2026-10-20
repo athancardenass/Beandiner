@@ -80,6 +80,8 @@ body {
 }
 /* Light canvas; dark sections declare their own surface. */
 main { background: var(--surface-page); }
+/* Keep the paint underneath full-bleed homepage sections dark during fast scrolls. */
+main:has(> .video-hero) { background: var(--espresso); }
 /* ↓ INTERACTIVE: Remove tap highlight on mobile */
 button,
 input,
@@ -593,14 +595,28 @@ main {
   }
 }
 @media (prefers-reduced-motion: no-preference) {
-  .hero-heading-copy {
+  .hero.has-entered .hero-heading-copy {
     animation: home-headline-reveal 760ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both;
   }
-  .hero-order-cta {
+  .hero.has-entered .hero-order-cta {
     animation: hero-order-reveal 460ms ease-out 420ms both;
   }
-  .hero-copy {
+  .hero.has-entered .hero-copy {
     animation: home-copy-reveal 540ms cubic-bezier(0.16, 1, 0.3, 1) 300ms both;
+  }
+  .hero .hero-product,
+  .hero .happy-stamp,
+  .hero .hero-bean,
+  .hero .hero-leaf,
+  .hero .hero-ice {
+    animation-play-state: paused;
+  }
+  .hero.is-in-view .hero-product,
+  .hero.is-in-view .happy-stamp,
+  .hero.is-in-view .hero-bean,
+  .hero.is-in-view .hero-leaf,
+  .hero.is-in-view .hero-ice {
+    animation-play-state: running;
   }
 }
 @keyframes hero-order-reveal {
@@ -4131,7 +4147,7 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   color: var(--accent);
 }
 .nav-modal .logo-title {
-  color: var(--ink);
+  color: var(--espresso);
 }
 .nav-modal .logo-location {
   color: var(--accent-on-light);
@@ -4146,6 +4162,10 @@ body:has(.floating-bag-bubble) .footer-artisanal {
     position: sticky;
     top: 0;
     box-shadow: 0 5px 18px rgba(0, 0, 0, 0.14);
+  }
+  .header.header-menu-page {
+    position: relative;
+    top: auto;
   }
   .footer-bottom-bar {
     border-color: rgba(255, 255, 255, 0.2);
@@ -9539,6 +9559,30 @@ html:has(.video-hero) {
 
   .video-hero-content {
     bottom: 76px;
+  }
+}
+
+/* Cover Safari's translucent toolbar without resizing the hero during a drag. */
+@media (max-width: 820px) {
+  .video-hero {
+    height: calc(100vh - var(--header-h, 80px));
+  }
+}
+
+@supports (height: 100lvh) and (height: 100svh) {
+  @media (max-width: 820px) {
+    html:has(.video-hero) {
+      --mobile-toolbar-range: calc(100lvh - 100svh);
+    }
+
+    .video-hero {
+      height: calc(100lvh - var(--header-h, 80px) + var(--mobile-toolbar-range, 0px));
+    }
+
+    .video-hero-content,
+    .video-hero-scroll {
+      margin-bottom: var(--mobile-toolbar-range, 0px);
+    }
   }
 }
 
