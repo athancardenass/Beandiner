@@ -5609,6 +5609,9 @@ body:has(.floating-bag-bubble) .footer-artisanal {
     min-height: 54px;
     font-size: 13px;
   }
+  html:has(.bag-modal[open]) #root > :not(.bag-modal) {
+    visibility: hidden;
+  }
   .bag-modal[open] {
     width: 100%;
     min-height: 0;

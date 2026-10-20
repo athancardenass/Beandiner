@@ -20,6 +20,7 @@ for (const engine of [chromium, webkit]) {
     const viewportBackground = () => page.evaluate(() =>
       getComputedStyle(document.documentElement).getPropertyValue('--viewport-background').trim(),
     );
+    const pageContentVisibility = () => page.locator('.header').evaluate(el => getComputedStyle(el).visibility);
     const bagBackdrop = () => page.locator('dialog.bag-modal').evaluate(el => {
       const style = getComputedStyle(el, '::backdrop');
       return { background: style.backgroundColor, filter: style.backdropFilter };
@@ -36,8 +37,13 @@ for (const engine of [chromium, webkit]) {
     await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: '#FFFFFF' });
     await expect.poll(viewportBackground).toBe('#FFFFFF');
     await expect.poll(bagBackdrop).toEqual({ background: white, filter: 'none' });
+    await expect.poll(pageContentVisibility).toBe('hidden');
     await page.getByRole('button', { name: 'Proceed to Details', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: 'Your order bag', exact: true });
+    await page.getByRole('radio', { name: 'Custom time', exact: true }).check();
+    for (const selector of ['#order-name', '#order-phone', '#checkout-custom-time', '#order-note']) {
+      assert.equal(await page.locator(selector).getAttribute('autocomplete'), 'off', `${selector} should opt out of browser autocomplete`);
+    }
     const note = page.locator('#order-note');
     await note.scrollIntoViewIfNeeded();
     await note.focus();
@@ -119,6 +125,7 @@ for (const engine of [chromium, webkit]) {
     await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: '#FFFFFF' });
     await page.getByRole('button', { name: 'Close dialog', exact: true }).click();
     await page.evaluate(() => window.scrollTo(0, 0));
+    await expect.poll(pageContentVisibility).toBe('visible');
     await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: '#FFFFFF' });
     await expect.poll(viewportBackground).toBe('');
     // Reopening and Escape must also restore the menu canvas without leaked state.
@@ -133,8 +140,10 @@ for (const engine of [chromium, webkit]) {
     await page.getByRole('button', { name: 'Open bag, 1 items', exact: true }).click();
     await expect.poll(viewportBackground).toBe('#FFFFFF');
     await expect.poll(bagBackdrop).toEqual({ background: white, filter: 'none' });
+    await expect.poll(pageContentVisibility).toBe('hidden');
     await page.keyboard.press('Escape');
     await expect.poll(viewportBackground).toBe('#121212');
+    await expect.poll(pageContentVisibility).toBe('visible');
     assert.deepEqual(errors, []);
     console.log(`${engine.name()}: checkout options stay reachable with the keyboard open and browser chrome stays white`);
   } finally {

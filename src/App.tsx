@@ -2892,6 +2892,7 @@ function App() {
                             <input
                               id="checkout-custom-time"
                               name="customTime"
+                              autoComplete="off"
                               className={showTimeError ? "input-error" : ""}
                               placeholder="e.g. 2:45 PM or 5:30 PM"
                               value={checkoutCustomTime}
@@ -2951,6 +2952,7 @@ function App() {
                         <input
                           id="order-note"
                           name="note"
+                          autoComplete="off"
                           placeholder="e.g. separate syrup, extra napkins, less sweet"
                           value={checkoutNote}
                           onChange={(e) => setCheckoutNote(e.target.value)}
