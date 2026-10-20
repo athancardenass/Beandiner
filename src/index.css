@@ -5622,7 +5622,10 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   .bag-modal.is-keyboard-open[open] {
     position: fixed;
     inset: auto 0 var(--modal-viewport-bottom-inset, 0px);
-    margin: 0 auto;
+    height: var(--modal-viewport-height, 100svh);
+    min-height: 0;
+    max-height: none;
+    margin: 0;
     animation: none;
   }
   .product-modal:not(.bite-customize-modal).is-keyboard-open[open] {
