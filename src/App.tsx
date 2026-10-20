@@ -723,6 +723,29 @@ function Modal({
     const pageScrollX = window.scrollX;
     const pageScrollY = window.scrollY;
     const viewport = (isBagModal || isTopSixProductModal) ? window.visualViewport : null;
+    let revealFocusedFieldFrame = 0;
+    const revealFocusedProductField = () => {
+      if (!isTopSixProductModal || !el.classList.contains("is-keyboard-open") || !viewport) return;
+      const active = document.activeElement;
+      if (!(active instanceof HTMLElement) || !el.contains(active)) return;
+
+      const fieldRect = active.getBoundingClientRect();
+      const modalRect = el.getBoundingClientRect();
+      const visibleTop = Math.max(viewport.offsetTop, modalRect.top) + 16;
+      const visibleBottom = Math.min(viewport.offsetTop + viewport.height, modalRect.bottom) - 16;
+      if (fieldRect.top < visibleTop) {
+        el.scrollTop -= visibleTop - fieldRect.top;
+      } else if (fieldRect.bottom > visibleBottom) {
+        el.scrollTop += fieldRect.bottom - visibleBottom;
+      }
+    };
+    const queueRevealFocusedProductField = () => {
+      if (!isTopSixProductModal || revealFocusedFieldFrame) return;
+      revealFocusedFieldFrame = window.requestAnimationFrame(() => {
+        revealFocusedFieldFrame = 0;
+        revealFocusedProductField();
+      });
+    };
     const updateFormModalViewport = () => {
       if ((!isBagModal && !isTopSixProductModal) || !viewport) return;
       const keyboardOpen = viewport.height < window.innerHeight - 120;
@@ -743,6 +766,7 @@ function Modal({
         `${Math.max(0, Math.ceil(window.innerHeight - viewportBottom))}px`,
       );
       el.classList.add("is-keyboard-open");
+      queueRevealFocusedProductField();
     };
     if (!el.open) {
       try {
@@ -774,6 +798,7 @@ function Modal({
     viewport?.addEventListener("resize", updateFormModalViewport);
     viewport?.addEventListener("scroll", updateFormModalViewport);
     window.addEventListener("resize", updateFormModalViewport);
+    el.addEventListener("focusin", queueRevealFocusedProductField);
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
@@ -808,9 +833,11 @@ function Modal({
 
     return () => {
       el.removeEventListener("keydown", handleKeyDown);
+      el.removeEventListener("focusin", queueRevealFocusedProductField);
       viewport?.removeEventListener("resize", updateFormModalViewport);
       viewport?.removeEventListener("scroll", updateFormModalViewport);
       window.removeEventListener("resize", updateFormModalViewport);
+      if (revealFocusedFieldFrame) window.cancelAnimationFrame(revealFocusedFieldFrame);
       el.classList.remove("is-keyboard-open");
       el.style.removeProperty("--modal-viewport-height");
       el.style.removeProperty("--modal-viewport-bottom-inset");

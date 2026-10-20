@@ -65,13 +65,34 @@ for (const engine of [chromium, webkit]) {
     });
     assert.equal(simulatedProductKeyboard.keyboardOpen, true, 'Top 6 customization must detect the keyboard-reduced visual viewport');
     assert.ok(simulatedProductKeyboard.bottom <= simulatedProductKeyboard.viewportBottom, 'Top 6 customization must stay above the keyboard');
+    const baristaNote = page.locator('#item-note');
+    const productBodyTop = await page.evaluate(() => document.body.style.top);
+    await baristaNote.focus();
+    await expect.poll(() => baristaNote.evaluate(el => {
+      const rect = el.getBoundingClientRect();
+      const { offsetTop, height } = window.visualViewport;
+      return rect.top >= offsetTop && rect.bottom <= offsetTop + height;
+    })).toBe(true);
+    const focusedProductNote = await page.evaluate(() => {
+      const field = document.querySelector('#item-note').getBoundingClientRect();
+      const modal = document.querySelector('dialog.product-modal:not(.bite-customize-modal)').getBoundingClientRect();
+      const { offsetTop, height } = window.visualViewport;
+      return {
+        fieldVisible: field.top >= offsetTop && field.bottom <= offsetTop + height,
+        modalVisible: modal.bottom <= offsetTop + height,
+        bodyTop: document.body.style.top,
+      };
+    });
+    assert.equal(focusedProductNote.fieldVisible, true, 'Focusing the Top 6 barista note must keep the field above the keyboard');
+    assert.equal(focusedProductNote.modalVisible, true, 'Focusing the Top 6 barista note must keep its modal above the keyboard');
+    assert.equal(focusedProductNote.bodyTop, productBodyTop, 'Focusing the Top 6 barista note must not move the menu behind it');
+    await baristaNote.blur();
     await page.evaluate(() => {
       const viewport = window.visualViewport;
       delete viewport.height;
       delete viewport.offsetTop;
       viewport.dispatchEvent(new Event('resize'));
     });
-    const baristaNote = page.locator('#item-note');
     assert.ok(
       Number.parseFloat(await baristaNote.evaluate(el => getComputedStyle(el).fontSize)) >= 16,
       'The Top 6 barista note must use at least 16px text to prevent iPhone Safari auto-zoom',
@@ -116,6 +137,34 @@ for (const engine of [chromium, webkit]) {
     assert.equal(simulatedKeyboard.keyboardOpen, true, 'Order Bag must detect the reduced iPhone visual viewport');
     assert.ok(simulatedKeyboard.height <= 360, 'Order Bag must fit inside the keyboard-reduced viewport');
     assert.ok(simulatedKeyboard.bottom <= simulatedKeyboard.viewportBottom, 'Order Bag must end above the keyboard');
+    const orderTypeBodyTop = await page.evaluate(() => document.body.style.top);
+    for (const [index, fieldSelector] of [[1, '#checkout-table'], [2, '#checkout-address'], [0, null]]) {
+      await page.locator('.order-type-row label').nth(index).click();
+      const state = await page.evaluate(() => {
+        const bag = document.querySelector('dialog.bag-modal');
+        const rect = bag.getBoundingClientRect();
+        const { offsetTop, height } = window.visualViewport;
+        return {
+          keyboardOpen: bag.classList.contains('is-keyboard-open'),
+          bagVisible: rect.top >= offsetTop && rect.bottom <= offsetTop + height,
+          bodyTop: document.body.style.top,
+        };
+      });
+      assert.equal(state.keyboardOpen, true, 'Changing order type must retain the keyboard viewport state');
+      assert.equal(state.bagVisible, true, 'Changing order type must keep the Order Bag above the keyboard');
+      assert.equal(state.bodyTop, orderTypeBodyTop, 'Changing order type must keep the menu fixed behind the Order Bag');
+      if (fieldSelector) {
+        const field = page.locator(fieldSelector);
+        await field.scrollIntoViewIfNeeded();
+        await field.focus();
+        await expect.poll(() => field.evaluate(el => {
+          const rect = el.getBoundingClientRect();
+          const { offsetTop, height } = window.visualViewport;
+          return rect.top >= offsetTop && rect.bottom <= offsetTop + height;
+        })).toBe(true);
+        await field.blur();
+      }
+    }
     await page.evaluate(() => {
       const viewport = window.visualViewport;
       delete viewport.height;
