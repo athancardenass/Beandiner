@@ -747,41 +747,6 @@ function Modal({
       body.style.left = `${-pageScrollX}px`;
       body.style.width = "100%";
     }
-    const viewport = window.visualViewport;
-    let viewportFrame = 0;
-    let keyboardOpen = false;
-    const updateBagViewport = () => {
-      if (!el.matches(".bag-modal")) return;
-      const height = viewport?.height ?? innerHeight;
-      const viewportTop = Math.floor(viewport?.offsetTop ?? 0);
-      const viewportBottom = Math.ceil(viewportTop + height);
-      // Leave one CSS pixel for Safari's fractional visual viewport rounding.
-      el.style.setProperty("--bag-viewport-height", `${Math.max(0, Math.floor(height) - 1)}px`);
-      const nextKeyboardOpen = Boolean(viewport && height < innerHeight - 120);
-      el.style.setProperty(
-        "--bag-viewport-top",
-        `${nextKeyboardOpen ? viewportTop : 0}px`,
-      );
-      el.classList.toggle("is-keyboard-open", nextKeyboardOpen);
-      const dialogBottom = Math.min(viewportBottom, Math.ceil(el.getBoundingClientRect().bottom));
-      el.style.setProperty("--bag-dialog-bottom", `${Math.max(0, dialogBottom)}px`);
-      el.style.setProperty("--bag-viewport-bottom", `${Math.max(0, viewportBottom)}px`);
-      if (nextKeyboardOpen && !keyboardOpen) {
-        cancelAnimationFrame(viewportFrame);
-        viewportFrame = requestAnimationFrame(() => {
-          const activeElement = document.activeElement;
-          if (el.open && activeElement instanceof HTMLElement && el.contains(activeElement)) {
-            activeElement.scrollIntoView({ block: "nearest", inline: "nearest" });
-          }
-        });
-      }
-      keyboardOpen = nextKeyboardOpen;
-    };
-    updateBagViewport();
-    viewport?.addEventListener("resize", updateBagViewport);
-    viewport?.addEventListener("scroll", updateBagViewport);
-    window.addEventListener("resize", updateBagViewport);
-
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
@@ -816,15 +781,6 @@ function Modal({
 
     return () => {
       el.removeEventListener("keydown", handleKeyDown);
-      cancelAnimationFrame(viewportFrame);
-      viewport?.removeEventListener("resize", updateBagViewport);
-      viewport?.removeEventListener("scroll", updateBagViewport);
-      window.removeEventListener("resize", updateBagViewport);
-      el.classList.remove("is-keyboard-open");
-      el.style.removeProperty("--bag-viewport-height");
-      el.style.removeProperty("--bag-viewport-top");
-      el.style.removeProperty("--bag-dialog-bottom");
-      el.style.removeProperty("--bag-viewport-bottom");
       if (el.open) el.close();
       body.style.overflow = oldBodyStyles.overflow;
       if (shouldFreezeBagBackground) {

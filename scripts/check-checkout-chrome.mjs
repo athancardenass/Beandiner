@@ -3,6 +3,26 @@ import { chromium, webkit, expect } from '@playwright/test';
 
 const white = 'rgb(255, 255, 255)';
 
+async function assertFieldDoesNotZoomOrResize(field, label) {
+  const measure = () => field.evaluate(el => {
+    const style = getComputedStyle(el);
+    const rect = el.getBoundingClientRect();
+    return {
+      fontSize: Number.parseFloat(style.fontSize),
+      width: rect.width,
+      height: rect.height,
+      transform: style.transform,
+      scale: style.scale,
+      viewportScale: window.visualViewport?.scale,
+    };
+  });
+  const before = await measure();
+  assert.ok(before.fontSize >= 16, `${label} must use at least 16px text`);
+  await field.focus();
+  assert.deepEqual(await measure(), before, `${label} must not zoom or resize on focus`);
+  await field.evaluate(el => el.blur());
+}
+
 for (const engine of [chromium, webkit]) {
   const browser = await engine.launch();
   try {
@@ -33,6 +53,7 @@ for (const engine of [chromium, webkit]) {
       'The Top 6 barista note must use at least 16px text to prevent iPhone Safari auto-zoom',
     );
     assert.equal(await baristaNote.getAttribute('autocomplete'), 'off', 'The barista note must not invoke contact autofill');
+    await assertFieldDoesNotZoomOrResize(baristaNote, 'Top 6 barista note');
     await page.getByRole('button', { name: 'Add to bag ₱160', exact: true }).click();
     await page.evaluate(async () => {
       await document.fonts.ready;
@@ -59,6 +80,9 @@ for (const engine of [chromium, webkit]) {
     assert.equal(await page.locator('#order-phone').getAttribute('name'), null, 'The phone field must not advertise a contact autofill name');
     assert.equal(await page.locator('#order-phone').getAttribute('type'), 'text', 'The phone field must avoid tel type heuristics while retaining its numeric keyboard');
     assert.equal(await page.locator('#order-phone').getAttribute('inputmode'), 'numeric', 'The phone field must keep its numeric keyboard');
+    for (const selector of ['#order-name', '#order-phone', '#order-note']) {
+      await assertFieldDoesNotZoomOrResize(page.locator(selector), selector);
+    }
     for (const [orderTypeIndex, fieldSelector] of [
       [1, '#checkout-table'],
       [2, '#checkout-address'],
@@ -66,9 +90,10 @@ for (const engine of [chromium, webkit]) {
       await page.locator('.order-type-row label').nth(orderTypeIndex).click();
       assert.equal(await page.locator(fieldSelector).getAttribute('autocomplete'), 'off', `${fieldSelector} must opt out of autocomplete`);
       assert.equal(await page.locator(fieldSelector).getAttribute('name'), null, `${fieldSelector} must not advertise an autofill field name`);
+      await assertFieldDoesNotZoomOrResize(page.locator(fieldSelector), fieldSelector);
     }
     await page.locator('.order-type-row label').first().click();
-    const bagContentForScroll = page.locator('.bag-content');
+    const bagContentForScroll = dialog;
     if (engine.name() === 'chromium') {
       const bagContentBounds = await bagContentForScroll.boundingBox();
       await page.mouse.move(bagContentBounds.x + bagContentBounds.width / 2, bagContentBounds.y + bagContentBounds.height / 2);
@@ -93,80 +118,46 @@ for (const engine of [chromium, webkit]) {
     assert.ok(fieldFontSizes.every(({ size }) => size >= 16), `Every Order Bag form control must be at least 16px: ${JSON.stringify(fieldFontSizes)}`);
     assert.doesNotMatch(await page.locator('meta[name="viewport"]').getAttribute('content'), /maximum-scale|user-scalable\s*=\s*no/i, 'Viewport must keep pinch zoom available');
     await page.getByRole('radio', { name: 'Custom time', exact: true }).check();
+    await assertFieldDoesNotZoomOrResize(page.locator('#checkout-custom-time'), 'Custom pickup time');
     for (const selector of ['#order-name', '#order-phone', '#checkout-custom-time', '#order-note']) {
       assert.equal(await page.locator(selector).getAttribute('autocomplete'), 'off', `${selector} should opt out of browser autocomplete`);
     }
     const note = page.locator('#order-note');
+    await page.setViewportSize({ width: 390, height: 360 });
     await note.scrollIntoViewIfNeeded();
     await note.focus();
-    // iOS Safari shrinks the visible viewport when its keyboard opens.
-    await page.evaluate(() => {
-      const viewport = window.visualViewport;
-      Object.defineProperty(viewport, 'height', { configurable: true, value: 360 });
-      viewport.dispatchEvent(new Event('resize'));
-      Object.defineProperty(viewport, 'offsetTop', { configurable: true, value: 24 });
-      viewport.dispatchEvent(new Event('scroll'));
-    });
-    await expect.poll(() => dialog.evaluate(el => el.style.getPropertyValue('--bag-viewport-top'))).toBe('24px');
-    await expect.poll(() => dialog.evaluate(el => el.getBoundingClientRect().height)).toBeLessThanOrEqual(360);
-    await expect.poll(() => page.locator('.bag-content').evaluate(el => el.getBoundingClientRect().height)).toBeLessThanOrEqual(360);
-    const keyboardBackdrop = await bagBackdrop();
-    assert.ok(keyboardBackdrop.image.startsWith('linear-gradient('), 'Keyboard-open backdrop should use a scoped white gap');
-    assert.ok(keyboardBackdrop.image.includes('rgb(255, 255, 255)'), 'Keyboard gap should be white');
-    assert.ok(keyboardBackdrop.image.includes('rgba(18, 18, 18, 0.75)'), 'Area above the keyboard gap should keep the dark backdrop');
-    assert.ok(keyboardBackdrop.image.indexOf('rgba(18, 18, 18, 0.75)') < keyboardBackdrop.image.indexOf('rgb(255, 255, 255)'), 'The white gap must begin below the dark top area');
-    assert.equal(keyboardBackdrop.filter, 'blur(5px)');
-    const bandBounds = await dialog.evaluate(el => ({
-      start: Number.parseFloat(el.style.getPropertyValue('--bag-dialog-bottom')),
-      end: Number.parseFloat(el.style.getPropertyValue('--bag-viewport-bottom')),
-      dialogBottom: Math.ceil(el.getBoundingClientRect().bottom),
-      viewportBottom: Math.ceil(window.visualViewport.offsetTop + window.visualViewport.height),
-    }));
-    assert.deepEqual(bandBounds, {
-      start: Math.min(bandBounds.viewportBottom, bandBounds.dialogBottom),
-      end: bandBounds.viewportBottom,
-      dialogBottom: bandBounds.dialogBottom,
-      viewportBottom: bandBounds.viewportBottom,
-    });
+    await expect.poll(() => dialog.evaluate(el => {
+      const rect = el.getBoundingClientRect();
+      return rect.top >= 0 && rect.bottom <= innerHeight;
+    })).toBe(true);
+    await expect.poll(() => note.evaluate(el => {
+      const rect = el.getBoundingClientRect();
+      return rect.top >= 0 && rect.bottom <= innerHeight;
+    })).toBe(true);
     const bagScrollState = () => dialog.evaluate(el => {
       const content = el.querySelector('.bag-content');
       return {
         dialogOverflow: getComputedStyle(el).overflowY,
         contentOverflow: getComputedStyle(content).overflowY,
+        dialogCanScroll: el.scrollHeight > el.clientHeight,
         contentCanScroll: content.scrollHeight > content.clientHeight,
       };
     });
-    await expect.poll(bagScrollState).toEqual({ dialogOverflow: 'hidden', contentOverflow: 'auto', contentCanScroll: true });
+    await expect.poll(bagScrollState).toEqual({ dialogOverflow: 'auto', contentOverflow: 'visible', dialogCanScroll: true, contentCanScroll: false });
     const upwardScroll = await dialog.evaluate(el => {
-      const content = el.querySelector('.bag-content');
-      content.scrollTop = content.scrollHeight;
-      const bottom = content.scrollTop;
-      content.scrollTop = Math.max(0, bottom - 120);
-      return { bottom, after: content.scrollTop };
+      el.scrollTop = el.scrollHeight;
+      const bottom = el.scrollTop;
+      el.scrollTop = Math.max(0, bottom - 120);
+      return { bottom, after: el.scrollTop };
     });
     assert.ok(upwardScroll.bottom > 0 && upwardScroll.after < upwardScroll.bottom, 'Order Bag content must scroll upward while an input has focus');
-    await expect.poll(() => note.evaluate(el => {
-      const rect = el.getBoundingClientRect();
-      const { offsetTop, height } = window.visualViewport;
-      return rect.top >= offsetTop && rect.bottom <= offsetTop + height;
-    })).toBe(true);
     const submit = page.getByRole('button', { name: 'Send order via Messenger', exact: true });
-    await submit.evaluate(el => el.scrollIntoView({ block: 'end' }));
+    await submit.scrollIntoViewIfNeeded();
     await expect.poll(() => submit.evaluate(el => {
       const rect = el.getBoundingClientRect();
       const { offsetTop, height } = window.visualViewport;
       return rect.top >= offsetTop && rect.bottom <= offsetTop + height;
     })).toBe(true);
-    const firstOrderType = page.locator('.order-type-row label').first();
-    await firstOrderType.scrollIntoViewIfNeeded();
-    const scrollBeforeViewportShift = await dialog.evaluate(el => [el.scrollTop, el.querySelector('.bag-content').scrollTop]);
-    await page.evaluate(async () => {
-      Object.defineProperty(window.visualViewport, 'offsetTop', { configurable: true, value: 32 });
-      window.visualViewport.dispatchEvent(new Event('scroll'));
-      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    });
-    const scrollAfterViewportShift = await dialog.evaluate(el => [el.scrollTop, el.querySelector('.bag-content').scrollTop]);
-    assert.deepEqual(scrollAfterViewportShift, scrollBeforeViewportShift, 'Safari viewport shifts must not pull the form back to the last focused input');
     for (const selector of [
       '.order-type-row label',
       '.timing-choice-row label',
@@ -180,28 +171,16 @@ for (const engine of [chromium, webkit]) {
         await control.scrollIntoViewIfNeeded();
         await expect.poll(() => control.evaluate(el => {
           const rect = el.getBoundingClientRect();
-          const { offsetTop, height } = window.visualViewport;
-          return rect.top >= offsetTop && rect.bottom <= offsetTop + height;
+          return rect.top >= 0 && rect.bottom <= innerHeight;
         })).toBe(true);
       }
     }
-    await page.evaluate(() => {
-      delete window.visualViewport.height;
-      window.visualViewport.dispatchEvent(new Event('resize'));
-    });
-    await expect.poll(() => dialog.evaluate(el => el.style.getPropertyValue('--bag-viewport-top'))).toBe('0px');
-    await page.evaluate(() => {
-      delete window.visualViewport.offsetTop;
-      window.visualViewport.dispatchEvent(new Event('resize'));
-    });
     for (const height of [844, 460, 660, 900]) {
       await page.setViewportSize({ width: 390, height });
       await page.locator('#order-name').focus();
       for (const end of ['bottom', 'top']) {
         await dialog.evaluate((el, end) => {
-          for (const node of [el, el.querySelector('.bag-content')]) {
-            node.scrollTop = end === 'bottom' ? node.scrollHeight : 0;
-          }
+          el.scrollTop = end === 'bottom' ? el.scrollHeight : 0;
         }, end);
         await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
         await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: '#FFFFFF' });
@@ -234,7 +213,7 @@ for (const engine of [chromium, webkit]) {
     await expect.poll(viewportBackground).toBe('#121212');
     await expect.poll(pageContentVisibility).toBe('visible');
     assert.deepEqual(errors, []);
-    console.log(`${engine.name()}: Order Bag locks the menu, preserves 16px fields, and scopes the keyboard gap`);
+    console.log(`${engine.name()}: Order Bag locks the menu and scrolls its focused 16px fields without zooming`);
   } finally {
     await browser.close();
   }
