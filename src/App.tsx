@@ -11,6 +11,15 @@ import DinerBitesPage from "./DinerBitesPage";
 import BeveragesPage from "./BeveragesPage";
 import OurStoryPage from "./OurStoryPage";
 import { usePageBackground } from "./ui/usePageBackground";
+import {
+  getStoreStatus,
+  isPendingOrder,
+  PENDING_ORDER_TTL_MS,
+  readPendingOrder,
+  validateOrderTiming,
+  writePendingOrder,
+  type PendingOrder,
+} from "./utils/checkout";
 
 import { dinerBites, type DinerBite } from "./dinerBites";
 import {
@@ -36,21 +45,6 @@ const beanDinerMapsUrl =
 const wazeUrl = "https://waze.com/ul?q=Bean%20Diner%20Bayambang";
 type CheckoutPayment = "cash" | "gcash" | "maya";
 
-const getStoreStatus = () => {
-  const parts = new Intl.DateTimeFormat("en-PH", {
-    timeZone: "Asia/Manila",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(new Date());
-  const hour = Number(parts.find((part) => part.type === "hour")?.value ?? 0);
-  const isOpen = hour >= 10 && hour < 21;
-
-  return {
-    isOpen,
-    text: isOpen ? "Open Now · Closes 9:00 PM" : "Closed Now · Opens 10:00 AM",
-  };
-};
 // ↓ UTILITY: Relative image path resolvers (supports dev server and file:// protocol)
 const image = (name: string) => {
   if (name === "hot") return "./images/optimized/hotroast.webp";
@@ -1160,7 +1154,24 @@ function App() {
   const [beverageQuery, setBeverageQuery] = useState("");
   const [receipt, setReceipt] = useState(false);
   const [toast, setToast] = useState("");
-  const [lastOrder, setLastOrder] = useState("");
+  const [pendingOrder, setPendingOrder] = useState<PendingOrder | null>(readPendingOrder);
+  const lastOrder = pendingOrder?.message ?? "";
+  useEffect(() => {
+    writePendingOrder(pendingOrder);
+    if (!pendingOrder) return;
+    const timeout = window.setTimeout(() => {
+      setPendingOrder(null);
+      setReceipt(false);
+    }, Math.max(0, pendingOrder.createdAt + PENDING_ORDER_TTL_MS - Date.now()));
+    return () => window.clearTimeout(timeout);
+  }, [pendingOrder]);
+  const openOrderBag = () => {
+    const saved = isPendingOrder(pendingOrder) ? pendingOrder : null;
+    if (!saved && pendingOrder) setPendingOrder(null);
+    setReceipt(cart.length === 0 && Boolean(saved));
+    setCheckoutStep("bag");
+    setBagOpen(true);
+  };
   const bagHeadingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     if (receipt) {
@@ -1173,7 +1184,9 @@ function App() {
   }, [receipt, lastOrder]);
   const [storeStatus, setStoreStatus] = useState(getStoreStatus);
   const [checkoutStep, setCheckoutStep] = useState<"bag" | "details">("bag");
-  const [checkoutPickupTime, setCheckoutPickupTime] = useState("ASAP (~15-20 mins)");
+  const [checkoutPickupTime, setCheckoutPickupTime] = useState(() =>
+    validateOrderTiming("ASAP (~15-20 mins)", "") ? "Custom time" : "ASAP (~15-20 mins)",
+  );
   const [checkoutCustomTime, setCheckoutCustomTime] = useState("");
   const [checkoutNote, setCheckoutNote] = useState("");
   const [checkoutOrderType, setCheckoutOrderType] = useState<"pickup" | "dine-in" | "delivery">("pickup");
@@ -1234,7 +1247,7 @@ function App() {
   const showNameError = focusedField !== "name" && Boolean(checkoutErrors.name);
   const showPhoneError = focusedField !== "phone" && Boolean(checkoutErrors.phone);
   const showAddressError = focusedField !== "address" && Boolean(checkoutErrors.address);
-  const showTimeError = focusedField !== "customTime" && Boolean(checkoutErrors.time);
+  const showTimeError = Boolean(checkoutErrors.time);
   const scrollToTop = (e?: React.MouseEvent) => {
     if (e) e.preventDefault();
     window.scrollTo({ top: 0, left: 0, behavior: clickScrollBehavior() });
@@ -1771,11 +1784,7 @@ function App() {
               key={`header-bag-${bagBump}`}
               className={`bag-button ${bagBump > 0 ? "bag-bump-animate" : ""}`}
               aria-label={`Open bag, ${cartCount} items`}
-              onClick={() => {
-                setBagOpen(true);
-                setReceipt(false);
-                setCheckoutStep("bag");
-              }}
+              onClick={openOrderBag}
             >
               <Icon name="bag" />
               <span>{cartCount}</span>
@@ -1830,7 +1839,8 @@ function App() {
             aria-hidden="true"
             tabIndex={-1}
           >
-            <source src="./videos/bean-diner-hero-4k30.mp4" type="video/mp4" />
+            <source src="./videos/bean-diner-hero-mobile-720.mp4" media="(max-width: 820px)" type="video/mp4" />
+            <source src="./videos/bean-diner-hero-desktop-1080.mp4" type="video/mp4" />
           </video>
           <div className="video-hero-content">
             <h1 id="video-hero-title">
@@ -1999,7 +2009,6 @@ function App() {
           <a href={beveragesHref} className="button" onClick={handlePageLink}>
             Explore the menu <Icon name="arrow" />
           </a>
-          <Ingredient kind="cherry" className="final-cherry" />
           <Ingredient kind="leaf" className="final-leaf" />
           <Sun />
         </section>
@@ -2200,6 +2209,19 @@ function App() {
                   : "Your Order Bag"}
             </h2>
 
+            {!receipt && pendingOrder && (
+              <button
+                type="button"
+                className="button"
+                onClick={() => {
+                  if (isPendingOrder(pendingOrder)) setReceipt(true);
+                  else setPendingOrder(null);
+                }}
+              >
+                View pending order summary
+              </button>
+            )}
+
             {/* Step indicator (Bag, Details, Send) */}
             <nav className="checkout-step-nav" aria-label="Checkout progress">
               <ol className="checkout-steps">
@@ -2365,6 +2387,17 @@ function App() {
                 >
                   Back to Menu / Order More <Icon name="arrow" />
                 </button>
+                <button
+                  type="button"
+                  className="button button-continue-shopping"
+                  onClick={() => {
+                    setPendingOrder(null);
+                    setReceipt(false);
+                    setCheckoutStep("bag");
+                  }}
+                >
+                  Clear pending order summary
+                </button>
               </div>
             ) : cart.length === 0 ? (
               <div className="empty-bag">
@@ -2522,6 +2555,7 @@ function App() {
                   </div>
 
                   <form
+                    id="checkout-order-form"
                     className="checkout-form checkout-form-compact"
                     noValidate
                     onSubmit={(e) => {
@@ -2529,10 +2563,7 @@ function App() {
                       const currentAddressErr = validateDeliveryAddress(checkoutExtra, checkoutOrderType);
                       const currentNameErr = validateCustomerName(checkoutName);
                       const currentPhoneErr = validateCustomerPhone(checkoutPhone);
-                      const currentTimeErr =
-                        checkoutPickupTime === "Custom time" && !checkoutCustomTime.trim()
-                          ? "Please specify your preferred time"
-                          : null;
+                      const currentTimeErr = validateOrderTiming(checkoutPickupTime, checkoutCustomTime);
 
                       setCheckoutErrors({
                         name: currentNameErr,
@@ -2551,7 +2582,9 @@ function App() {
                         return;
                       }
                       if (currentTimeErr) {
-                        document.getElementById("checkout-custom-time")?.focus();
+                        document.getElementById(
+                          checkoutPickupTime === "Custom time" ? "checkout-custom-time" : "checkout-timing",
+                        )?.focus();
                         return;
                       }
                       if (currentPhoneErr) {
@@ -2578,7 +2611,7 @@ function App() {
                         checkoutNote.trim(),
                       );
                       copyToClipboard(msg);
-                      setLastOrder(msg);
+                      setPendingOrder({ message: msg, createdAt: Date.now() });
                       setToast("Order copied! Follow the guide below to send.");
                       setReceipt(true);
                       setCart([]);
@@ -2636,6 +2669,7 @@ function App() {
                       {checkoutOrderType === "delivery" && (
                         <div className="order-extra-field">
                           <label htmlFor="checkout-address">Delivery address &amp; landmark:</label>
+                          <small id="delivery-arrangements-note">Delivery arrangements are confirmed in Messenger.</small>
                           <input
                             id="checkout-address"
                             name="address"
@@ -2655,7 +2689,7 @@ function App() {
                               }));
                             }}
                             aria-invalid={showAddressError ? "true" : "false"}
-                            aria-describedby={showAddressError ? "checkout-address-error" : undefined}
+                            aria-describedby={`delivery-arrangements-note${showAddressError ? " checkout-address-error" : ""}`}
                             maxLength={150}
                           />
                           {showAddressError && (
@@ -2751,8 +2785,14 @@ function App() {
                     </section>
 
                     <div className="checkout-form-section">
-                      <fieldset className="checkout-fieldset">
+                      <fieldset
+                        className="checkout-fieldset"
+                        id="checkout-timing"
+                        tabIndex={-1}
+                        aria-describedby={showTimeError ? "checkout-time-error" : undefined}
+                      >
                         <legend>Pickup / Preferred timing</legend>
+                        {!storeStatus.isOpen && <small role="status">{storeStatus.text}</small>}
                         <div className="timing-choice-row">
                           {[
                             "ASAP (~15-20 mins)",
@@ -2768,6 +2808,7 @@ function App() {
                                 type="radio"
                                 name="checkoutPickupTime"
                                 checked={checkoutPickupTime === timeOption}
+                                disabled={timeOption !== "Custom time" && Boolean(validateOrderTiming(timeOption, ""))}
                                 onChange={() => {
                                   setCheckoutPickupTime(timeOption);
                                   setCheckoutErrors((prev) => ({ ...prev, time: null }));
@@ -2792,27 +2833,24 @@ function App() {
                               }}
                               onFocus={() => {
                                 setFocusedField("customTime");
-                                setCheckoutErrors((prev) => ({ ...prev, time: null }));
                               }}
                               onBlur={() => {
                                 setFocusedField(null);
-                                if (!checkoutCustomTime.trim()) {
-                                  setCheckoutErrors((prev) => ({
-                                    ...prev,
-                                    time: "Please specify your preferred time",
-                                  }));
-                                }
+                                setCheckoutErrors((prev) => ({
+                                  ...prev,
+                                  time: validateOrderTiming("Custom time", checkoutCustomTime),
+                                }));
                               }}
                               aria-invalid={showTimeError ? "true" : "false"}
                               aria-describedby={showTimeError ? "checkout-time-error" : undefined}
                               maxLength={30}
                             />
-                            {showTimeError && (
-                              <span id="checkout-time-error" className="form-field-error" role="alert">
-                                <Icon name="alert-circle" size={14} /> {checkoutErrors.time}
-                              </span>
-                            )}
                           </div>
+                        )}
+                        {showTimeError && (
+                          <span id="checkout-time-error" className="form-field-error" role="alert">
+                            <Icon name="alert-circle" size={14} /> {checkoutErrors.time}
+                          </span>
                         )}
                       </fieldset>
                     </div>
@@ -2860,18 +2898,6 @@ function App() {
                       </div>
                     </section>
 
-                    {/* Prominent Send Order via Messenger button */}
-                    <div className="checkout-actions-block">
-                      <button
-                        className="button button-messenger-checkout prominent"
-                        type="submit"
-                      >
-                        Send order via Messenger <Icon name="arrow" size={17} />
-                      </button>
-                      <small className="checkout-actions-hint">
-                        Copies your order summary and guides you to Facebook Messenger to confirm with our crew.
-                      </small>
-                    </div>
                   </form>
                 </div>
 
@@ -2932,6 +2958,18 @@ function App() {
                     </div>
                   </div>
                 </aside>
+                <div className="checkout-actions-block">
+                  <button
+                    className="button button-messenger-checkout prominent"
+                    type="submit"
+                    form="checkout-order-form"
+                  >
+                    Send order via Messenger <Icon name="arrow" size={17} />
+                  </button>
+                  <small className="checkout-actions-hint">
+                    Copies your order summary and guides you to Facebook Messenger to confirm with our crew.
+                  </small>
+                </div>
               </div>
             )}
           </div>
@@ -3024,11 +3062,7 @@ function App() {
           type="button"
           key={`float-bag-${bagBump}`}
           className={`floating-bag-bubble ${bagBump > 0 ? "bag-bump-animate" : ""}`}
-          onClick={() => {
-            setReceipt(false);
-            setBagOpen(true);
-            setCheckoutStep("bag");
-          }}
+          onClick={openOrderBag}
           aria-label={`View order bag with ${cartCount} items`}
         >
           <span className="floating-bag-surface">

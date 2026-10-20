@@ -2,7 +2,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
 import { viteSingleFile } from "vite-plugin-singlefile";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -12,8 +12,8 @@ const __dirname = path.dirname(__filename);
    share tags need an absolute URL. Set VITE_SITE_URL (for example
    https://beandiner.example.com) when building for production. Without it the
    tags fall back to relative paths and the build prints a warning. */
-function siteUrlPlugin(): Plugin {
-  const raw = process.env.VITE_SITE_URL?.trim().replace(/\/+$/, "");
+function siteUrlPlugin(siteUrl?: string): Plugin {
+  const raw = siteUrl?.trim().replace(/\/+$/, "");
   return {
     name: "bean-diner-site-url",
     transformIndexHtml(html) {
@@ -29,12 +29,12 @@ function siteUrlPlugin(): Plugin {
 }
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   base: "./",
-  plugins: [react(), tailwindcss(), viteSingleFile(), siteUrlPlugin()],
+  plugins: [react(), tailwindcss(), viteSingleFile(), siteUrlPlugin(loadEnv(mode, __dirname, "VITE_").VITE_SITE_URL)],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
     },
   },
-});
+}));

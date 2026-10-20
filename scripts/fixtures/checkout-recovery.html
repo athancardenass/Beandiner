@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Checkout recovery fixture</title>
+  </head>
+  <body>
+    <h1>Checkout recovery fixture</h1>
+    <p>Local QA only. Creates a synthetic summary in this tab without submitting an order.</p>
+    <button type="button" id="fresh">Load fresh pending summary</button>
+    <button type="button" id="expired">Load expired pending summary</button>
+    <button type="button" id="malformed">Load malformed pending summary</button>
+    <script type="module">
+      const key = "beandiner-pending-order-v1";
+      const load = (value) => {
+        sessionStorage.setItem(key, value);
+        location.href = "/?page=beverages";
+      };
+      const summary = (createdAt) => JSON.stringify({
+        message: "QA recovery summary\n1x Plain Croffle - ₱90\nTotal: ₱90\nNot submitted to Messenger.",
+        createdAt,
+      });
+      document.querySelector("#fresh").onclick = () => load(summary(Date.now()));
+      document.querySelector("#expired").onclick = () => load(summary(Date.now() - 2 * 60 * 60 * 1000));
+      document.querySelector("#malformed").onclick = () => load("{invalid json");
+    </script>
+  </body>
+</html>

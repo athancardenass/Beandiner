@@ -17,9 +17,19 @@ Native CSS, passive scroll handling, and IntersectionObserver retain the existin
 ## Prices and ordering
 The Better Together offer adds one 16 oz Salted Caramel Macchiato and one 16 oz Matcha Latte. Its displayed price is derived from those canonical menu prices, currently ₱180 + ₱170 = ₱350. Other menu prices, size options, and cart behavior remain sourced from the existing catalog and customization code.
 
-Checkout validates a pickup name, copies the name and order summary to the clipboard, and opens Bean Diner’s Messenger conversation for the customer to paste and finalize the order. This frontend does not process payment, confirm availability, or submit the order to a merchant system. Cart data is held in localStorage; the checkout flow acts only after the customer submits the form.
+Checkout validates the contact details and preferred timing, prepares a local summary, and guides the customer to open Messenger to paste and send it. Orders are message-to-order requests; the crew confirms arrangements in Messenger. This frontend does not process payment, confirm availability, or submit the order to a merchant system. Cart data is held in localStorage; the checkout flow acts only after the customer submits the form.
+
+The latest pending summary is retained in sessionStorage for up to two hours from creation. Opening an empty bag recovers it after a refresh; a bag with new items also offers access to the pending summary. Clearing that summary preserves any new bag items. Expiry clears the stored summary without extending its original lifetime on reload. Storage failures keep the current page functional but cannot guarantee refresh recovery. Existing client copy and compact menu typography remain unchanged; recovery controls and timing validation messages are functional additions.
+
+Preferred timing uses the published daily 10:00 AM–9:00 PM schedule in Asia/Manila. Relative timing options are unavailable while closed or when their advertised interval reaches closing. Custom times accept 12-hour and 24-hour formats, must fall within opening hours, and must be later today. No next-day scheduling, holiday exceptions, payment confirmation, or merchant acceptance is implied.
 
 ## Handoff notes
 Before relying on the page for live commerce, verify current menu details, location and business claims, image rights, allergens, availability, and offer terms with the owner. Connect actual inventory, pricing, payment, and fulfillment systems if the site should take orders directly. Add appropriate privacy and legal information for the real operation. No payment or fulfillment is implied by the current interface.
 
-Verify types with `npx tsc --noEmit` and build with `npm run build`. Asset preparation: `node scripts/prepare-assets.mjs`. The latest hero video remains at `public/videos/bean-diner-hero-4k30.mp4`.
+Verify with `npm test`, `npx tsc --noEmit`, and `npm run build`. With the development server running, `npm run test:browser` runs the current shared page/bag/ordering/footer/background checks. Those checks also accept the connected browser API; native Chromium/WebKit launcher runs and physical-device checks are separate verification targets.
+
+Asset preparation: `node scripts/prepare-assets.mjs`. The original hero video remains at `public/videos/bean-diner-hero-4k30.mp4`. `node scripts/prepare-hero-video.mjs` derives the responsive 720p mobile and 1080p desktop H.264 versions with metadata first and no audio. The homepage selects these lighter variants; the first visible poster is preloaded. Existing footage, client text, card sizing, and menu font sizes are retained.
+
+The light navigation overlay uses dark logo lettering. Phone and summary-edit links use the readable accent-on-light token. Checkout fields use white surface tokens, and the unchanged summary precedes the final submit action in DOM order; the external submit button is associated with the checkout form by its id.
+
+The planned domain is beandiner.com, which the owner has not registered yet. Leave `VITE_SITE_URL` blank until a real origin is owned and connected. Vite loads this setting from its mode-specific environment files; the current build therefore warns and falls back to relative metadata URLs. Do not publish with the temporary reserved domain used in the configuration test.
