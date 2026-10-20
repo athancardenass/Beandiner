@@ -796,7 +796,7 @@ function Modal({
     }
     updateFormModalViewport();
     viewport?.addEventListener("resize", updateFormModalViewport);
-    viewport?.addEventListener("scroll", updateFormModalViewport);
+    if (isTopSixProductModal) viewport?.addEventListener("scroll", updateFormModalViewport);
     window.addEventListener("resize", updateFormModalViewport);
     el.addEventListener("focusin", queueRevealFocusedProductField);
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -835,7 +835,7 @@ function Modal({
       el.removeEventListener("keydown", handleKeyDown);
       el.removeEventListener("focusin", queueRevealFocusedProductField);
       viewport?.removeEventListener("resize", updateFormModalViewport);
-      viewport?.removeEventListener("scroll", updateFormModalViewport);
+      if (isTopSixProductModal) viewport?.removeEventListener("scroll", updateFormModalViewport);
       window.removeEventListener("resize", updateFormModalViewport);
       if (revealFocusedFieldFrame) window.cancelAnimationFrame(revealFocusedFieldFrame);
       el.classList.remove("is-keyboard-open");
