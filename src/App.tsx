@@ -750,6 +750,33 @@ function Modal({
     const viewport = window.visualViewport;
     let viewportFrame = 0;
     let keyboardOpen = false;
+    const revealFocusedBagField = () => {
+      const content = el.querySelector<HTMLElement>(".bag-content");
+      const activeElement = document.activeElement;
+      if (!content || !(activeElement instanceof HTMLElement) || !content.contains(activeElement)) {
+        return;
+      }
+
+      const viewportTop = viewport?.offsetTop ?? 0;
+      const viewportBottom = viewportTop + (viewport?.height ?? innerHeight);
+      const contentBounds = content.getBoundingClientRect();
+      const scrollportTop = Math.max(viewportTop, contentBounds.top + content.clientTop);
+      const scrollportBottom = Math.min(
+        viewportBottom,
+        contentBounds.top + content.clientTop + content.clientHeight,
+      );
+      const fieldBounds = activeElement.getBoundingClientRect();
+      const breathingRoom = 12;
+      let scrollBy = 0;
+
+      if (fieldBounds.top < scrollportTop + breathingRoom) {
+        scrollBy = fieldBounds.top - scrollportTop - breathingRoom;
+      } else if (fieldBounds.bottom > scrollportBottom - breathingRoom) {
+        scrollBy = fieldBounds.bottom - scrollportBottom + breathingRoom;
+      }
+
+      if (scrollBy !== 0) content.scrollTop += scrollBy;
+    };
     const updateBagViewport = () => {
       if (!el.matches(".bag-modal")) return;
       const height = viewport?.height ?? innerHeight;
@@ -769,10 +796,7 @@ function Modal({
       if (nextKeyboardOpen && !keyboardOpen) {
         cancelAnimationFrame(viewportFrame);
         viewportFrame = requestAnimationFrame(() => {
-          const activeElement = document.activeElement;
-          if (el.open && activeElement instanceof HTMLElement && el.contains(activeElement)) {
-            activeElement.scrollIntoView({ block: "nearest", inline: "nearest" });
-          }
+          if (el.open) revealFocusedBagField();
         });
       }
       keyboardOpen = nextKeyboardOpen;

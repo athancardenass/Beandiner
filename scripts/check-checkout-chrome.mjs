@@ -3,6 +3,29 @@ import { chromium, webkit, expect } from '@playwright/test';
 
 const white = 'rgb(255, 255, 255)';
 
+async function assertFieldDoesNotShiftOnFocus(field, label) {
+  const measure = () => field.evaluate(el => {
+    const style = getComputedStyle(el);
+    const rect = el.getBoundingClientRect();
+    return {
+      fontSize: Number.parseFloat(style.fontSize),
+      width: rect.width,
+      height: rect.height,
+      minHeight: style.minHeight,
+      transform: style.transform,
+      scale: style.scale,
+      translate: style.translate,
+      viewportScale: window.visualViewport?.scale,
+    };
+  });
+  const before = await measure();
+  assert.ok(before.fontSize >= 16, `${label} must use at least 16px text`);
+  await field.focus();
+  const after = await measure();
+  assert.deepEqual(after, before, `${label} must not resize or transform when focused`);
+  await field.evaluate(el => el.blur());
+}
+
 for (const engine of [chromium, webkit]) {
   const browser = await engine.launch();
   try {
@@ -33,6 +56,7 @@ for (const engine of [chromium, webkit]) {
       'The Top 6 barista note must use at least 16px text to prevent iPhone Safari auto-zoom',
     );
     assert.equal(await baristaNote.getAttribute('autocomplete'), 'off', 'The barista note must not invoke contact autofill');
+    await assertFieldDoesNotShiftOnFocus(baristaNote, 'Top 6 barista note');
     await page.getByRole('button', { name: 'Add to bag ₱160', exact: true }).click();
     await page.evaluate(async () => {
       await document.fonts.ready;
@@ -59,6 +83,9 @@ for (const engine of [chromium, webkit]) {
     assert.equal(await page.locator('#order-phone').getAttribute('name'), null, 'The phone field must not advertise a contact autofill name');
     assert.equal(await page.locator('#order-phone').getAttribute('type'), 'text', 'The phone field must avoid tel type heuristics while retaining its numeric keyboard');
     assert.equal(await page.locator('#order-phone').getAttribute('inputmode'), 'numeric', 'The phone field must keep its numeric keyboard');
+    for (const selector of ['#order-name', '#order-phone', '#order-note']) {
+      await assertFieldDoesNotShiftOnFocus(page.locator(selector), selector);
+    }
     for (const [orderTypeIndex, fieldSelector] of [
       [1, '#checkout-table'],
       [2, '#checkout-address'],
@@ -68,6 +95,13 @@ for (const engine of [chromium, webkit]) {
       assert.equal(await page.locator(fieldSelector).getAttribute('name'), null, `${fieldSelector} must not advertise an autofill field name`);
     }
     await page.locator('.order-type-row label').first().click();
+    await page.locator('.order-type-row label').nth(1).click();
+    await assertFieldDoesNotShiftOnFocus(page.locator('#checkout-table'), 'Dine-in table field');
+    await page.locator('.order-type-row label').nth(2).click();
+    await assertFieldDoesNotShiftOnFocus(page.locator('#checkout-address'), 'Delivery address field');
+    await page.locator('.order-type-row label').first().click();
+    await page.getByRole('radio', { name: 'Custom time', exact: true }).check();
+    await assertFieldDoesNotShiftOnFocus(page.locator('#checkout-custom-time'), 'Custom pickup time field');
     const bagContentForScroll = page.locator('.bag-content');
     if (engine.name() === 'chromium') {
       const bagContentBounds = await bagContentForScroll.boundingBox();
@@ -92,12 +126,13 @@ for (const engine of [chromium, webkit]) {
     assert.ok(fieldFontSizes.length > 0, 'Order Bag should expose form controls');
     assert.ok(fieldFontSizes.every(({ size }) => size >= 16), `Every Order Bag form control must be at least 16px: ${JSON.stringify(fieldFontSizes)}`);
     assert.doesNotMatch(await page.locator('meta[name="viewport"]').getAttribute('content'), /maximum-scale|user-scalable\s*=\s*no/i, 'Viewport must keep pinch zoom available');
-    await page.getByRole('radio', { name: 'Custom time', exact: true }).check();
     for (const selector of ['#order-name', '#order-phone', '#checkout-custom-time', '#order-note']) {
       assert.equal(await page.locator(selector).getAttribute('autocomplete'), 'off', `${selector} should opt out of browser autocomplete`);
     }
     const note = page.locator('#order-note');
     await note.scrollIntoViewIfNeeded();
+    const pageScrollBeforeKeyboard = await page.evaluate(() => window.scrollY);
+    const dialogScrollBeforeKeyboard = await dialog.evaluate(el => el.scrollTop);
     await note.focus();
     // iOS Safari shrinks the visible viewport when its keyboard opens.
     await page.evaluate(() => {
@@ -110,6 +145,13 @@ for (const engine of [chromium, webkit]) {
     await expect.poll(() => dialog.evaluate(el => el.style.getPropertyValue('--bag-viewport-top'))).toBe('24px');
     await expect.poll(() => dialog.evaluate(el => el.getBoundingClientRect().height)).toBeLessThanOrEqual(360);
     await expect.poll(() => page.locator('.bag-content').evaluate(el => el.getBoundingClientRect().height)).toBeLessThanOrEqual(360);
+    await expect.poll(() => dialog.evaluate(el => {
+      const rect = el.getBoundingClientRect();
+      const { offsetTop, height } = window.visualViewport;
+      return rect.top >= offsetTop && rect.bottom <= offsetTop + height;
+    })).toBe(true);
+    assert.equal(await page.evaluate(() => window.scrollY), pageScrollBeforeKeyboard, 'Opening the keyboard must not scroll the page behind the Order Bag');
+    assert.equal(await dialog.evaluate(el => el.scrollTop), dialogScrollBeforeKeyboard, 'Keyboard adjustment must not move the dialog outside its own content scroller');
     const keyboardBackdrop = await bagBackdrop();
     assert.ok(keyboardBackdrop.image.startsWith('linear-gradient('), 'Keyboard-open backdrop should use a scoped white gap');
     assert.ok(keyboardBackdrop.image.includes('rgb(255, 255, 255)'), 'Keyboard gap should be white');
