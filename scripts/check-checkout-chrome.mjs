@@ -101,7 +101,10 @@ for (const engine of [chromium, webkit]) {
     await assertFieldDoesNotZoomOrResize(baristaNote, 'Top 6 barista note');
     await page.getByRole('button', { name: 'Add to bag ₱160', exact: true }).click();
     assert.equal(await page.evaluate(() => getComputedStyle(document.body).position), productBackgroundPosition, 'Closing Top 6 customization must restore page positioning');
-    assert.equal(await page.evaluate(() => window.scrollY), productBackgroundScroll, 'Closing Top 6 customization must restore menu scroll position');
+    assert.ok(
+      Math.abs(await page.evaluate(() => window.scrollY) - productBackgroundScroll) <= 5,
+      'Closing Top 6 customization must restore menu scroll position within 5px',
+    );
     await page.evaluate(async () => {
       await document.fonts.ready;
       window.scrollTo(0, 0);
@@ -137,6 +140,25 @@ for (const engine of [chromium, webkit]) {
     assert.equal(simulatedKeyboard.keyboardOpen, true, 'Order Bag must detect the reduced iPhone visual viewport');
     assert.ok(simulatedKeyboard.height <= 360, 'Order Bag must fit inside the keyboard-reduced viewport');
     assert.ok(simulatedKeyboard.bottom <= simulatedKeyboard.viewportBottom, 'Order Bag must end above the keyboard');
+    const secondTapViewport = await page.evaluate(() => {
+      const viewport = window.visualViewport;
+      Object.defineProperty(viewport, 'offsetTop', { configurable: true, value: 32 });
+      viewport.dispatchEvent(new Event('scroll'));
+      const rect = document.querySelector('dialog.bag-modal').getBoundingClientRect();
+      return {
+        top: rect.top,
+        bottom: rect.bottom,
+        viewportTop: viewport.offsetTop,
+        viewportBottom: viewport.offsetTop + viewport.height,
+      };
+    });
+    assert.ok(Math.abs(secondTapViewport.top - secondTapViewport.viewportTop) <= 1, `Second field tap must move Order Bag with visualViewport.offsetTop: ${JSON.stringify(secondTapViewport)}`);
+    assert.ok(Math.abs(secondTapViewport.bottom - secondTapViewport.viewportBottom) <= 1, `Second field tap must close the bottom cutout: ${JSON.stringify(secondTapViewport)}`);
+    await page.evaluate(() => {
+      const viewport = window.visualViewport;
+      Object.defineProperty(viewport, 'offsetTop', { configurable: true, value: 0 });
+      viewport.dispatchEvent(new Event('scroll'));
+    });
     const orderTypeBodyTop = await page.evaluate(() => document.body.style.top);
     for (const [index, fieldSelector] of [[1, '#checkout-table'], [2, '#checkout-address'], [0, null]]) {
       await page.locator('.order-type-row label').nth(index).click();

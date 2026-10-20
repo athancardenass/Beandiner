@@ -768,6 +768,16 @@ function Modal({
       el.classList.add("is-keyboard-open");
       queueRevealFocusedProductField();
     };
+    const updateBagModalViewportPosition = () => {
+      if (!isBagModal || !el.classList.contains("is-keyboard-open") || !viewport) return;
+      const bottomInset = `${Math.max(
+        0,
+        Math.ceil(window.innerHeight - viewport.offsetTop - viewport.height),
+      )}px`;
+      if (el.style.getPropertyValue("--modal-viewport-bottom-inset") !== bottomInset) {
+        el.style.setProperty("--modal-viewport-bottom-inset", bottomInset);
+      }
+    };
     if (!el.open) {
       try {
         el.showModal();
@@ -797,6 +807,7 @@ function Modal({
     updateFormModalViewport();
     viewport?.addEventListener("resize", updateFormModalViewport);
     if (isTopSixProductModal) viewport?.addEventListener("scroll", updateFormModalViewport);
+    if (isBagModal) viewport?.addEventListener("scroll", updateBagModalViewportPosition);
     window.addEventListener("resize", updateFormModalViewport);
     el.addEventListener("focusin", queueRevealFocusedProductField);
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -836,6 +847,7 @@ function Modal({
       el.removeEventListener("focusin", queueRevealFocusedProductField);
       viewport?.removeEventListener("resize", updateFormModalViewport);
       if (isTopSixProductModal) viewport?.removeEventListener("scroll", updateFormModalViewport);
+      if (isBagModal) viewport?.removeEventListener("scroll", updateBagModalViewportPosition);
       window.removeEventListener("resize", updateFormModalViewport);
       if (revealFocusedFieldFrame) window.cancelAnimationFrame(revealFocusedFieldFrame);
       el.classList.remove("is-keyboard-open");
