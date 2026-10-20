@@ -7628,9 +7628,8 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   flex-direction: column;
   gap: 6px;
 }
-.item-note-field input,
 .bag-modal .bag-content :is(input, select, textarea) {
-  font-size: 16px !important;
+  font-size: 16px;
 }
 
 .checkout-form-compact input {
