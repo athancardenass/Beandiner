@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { chromium, webkit, expect } from '@playwright/test';
 
 const white = 'rgb(255, 255, 255)';
+const footerSurface = 'rgb(18, 18, 18)';
 
 for (const engine of [chromium, webkit]) {
   const browser = await engine.launch();
@@ -19,16 +20,16 @@ for (const engine of [chromium, webkit]) {
       getComputedStyle(document.documentElement).getPropertyValue('--viewport-background').trim(),
     );
     await page.goto('http://127.0.0.1:5173/');
-    await expect.poll(viewportBackground).toBe('#FFFFFF');
+    await expect.poll(viewportBackground).toBe('#121212');
     await page.evaluate(async () => {
       await document.fonts.ready;
       window.scrollTo(0, document.documentElement.scrollHeight);
       await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     });
-    await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: '#FFFFFF' });
+    await expect.poll(canvas).toEqual({ root: footerSurface, body: footerSurface, scheme: 'light', theme: '#FFFFFF' });
     assert.equal(await page.locator('.footer-artisanal').count(), 1, 'Homepage retains its own footer surface');
-    assert.equal(await page.locator('.footer-artisanal').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(18, 18, 18)');
-    await expect.poll(viewportBackground).toBe('#FFFFFF');
+    assert.equal(await page.locator('.footer-artisanal').evaluate(el => getComputedStyle(el).backgroundColor), footerSurface);
+    await expect.poll(viewportBackground).toBe('#121212');
     await page.evaluate(() => {
       history.pushState(null, '', '/?page=beverages');
       window.dispatchEvent(new PopStateEvent('popstate'));
