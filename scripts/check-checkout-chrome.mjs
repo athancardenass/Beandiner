@@ -46,7 +46,31 @@ for (const engine of [chromium, webkit]) {
       return { background: style.backgroundColor, image: style.backgroundImage, filter: style.backdropFilter };
     });
     await page.goto('http://127.0.0.1:5173/?page=beverages');
+    const productBackgroundPosition = await page.evaluate(() => getComputedStyle(document.body).position);
     await page.getByRole('button', { name: 'Customize Strawberry Milk', exact: true }).last().click();
+    assert.equal(await page.evaluate(() => getComputedStyle(document.body).position), 'fixed', 'The Top 6 customization modal must lock the page behind it on iPhone Safari');
+    const productBackgroundScroll = await page.evaluate(() => -Number.parseFloat(document.body.style.top || '0'));
+    const simulatedProductKeyboard = await page.evaluate(() => {
+      const viewport = window.visualViewport;
+      Object.defineProperty(viewport, 'height', { configurable: true, value: 360 });
+      Object.defineProperty(viewport, 'offsetTop', { configurable: true, value: 0 });
+      viewport.dispatchEvent(new Event('resize'));
+      const modal = document.querySelector('dialog.product-modal:not(.bite-customize-modal)');
+      const rect = modal.getBoundingClientRect();
+      return {
+        keyboardOpen: modal.classList.contains('is-keyboard-open'),
+        bottom: rect.bottom,
+        viewportBottom: viewport.offsetTop + viewport.height,
+      };
+    });
+    assert.equal(simulatedProductKeyboard.keyboardOpen, true, 'Top 6 customization must detect the keyboard-reduced visual viewport');
+    assert.ok(simulatedProductKeyboard.bottom <= simulatedProductKeyboard.viewportBottom, 'Top 6 customization must stay above the keyboard');
+    await page.evaluate(() => {
+      const viewport = window.visualViewport;
+      delete viewport.height;
+      delete viewport.offsetTop;
+      viewport.dispatchEvent(new Event('resize'));
+    });
     const baristaNote = page.locator('#item-note');
     assert.ok(
       Number.parseFloat(await baristaNote.evaluate(el => getComputedStyle(el).fontSize)) >= 16,
@@ -55,6 +79,8 @@ for (const engine of [chromium, webkit]) {
     assert.equal(await baristaNote.getAttribute('autocomplete'), 'off', 'The barista note must not invoke contact autofill');
     await assertFieldDoesNotZoomOrResize(baristaNote, 'Top 6 barista note');
     await page.getByRole('button', { name: 'Add to bag ₱160', exact: true }).click();
+    assert.equal(await page.evaluate(() => getComputedStyle(document.body).position), productBackgroundPosition, 'Closing Top 6 customization must restore page positioning');
+    assert.equal(await page.evaluate(() => window.scrollY), productBackgroundScroll, 'Closing Top 6 customization must restore menu scroll position');
     await page.evaluate(async () => {
       await document.fonts.ready;
       window.scrollTo(0, 0);
@@ -73,6 +99,29 @@ for (const engine of [chromium, webkit]) {
     await expect.poll(pageContentVisibility).toBe('visible');
     await page.getByRole('button', { name: 'Proceed to Details', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: 'Your order bag', exact: true });
+    const simulatedKeyboard = await page.evaluate(() => {
+      const viewport = window.visualViewport;
+      Object.defineProperty(viewport, 'height', { configurable: true, value: 360 });
+      Object.defineProperty(viewport, 'offsetTop', { configurable: true, value: 0 });
+      viewport.dispatchEvent(new Event('resize'));
+      const bag = document.querySelector('dialog.bag-modal');
+      const rect = bag.getBoundingClientRect();
+      return {
+        keyboardOpen: bag.classList.contains('is-keyboard-open'),
+        height: rect.height,
+        bottom: rect.bottom,
+        viewportBottom: viewport.offsetTop + viewport.height,
+      };
+    });
+    assert.equal(simulatedKeyboard.keyboardOpen, true, 'Order Bag must detect the reduced iPhone visual viewport');
+    assert.ok(simulatedKeyboard.height <= 360, 'Order Bag must fit inside the keyboard-reduced viewport');
+    assert.ok(simulatedKeyboard.bottom <= simulatedKeyboard.viewportBottom, 'Order Bag must end above the keyboard');
+    await page.evaluate(() => {
+      const viewport = window.visualViewport;
+      delete viewport.height;
+      delete viewport.offsetTop;
+      viewport.dispatchEvent(new Event('resize'));
+    });
     for (const field of await page.locator('#checkout-order-form input:not([type="radio"]), #checkout-order-form textarea, #checkout-order-form select').all()) {
       assert.equal(await field.getAttribute('autocomplete'), 'off', 'Every Order Bag text field must opt out of autocomplete');
     }
@@ -118,6 +167,9 @@ for (const engine of [chromium, webkit]) {
     assert.ok(fieldFontSizes.every(({ size }) => size >= 16), `Every Order Bag form control must be at least 16px: ${JSON.stringify(fieldFontSizes)}`);
     assert.doesNotMatch(await page.locator('meta[name="viewport"]').getAttribute('content'), /maximum-scale|user-scalable\s*=\s*no/i, 'Viewport must keep pinch zoom available');
     await page.getByRole('radio', { name: 'Custom time', exact: true }).check();
+    assert.equal(await page.locator('#checkout-custom-time').getAttribute('type'), 'time', 'Custom pickup time must use the native time picker instead of a text keyboard');
+    assert.equal(await page.locator('#checkout-custom-time').getAttribute('min'), '10:00');
+    assert.equal(await page.locator('#checkout-custom-time').getAttribute('max'), '20:59');
     await assertFieldDoesNotZoomOrResize(page.locator('#checkout-custom-time'), 'Custom pickup time');
     for (const selector of ['#order-name', '#order-phone', '#checkout-custom-time', '#order-note']) {
       assert.equal(await page.locator(selector).getAttribute('autocomplete'), 'off', `${selector} should opt out of browser autocomplete`);

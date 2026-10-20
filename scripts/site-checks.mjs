@@ -68,7 +68,7 @@ export async function checkOrdering({ page, goto, setViewport }) {
   assert.ok(await page.getByRole('alert').count());
   assert.equal(await page.locator('#order-name-error').count(), 1, 'Focusing an invalid field must keep its error visible so the next click does not shift');
   await page.getByText('Custom time', { exact: true }).click();
-  await page.getByRole('textbox', { name: 'Specify time today:', exact: true }).fill('23:30');
+  await page.locator('#checkout-custom-time').fill('23:30');
   await page.getByRole('button', { name: 'Send order via Messenger', exact: true }).click();
   assert.match(await page.locator('#checkout-time-error').innerText({}), /10:00 AM.*9:00 PM/);
   assert.equal(await page.getByText('Your order is ready to send.', { exact: true }).count(), 0);

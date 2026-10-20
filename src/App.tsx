@@ -717,10 +717,33 @@ function Modal({
     if (!el) return;
     const previous = document.activeElement as HTMLElement | null;
     const isBagModal = el.matches(".bag-modal");
-    const shouldFreezeBagBackground = isBagModal &&
+    const isTopSixProductModal = el.matches(".product-modal:not(.bite-customize-modal)");
+    const shouldFreezePageBackground = (isBagModal || isTopSixProductModal) &&
       (navigator.maxTouchPoints > 0 || "ontouchstart" in window);
     const pageScrollX = window.scrollX;
     const pageScrollY = window.scrollY;
+    const viewport = (isBagModal || isTopSixProductModal) ? window.visualViewport : null;
+    const updateFormModalViewport = () => {
+      if ((!isBagModal && !isTopSixProductModal) || !viewport) return;
+      const keyboardOpen = viewport.height < window.innerHeight - 120;
+      if (!keyboardOpen) {
+        el.classList.remove("is-keyboard-open");
+        el.style.removeProperty("--modal-viewport-height");
+        el.style.removeProperty("--modal-viewport-bottom-inset");
+        return;
+      }
+
+      const viewportBottom = viewport.offsetTop + viewport.height;
+      el.style.setProperty(
+        "--modal-viewport-height",
+        `${Math.max(0, Math.floor(viewport.height) - 1)}px`,
+      );
+      el.style.setProperty(
+        "--modal-viewport-bottom-inset",
+        `${Math.max(0, Math.ceil(window.innerHeight - viewportBottom))}px`,
+      );
+      el.classList.add("is-keyboard-open");
+    };
     if (!el.open) {
       try {
         el.showModal();
@@ -739,14 +762,18 @@ function Modal({
     };
     const oldRootOverflow = root.style.overflow;
     body.style.overflow = "hidden";
-    if (shouldFreezeBagBackground) {
-      // iOS Safari can still scroll the page behind a modal when body overflow is hidden.
+    if (shouldFreezePageBackground) {
+      // iOS Safari can still scroll the page behind form modals when body overflow is hidden.
       root.style.overflow = "hidden";
       body.style.position = "fixed";
       body.style.top = `${-pageScrollY}px`;
       body.style.left = `${-pageScrollX}px`;
       body.style.width = "100%";
     }
+    updateFormModalViewport();
+    viewport?.addEventListener("resize", updateFormModalViewport);
+    viewport?.addEventListener("scroll", updateFormModalViewport);
+    window.addEventListener("resize", updateFormModalViewport);
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
@@ -781,9 +808,15 @@ function Modal({
 
     return () => {
       el.removeEventListener("keydown", handleKeyDown);
+      viewport?.removeEventListener("resize", updateFormModalViewport);
+      viewport?.removeEventListener("scroll", updateFormModalViewport);
+      window.removeEventListener("resize", updateFormModalViewport);
+      el.classList.remove("is-keyboard-open");
+      el.style.removeProperty("--modal-viewport-height");
+      el.style.removeProperty("--modal-viewport-bottom-inset");
       if (el.open) el.close();
       body.style.overflow = oldBodyStyles.overflow;
-      if (shouldFreezeBagBackground) {
+      if (shouldFreezePageBackground) {
         body.style.position = oldBodyStyles.position;
         body.style.top = oldBodyStyles.top;
         body.style.left = oldBodyStyles.left;
@@ -2890,13 +2923,15 @@ function App() {
                         </div>
                         {checkoutPickupTime === "Custom time" && (
                           <div className="custom-time-field">
-                            <label htmlFor="checkout-custom-time">Specify time today:</label>
+                            <label htmlFor="checkout-custom-time">Choose time today:</label>
                             <input
                               id="checkout-custom-time"
-                              type="text"
+                              type="time"
                               autoComplete="off"
                               className={showTimeError ? "input-error" : ""}
-                              placeholder="e.g. 2:45 PM or 5:30 PM"
+                              min="10:00"
+                              max="20:59"
+                              step="60"
                               value={checkoutCustomTime}
                               onChange={(e) => {
                                 setCheckoutCustomTime(e.target.value);

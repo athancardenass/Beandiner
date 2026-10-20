@@ -5612,12 +5612,29 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   .bag-modal[open] {
     width: 100%;
     min-height: 0;
-    max-height: min(92svh, 900px);
+    max-height: min(92svh, var(--modal-viewport-height, 900px), 900px);
     height: auto;
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
+  }
+  .bag-modal.is-keyboard-open[open] {
+    position: fixed;
+    inset: auto 0 var(--modal-viewport-bottom-inset, 0px);
+    margin: 0 auto;
+    animation: none;
+  }
+  .product-modal:not(.bite-customize-modal).is-keyboard-open[open] {
+    position: fixed;
+    inset: auto 0 var(--modal-viewport-bottom-inset, 0px);
+    max-height: min(92svh, var(--modal-viewport-height, 900px), 900px);
+    margin: 0 auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    animation: none;
   }
   .bag-modal::backdrop {
     background: rgba(18, 18, 18, 0.75);
