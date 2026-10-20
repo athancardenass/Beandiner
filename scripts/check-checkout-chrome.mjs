@@ -17,6 +17,13 @@ for (const engine of [chromium, webkit]) {
       scheme: getComputedStyle(document.documentElement).colorScheme,
       theme: document.querySelector('meta[name="theme-color"]').content,
     }));
+    const viewportBackground = () => page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue('--viewport-background').trim(),
+    );
+    const bagBackdrop = () => page.locator('dialog.bag-modal').evaluate(el => {
+      const style = getComputedStyle(el, '::backdrop');
+      return { background: style.backgroundColor, filter: style.backdropFilter };
+    });
     await page.goto('http://127.0.0.1:5173/?page=beverages');
     await page.getByRole('button', { name: 'Customize Strawberry Milk', exact: true }).last().click();
     await page.getByRole('button', { name: 'Add to bag ₱160', exact: true }).click();
@@ -27,6 +34,8 @@ for (const engine of [chromium, webkit]) {
     await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: '#FFFFFF' });
     await page.getByRole('button', { name: 'Open bag, 1 items', exact: true }).click();
     await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: '#FFFFFF' });
+    await expect.poll(viewportBackground).toBe('#FFFFFF');
+    await expect.poll(bagBackdrop).toEqual({ background: white, filter: 'none' });
     await page.getByRole('button', { name: 'Proceed to Details', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: 'Your order bag', exact: true });
     const note = page.locator('#order-note');
@@ -111,11 +120,21 @@ for (const engine of [chromium, webkit]) {
     await page.getByRole('button', { name: 'Close dialog', exact: true }).click();
     await page.evaluate(() => window.scrollTo(0, 0));
     await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: '#FFFFFF' });
+    await expect.poll(viewportBackground).toBe('');
     // Reopening and Escape must also restore the menu canvas without leaked state.
     await page.getByRole('button', { name: 'Open bag, 1 items', exact: true }).click();
     await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: '#FFFFFF' });
+    await expect.poll(viewportBackground).toBe('#FFFFFF');
     await page.keyboard.press('Escape');
     await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: '#FFFFFF' });
+    await expect.poll(viewportBackground).toBe('');
+    await page.goto('http://127.0.0.1:5173/');
+    await expect.poll(viewportBackground).toBe('#121212');
+    await page.getByRole('button', { name: 'Open bag, 1 items', exact: true }).click();
+    await expect.poll(viewportBackground).toBe('#FFFFFF');
+    await expect.poll(bagBackdrop).toEqual({ background: white, filter: 'none' });
+    await page.keyboard.press('Escape');
+    await expect.poll(viewportBackground).toBe('#121212');
     assert.deepEqual(errors, []);
     console.log(`${engine.name()}: checkout options stay reachable with the keyboard open and browser chrome stays white`);
   } finally {

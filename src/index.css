@@ -5615,6 +5615,13 @@ body:has(.floating-bag-bubble) .footer-artisanal {
     max-height: min(92svh, var(--bag-viewport-height, 92svh));
     height: auto;
   }
+  html:has(.bag-modal[open]) {
+    --viewport-background: #FFFFFF;
+  }
+  .bag-modal::backdrop {
+    background: #FFFFFF;
+    backdrop-filter: none;
+  }
   .bag-modal.is-keyboard-open[open] {
     position: fixed;
     top: var(--bag-viewport-top, 0px);
