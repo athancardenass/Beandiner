@@ -1138,7 +1138,6 @@ function App() {
   const isBeveragesPage = currentPage === "beverages";
   const isStoryPage = currentPage === "our-story";
   useStickyHeaderOffset(!isFoodPage && !isBeveragesPage);
-  usePageBackground(currentPage);
   const navigationFrame = useRef(0);
   const foodHref = pageHref("diner-bites");
   const beveragesHref = pageHref("beverages");
@@ -1149,6 +1148,7 @@ function App() {
   const [selected, setSelected] = useState<Product | null>(null);
   const [customizingBite, setCustomizingBite] = useState<DinerBite | null>(null);
   const [bagOpen, setBagOpen] = useState(false);
+  usePageBackground(currentPage, bagOpen);
   const [navOpen, setNavOpen] = useState(false);
   const [beverageCategory, setBeverageCategory] = useState("top-6");
   const [beverageQuery, setBeverageQuery] = useState("");
@@ -1200,7 +1200,6 @@ function App() {
     address?: string | null;
     time?: string | null;
   }>({});
-  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const formatPhoneNumber = (val: string) => {
     let cleaned = val.replace(/\D/g, "");
@@ -1244,9 +1243,9 @@ function App() {
     return null;
   };
 
-  const showNameError = focusedField !== "name" && Boolean(checkoutErrors.name);
-  const showPhoneError = focusedField !== "phone" && Boolean(checkoutErrors.phone);
-  const showAddressError = focusedField !== "address" && Boolean(checkoutErrors.address);
+  const showNameError = Boolean(checkoutErrors.name);
+  const showPhoneError = Boolean(checkoutErrors.phone);
+  const showAddressError = Boolean(checkoutErrors.address);
   const showTimeError = Boolean(checkoutErrors.time);
   const scrollToTop = (e?: React.MouseEvent) => {
     if (e) e.preventDefault();
@@ -2618,7 +2617,6 @@ function App() {
                         address: currentAddressErr,
                         time: currentTimeErr,
                       });
-                      setFocusedField(null);
 
                       if (currentAddressErr) {
                         document.getElementById("checkout-address")?.focus();
@@ -2723,16 +2721,12 @@ function App() {
                             className={showAddressError ? "input-error" : ""}
                             placeholder="Street, Barangay, and Landmark in Bayambang"
                             value={checkoutExtra}
-                            onChange={(e) => setCheckoutExtra(e.target.value)}
-                            onFocus={() => {
-                              setFocusedField("address");
-                              setCheckoutErrors((prev) => ({ ...prev, address: null }));
-                            }}
-                            onBlur={() => {
-                              setFocusedField(null);
+                            onChange={(e) => {
+                              const address = e.target.value;
+                              setCheckoutExtra(address);
                               setCheckoutErrors((prev) => ({
                                 ...prev,
-                                address: validateDeliveryAddress(checkoutExtra, checkoutOrderType),
+                                address: validateDeliveryAddress(address, checkoutOrderType),
                               }));
                             }}
                             aria-invalid={showAddressError ? "true" : "false"}
@@ -2770,16 +2764,12 @@ function App() {
                           name="name"
                           className={showNameError ? "input-error" : ""}
                           value={checkoutName}
-                          onChange={(e) => setCheckoutName(e.target.value)}
-                          onFocus={() => {
-                            setFocusedField("name");
-                            setCheckoutErrors((prev) => ({ ...prev, name: null }));
-                          }}
-                          onBlur={() => {
-                            setFocusedField(null);
+                          onChange={(e) => {
+                            const name = e.target.value;
+                            setCheckoutName(name);
                             setCheckoutErrors((prev) => ({
                               ...prev,
-                              name: validateCustomerName(checkoutName),
+                              name: validateCustomerName(name),
                             }));
                           }}
                           aria-invalid={showNameError ? "true" : "false"}
@@ -2805,16 +2795,12 @@ function App() {
                           inputMode="numeric"
                           className={showPhoneError ? "input-error" : ""}
                           value={checkoutPhone}
-                          onChange={(e) => setCheckoutPhone(formatPhoneNumber(e.target.value))}
-                          onFocus={() => {
-                            setFocusedField("phone");
-                            setCheckoutErrors((prev) => ({ ...prev, phone: null }));
-                          }}
-                          onBlur={() => {
-                            setFocusedField(null);
+                          onChange={(e) => {
+                            const phone = formatPhoneNumber(e.target.value);
+                            setCheckoutPhone(phone);
                             setCheckoutErrors((prev) => ({
                               ...prev,
-                              phone: validateCustomerPhone(checkoutPhone),
+                              phone: validateCustomerPhone(phone),
                             }));
                           }}
                           aria-invalid={showPhoneError ? "true" : "false"}
@@ -2876,16 +2862,9 @@ function App() {
                               value={checkoutCustomTime}
                               onChange={(e) => {
                                 setCheckoutCustomTime(e.target.value);
-                                setCheckoutErrors((prev) => ({ ...prev, time: null }));
-                              }}
-                              onFocus={() => {
-                                setFocusedField("customTime");
-                              }}
-                              onBlur={() => {
-                                setFocusedField(null);
                                 setCheckoutErrors((prev) => ({
                                   ...prev,
-                                  time: validateOrderTiming("Custom time", checkoutCustomTime),
+                                  time: validateOrderTiming("Custom time", e.target.value),
                                 }));
                               }}
                               aria-invalid={showTimeError ? "true" : "false"}

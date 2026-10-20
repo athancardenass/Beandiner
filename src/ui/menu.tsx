@@ -407,19 +407,26 @@ export function useStickyHeaderOffset(stickyEnabled = true) {
     const header = document.querySelector<HTMLElement>(".header");
     if (!header) return;
     const root = document.documentElement;
+    let frame = 0;
     const update = () => {
+      frame = 0;
       const pinned = stickyEnabled && getComputedStyle(header).position === "sticky";
-      const h = pinned ? header.offsetHeight : 0;
-      root.style.setProperty("--sticky-top", `${h}px`);
-      root.style.setProperty("--header-h", `${h}px`);
+      const height = `${pinned ? header.offsetHeight : 0}px`;
+      for (const property of ["--sticky-top", "--header-h"]) {
+        if (root.style.getPropertyValue(property) !== height) root.style.setProperty(property, height);
+      }
     };
+    // These values can resize ancestors observed elsewhere. Write outside the
+    // ResizeObserver delivery cycle to avoid a WebKit resize-loop warning.
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(update); };
     update();
-    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(update) : null;
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(schedule) : null;
     observer?.observe(header);
-    window.addEventListener("resize", update);
+    window.addEventListener("resize", schedule);
     return () => {
+      cancelAnimationFrame(frame);
       observer?.disconnect();
-      window.removeEventListener("resize", update);
+      window.removeEventListener("resize", schedule);
     };
   }, [stickyEnabled]);
 }

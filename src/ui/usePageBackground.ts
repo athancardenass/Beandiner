@@ -1,8 +1,9 @@
 import { useEffect } from "react";
 
 /** Keep the document canvas behind Safari's translucent bottom UI in sync with
- * the section at the visible bottom edge. This changes no section styling. */
-export function usePageBackground(page: string) {
+ * the section at the visible bottom edge, or dark while the bag is open.
+ * This changes no section or dialog styling. */
+export function usePageBackground(page: string, bagOpen: boolean) {
   useEffect(() => {
     const root = document.documentElement;
     const theme = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
@@ -25,15 +26,20 @@ export function usePageBackground(page: string) {
       const bottom = Math.min(innerHeight, (viewport?.offsetTop ?? 0) + (viewport?.height ?? innerHeight));
       const stack = document.elementsFromPoint(innerWidth / 2, Math.max(0, bottom - 4));
       // Rubber-band scrolling can expose the canvas with no element to sample.
-      // The footer still owns that area, including a changing browser toolbar.
+      // Keep the bottom browser chrome dark, even on menus without a footer.
       const footer = document.querySelector("footer");
       const atBottom = window.scrollY + bottom >= root.scrollHeight - 4;
-      let color = atBottom && footer
-        ? getComputedStyle(footer).backgroundColor
+      // The bag scrolls independently of the document, including Checkout Details.
+      const darkChrome = bagOpen || atBottom;
+      let color = darkChrome
+        ? footer ? getComputedStyle(footer).backgroundColor
+          : getComputedStyle(root).getPropertyValue("--surface-dark").trim() || "#121212"
         : root.style.getPropertyValue("--viewport-background") ||
           getComputedStyle(root).getPropertyValue("--surface-page").trim() || "#FFFFFF";
       let transitioning = false;
       for (const element of stack) {
+        // Stale menu hit tests during rubber-banding must not override the edge.
+        if (darkChrome) break;
         if (element.closest(".floating-bag-bubble, .toast, .page-progress, .skip-link, dialog")) continue;
         // The bottom edge may hit the story's exposed track while its sticky
         // panel is clipped/repainted. Its active panel still owns that color.
@@ -87,5 +93,5 @@ export function usePageBackground(page: string) {
       root.style.removeProperty("--viewport-background");
       if (theme) theme.content = originalTheme;
     };
-  }, [page]);
+  }, [page, bagOpen]);
 }

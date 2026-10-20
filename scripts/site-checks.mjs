@@ -66,11 +66,16 @@ export async function checkOrdering({ page, goto, setViewport }) {
   assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('#order-name')).backgroundColor), 'rgb(255, 255, 255)');
   await page.getByRole('button', { name: 'Send order via Messenger', exact: true }).click();
   assert.ok(await page.getByRole('alert').count());
+  assert.equal(await page.locator('#order-name-error').count(), 1, 'Focusing an invalid field must keep its error visible so the next click does not shift');
   await page.getByText('Custom time', { exact: true }).click();
   await page.getByRole('textbox', { name: 'Specify time today:', exact: true }).fill('23:30');
   await page.getByRole('button', { name: 'Send order via Messenger', exact: true }).click();
   assert.match(await page.locator('#checkout-time-error').innerText({}), /10:00 AM.*9:00 PM/);
   assert.equal(await page.getByText('Your order is ready to send.', { exact: true }).count(), 0);
+  await page.locator('#order-name').fill('Karl Santos');
+  assert.equal(await page.locator('#order-name-error').count(), 0);
+  await page.locator('#order-phone').fill('09123456789');
+  assert.equal(await page.locator('#order-phone-error').count(), 0);
   await page.getByText('Door to door', { exact: true }).click();
   assert.match(await page.locator('#delivery-arrangements-note').innerText({}), /confirmed in Messenger/);
   await page.getByRole('button', { name: 'Back to Bag', exact: true }).click();
@@ -110,12 +115,39 @@ export async function checkBackground({ page, goto, setViewport }) {
   }
 }
 
+export async function checkMedia({ page, goto, setViewport }) {
+  await setViewport({ width: 1280, height: 900 });
+  const checkImages = async () => {
+    const broken = await page.evaluate(async () => {
+      const failures = await Promise.all([...document.images].map(async image => {
+        image.loading = 'eager';
+        try { await image.decode(); return null; }
+        catch { return image.currentSrc || image.src; }
+      }));
+      return failures.filter(Boolean);
+    });
+    assert.deepEqual(broken, [], 'Every rendered image must load and decode');
+  };
+  for (const route of routes) {
+    await goto(`${base}/${route}`);
+    await heading(page);
+    await checkImages();
+    const tabs = page.locator('.menu-tab:visible');
+    const count = await tabs.count();
+    for (let index = 0; index < count; index++) {
+      await tabs.nth(index).click();
+      await checkImages();
+    }
+  }
+}
+
 export async function checkAll(harness) {
   await checkPages(harness);
   await checkBag(harness);
   await checkOrdering(harness);
   await checkFooter(harness);
   await checkBackground(harness);
+  await checkMedia(harness);
 }
 
 export async function runBrowserCheck(check, engines = ['chromium']) {
