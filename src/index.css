@@ -7386,7 +7386,7 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   border: 1px solid rgba(18, 18, 18, 0.15);
   border-radius: 10px;
   background: #fff;
-  font-size: 13px;
+  font-size: 16px;
   color: var(--ink, #121212);
 }
 

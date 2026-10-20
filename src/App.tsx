@@ -1052,6 +1052,11 @@ function ProductModal({
           <label htmlFor="item-note">Note for the barista (optional)</label>
           <input
             id="item-note"
+            type="text"
+            autoComplete="off"
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck={false}
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="e.g. separate syrup"
@@ -1165,6 +1170,11 @@ function BiteCustomizeModal({
           </label>
           <input
             id="bite-item-note"
+            type="text"
+            autoComplete="off"
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck={false}
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="e.g. Extra crispy, dip on the side, less seasoning..."
@@ -2774,7 +2784,7 @@ function App() {
                           <label htmlFor="checkout-table">Table number (if seated):</label>
                           <input
                             id="checkout-table"
-                            name="table"
+                            autoComplete="off"
                             placeholder="e.g. Table 4"
                             value={checkoutExtra}
                             onChange={(e) => setCheckoutExtra(e.target.value)}
@@ -2789,7 +2799,7 @@ function App() {
                           <small id="delivery-arrangements-note">Delivery arrangements are confirmed in Messenger.</small>
                           <input
                             id="checkout-address"
-                            name="address"
+                            autoComplete="off"
                             className={showAddressError ? "input-error" : ""}
                             placeholder="Street, Barangay, and Landmark in Bayambang"
                             value={checkoutExtra}
@@ -2833,7 +2843,7 @@ function App() {
                         </label>
                         <input
                           id="order-name"
-                          name="name"
+                          type="text"
                           className={showNameError ? "input-error" : ""}
                           value={checkoutName}
                           onChange={(e) => {
@@ -2862,8 +2872,7 @@ function App() {
                         </label>
                         <input
                           id="order-phone"
-                          name="phone"
-                          type="tel"
+                          type="text"
                           inputMode="numeric"
                           className={showPhoneError ? "input-error" : ""}
                           value={checkoutPhone}
@@ -2928,7 +2937,7 @@ function App() {
                             <label htmlFor="checkout-custom-time">Specify time today:</label>
                             <input
                               id="checkout-custom-time"
-                              name="customTime"
+                              type="text"
                               autoComplete="off"
                               className={showTimeError ? "input-error" : ""}
                               placeholder="e.g. 2:45 PM or 5:30 PM"
@@ -2988,7 +2997,7 @@ function App() {
                         </label>
                         <input
                           id="order-note"
-                          name="note"
+                          type="text"
                           autoComplete="off"
                           placeholder="e.g. separate syrup, extra napkins, less sweet"
                           value={checkoutNote}

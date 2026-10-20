@@ -27,6 +27,12 @@ for (const engine of [chromium, webkit]) {
     });
     await page.goto('http://127.0.0.1:5173/?page=beverages');
     await page.getByRole('button', { name: 'Customize Strawberry Milk', exact: true }).last().click();
+    const baristaNote = page.locator('#item-note');
+    assert.ok(
+      Number.parseFloat(await baristaNote.evaluate(el => getComputedStyle(el).fontSize)) >= 16,
+      'The Top 6 barista note must use at least 16px text to prevent iPhone Safari auto-zoom',
+    );
+    assert.equal(await baristaNote.getAttribute('autocomplete'), 'off', 'The barista note must not invoke contact autofill');
     await page.getByRole('button', { name: 'Add to bag ₱160', exact: true }).click();
     await page.evaluate(async () => {
       await document.fonts.ready;
@@ -46,6 +52,22 @@ for (const engine of [chromium, webkit]) {
     await expect.poll(pageContentVisibility).toBe('visible');
     await page.getByRole('button', { name: 'Proceed to Details', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: 'Your order bag', exact: true });
+    for (const field of await page.locator('#checkout-order-form input:not([type="radio"]), #checkout-order-form textarea, #checkout-order-form select').all()) {
+      assert.equal(await field.getAttribute('autocomplete'), 'off', 'Every Order Bag text field must opt out of autocomplete');
+    }
+    assert.equal(await page.locator('#order-name').getAttribute('name'), null, 'The customer name field must not advertise a contact autofill name');
+    assert.equal(await page.locator('#order-phone').getAttribute('name'), null, 'The phone field must not advertise a contact autofill name');
+    assert.equal(await page.locator('#order-phone').getAttribute('type'), 'text', 'The phone field must avoid tel type heuristics while retaining its numeric keyboard');
+    assert.equal(await page.locator('#order-phone').getAttribute('inputmode'), 'numeric', 'The phone field must keep its numeric keyboard');
+    for (const [orderTypeIndex, fieldSelector] of [
+      [1, '#checkout-table'],
+      [2, '#checkout-address'],
+    ]) {
+      await page.locator('.order-type-row label').nth(orderTypeIndex).click();
+      assert.equal(await page.locator(fieldSelector).getAttribute('autocomplete'), 'off', `${fieldSelector} must opt out of autocomplete`);
+      assert.equal(await page.locator(fieldSelector).getAttribute('name'), null, `${fieldSelector} must not advertise an autofill field name`);
+    }
+    await page.locator('.order-type-row label').first().click();
     const bagContentForScroll = page.locator('.bag-content');
     if (engine.name() === 'chromium') {
       const bagContentBounds = await bagContentForScroll.boundingBox();
