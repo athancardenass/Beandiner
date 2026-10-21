@@ -70,17 +70,11 @@ async function cutout(input, output, region) {
     .webp({ quality: 86, alphaQuality: 100 })
     .toFile(output);
 }
-// ↓ PRODUCTS: Process six signature drink cutouts
-for (const name of ["latte", "ube", "matcha", "spanish", "barako", "coldbrew"])
-  await cutout(
-    `public/images/saya-${name}.png`,
-    `public/images/optimized/${name}.webp`,
-  );
-// ↓ INGREDIENTS: Extract bean, leaf, cherry, ice from sprite sheet
+// ↓ INGREDIENTS: Extract only the ingredients used by the hero from the sprite sheet
 const metadata = await sharp("public/images/ingredient-sheet.png").metadata();
 const w = Math.floor(metadata.width / 2),
   h = Math.floor(metadata.height / 2);
-for (const [index, name] of ["bean", "leaf", "cherry", "ice"].entries())
+for (const [name, index] of [["bean", 0], ["leaf", 1], ["ice", 3]])
   await cutout(
     "public/images/ingredient-sheet.png",
     `public/images/optimized/${name}.webp`,
@@ -91,11 +85,6 @@ for (const [index, name] of ["bean", "leaf", "cherry", "ice"].entries())
       height: h,
     },
   );
-// ↓ EDITORIAL: Resize and optimize merienda (lifestyle) photo
-await sharp("public/images/saya-merienda.png")
-  .resize({ width: 1200 })
-  .webp({ quality: 85 })
-  .toFile("public/images/optimized/merienda.webp");
 
 // ↓ FOOD CATEGORY BANNERS: Resize and optimize diner bites photography
 const menuCategoryImages = [
@@ -142,5 +131,5 @@ await sharp("assets/beverage-category-source/all-menu-for-drinks.jpg")
   .toFile("public/images/optimized/beverage-addons.webp");
 
 console.log(
-  "Prepared six transparent products, four independent ingredients, editorial photography, eight diner bites category photos, the food menu overview, ten generated beverage category photos, and the supplied beverage lineup for add-ons.",
+  "Prepared three hero ingredients, nine diner bites category photos, ten generated beverage category photos, and the supplied beverage lineup for add-ons.",
 );

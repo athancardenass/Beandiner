@@ -8,6 +8,7 @@ import {
   type MouseEvent,
   type ReactNode,
 } from "react";
+import { createPortal } from "react-dom";
 import DinerBitesPage from "./DinerBitesPage";
 import BeveragesPage from "./BeveragesPage";
 import OurStoryPage from "./OurStoryPage";
@@ -698,49 +699,229 @@ function Sun({ className = "" }: { className?: string }) {
   );
 }
 // ↓ MODAL COMPONENT: Base dialog with backdrop, focus trap, Esc-to-close, and return focus
+// DEBUG-TEMP: Device-only readout for the Order Bag surface under iOS Safari chrome.
+function BagModalDebugOverlay() {
+  const [snapshot, setSnapshot] = useState("");
+
+  useEffect(() => {
+    const dialog = document.querySelector<HTMLDialogElement>("dialog.bag-modal");
+    if (!dialog) return;
+    const viewport = window.visualViewport;
+    const layoutProbe = document.createElement("div");
+    const dynamicProbe = document.createElement("div");
+    for (const [probe, height] of [[layoutProbe, "100lvh"], [dynamicProbe, "100dvh"]] as const) {
+      probe.setAttribute("aria-hidden", "true");
+      probe.style.cssText = `position:fixed;top:0;left:0;width:0;height:${height};visibility:hidden;pointer-events:none;z-index:-1`;
+      document.body.append(probe);
+    }
+    const update = () => {
+      const content = dialog.querySelector<HTMLElement>(".bag-content");
+      const stickyCta = dialog.querySelector<HTMLElement>(
+        ".button-proceed-checkout, .button-messenger-checkout",
+      );
+      const dialogRect = dialog.getBoundingClientRect();
+      const contentRect = content?.getBoundingClientRect();
+      const viewportBottom = viewport ? viewport.offsetTop + viewport.height : window.innerHeight;
+      const bottomPoint = Math.max(0, Math.min(window.innerHeight - 1, viewportBottom - 2));
+      const bottomElement = document.elementFromPoint(Math.max(0, window.innerWidth / 2), bottomPoint);
+      const describeElement = (element: Element | null) => {
+        if (!element) return "none";
+        const id = element.id ? `#${element.id}` : "";
+        const classes = typeof element.className === "string"
+          ? element.className.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((name) => `.${name}`).join("")
+          : "";
+        const text = (element.textContent ?? "").trim().replace(/\s+/g, " ").slice(0, 24);
+        return `${element.tagName.toLowerCase()}${id}${classes}${text ? ` “${text}”` : ""}`;
+      };
+      const dialogStyle = getComputedStyle(dialog);
+      const contentStyle = content ? getComputedStyle(content) : null;
+      const rootStyle = getComputedStyle(document.documentElement);
+      const bodyStyle = getComputedStyle(document.body);
+      const ctaRect = stickyCta?.getBoundingClientRect();
+      const contentMaxScroll = content ? Math.max(0, content.scrollHeight - content.clientHeight) : 0;
+      const docScrollMode = dialog.classList.contains("docscroll-mode");
+      const next = [
+        "DEBUG-TEMP · Order Bag / Safari pill",
+        `mode: ${docScrollMode ? "document scroll" : "fixed sheet"} · document scrollHeight: ${document.documentElement.scrollHeight}`,
+        `vv: ${viewport?.height.toFixed(1) ?? "n/a"} · offset: ${viewport?.offsetTop.toFixed(1) ?? "n/a"} · inner: ${window.innerHeight} · lv/dv: ${layoutProbe.getBoundingClientRect().height.toFixed(1)}/${dynamicProbe.getBoundingClientRect().height.toFixed(1)}`,
+        `scrollY: ${window.scrollY} · body lock: ${bodyStyle.position === "fixed" ? "on" : "off"} · browser: ${document.documentElement.dataset.browserFamily ?? "?"}`,
+        `dialog top/bottom/height: ${dialogRect.top.toFixed(1)} / ${dialogRect.bottom.toFixed(1)} / ${dialogRect.height.toFixed(1)}`,
+        `content top/bottom/height: ${contentRect?.top.toFixed(1) ?? "n/a"} / ${contentRect?.bottom.toFixed(1) ?? "n/a"} / ${contentRect?.height.toFixed(1) ?? "n/a"}`,
+        `content scroll: ${content?.scrollTop.toFixed(1) ?? "n/a"} / ${contentMaxScroll.toFixed(1)} max · padding-bottom: ${contentStyle?.paddingBottom ?? "n/a"}`,
+        `CTA rect top/bottom/height: ${ctaRect?.top.toFixed(1) ?? "n/a"} / ${ctaRect?.bottom.toFixed(1) ?? "n/a"} / ${ctaRect?.height.toFixed(1) ?? "n/a"} · under vv edge: ${describeElement(bottomElement)}`,
+        `sheet: ${dialogStyle.position} · ${dialogStyle.height} · ${dialogStyle.backgroundColor}`,
+        `html/body: ${rootStyle.backgroundColor} / ${bodyStyle.backgroundColor} · theme: ${document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.content ?? "none"}`,
+      ].join("\n");
+      setSnapshot((current) => current === next ? current : next);
+    };
+
+    update();
+    const interval = window.setInterval(update, 250);
+    viewport?.addEventListener("resize", update);
+    viewport?.addEventListener("scroll", update);
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, { passive: true });
+    document.addEventListener("focusin", update);
+    document.addEventListener("focusout", update);
+    return () => {
+      window.clearInterval(interval);
+      viewport?.removeEventListener("resize", update);
+      viewport?.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update);
+      document.removeEventListener("focusin", update);
+      document.removeEventListener("focusout", update);
+      layoutProbe.remove();
+      dynamicProbe.remove();
+    };
+  }, []);
+
+  return <pre className="bag-modal-debug-overlay" aria-hidden="true">{snapshot}</pre>;
+}
+
 function Modal({
   children,
   onClose,
   label,
   className = "",
+  documentScrollPosition = null,
 }: {
   children: ReactNode;
   onClose: () => void;
   label: string;
   className?: string;
+  documentScrollPosition?: { x: number; y: number } | null;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const onCloseRef = useRef(onClose);
+  const docScrollPositionRef = useRef<{ x: number; y: number } | null>(documentScrollPosition);
   onCloseRef.current = onClose;
+  const isBagModal = className.split(/\s+/).includes("bag-modal");
+  const docScrollMode = isBagModal && new URLSearchParams(window.location.search).get("docscroll") === "1";
+  const showBagDebug = isBagModal && new URLSearchParams(window.location.search).get("debug") === "1";
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || !docScrollMode) return;
+
+    const html = document.documentElement;
+    const body = document.body;
+    const root = document.getElementById("root");
+    if (!root) return;
+
+    const previous = document.activeElement as HTMLElement | null;
+    if (!docScrollPositionRef.current) {
+      docScrollPositionRef.current = documentScrollPosition ?? { x: window.scrollX, y: window.scrollY };
+    }
+    const { x: pageScrollX, y: pageScrollY } = docScrollPositionRef.current;
+    const hadHtmlClass = html.classList.contains("docscroll-order-flow");
+    const hadBodyClass = body.classList.contains("docscroll-order-flow");
+    const previousHtmlBackground = html.style.backgroundColor;
+    const previousBodyBackground = body.style.backgroundColor;
+    const previousRootBackground = root.style.backgroundColor;
+    const previousRootDisplay = root.style.display;
+    const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    const previousThemeColor = themeColor?.getAttribute("content") ?? null;
+    const sheetSurface = getComputedStyle(el).backgroundColor || "#FFFFFF";
+
+    el.classList.add("docscroll-mode");
+    html.classList.add("docscroll-order-flow");
+    body.classList.add("docscroll-order-flow");
+    html.style.backgroundColor = sheetSurface;
+    body.style.backgroundColor = sheetSurface;
+    root.style.backgroundColor = sheetSurface;
+    root.style.display = "none";
+    if (themeColor) themeColor.setAttribute("content", sheetSurface);
+    el.setAttribute("open", "");
+    window.scrollTo(0, 0);
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      onCloseRef.current();
+    };
+    document.addEventListener("keydown", handleKeyDown, true);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown, true);
+      el.removeAttribute("open");
+      el.classList.remove("docscroll-mode");
+      if (!hadHtmlClass) html.classList.remove("docscroll-order-flow");
+      if (!hadBodyClass) body.classList.remove("docscroll-order-flow");
+      html.style.backgroundColor = previousHtmlBackground;
+      body.style.backgroundColor = previousBodyBackground;
+      root.style.backgroundColor = previousRootBackground;
+      root.style.display = previousRootDisplay;
+      if (themeColor) {
+        if (previousThemeColor === null) themeColor.removeAttribute("content");
+        else themeColor.setAttribute("content", previousThemeColor);
+      }
+      if (previous?.isConnected) previous.focus({ preventScroll: true });
+      window.scrollTo(pageScrollX, pageScrollY);
+    };
+  }, [docScrollMode]);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    if (docScrollMode) return;
     const previous = document.activeElement as HTMLElement | null;
     const isBagModal = el.matches(".bag-modal");
     const isTopSixProductModal = el.matches(".product-modal:not(.bite-customize-modal)");
+    const isIOSSafariBagModal = isBagModal && document.documentElement.dataset.browserFamily === "safari" &&
+      (navigator.maxTouchPoints > 0 || "ontouchstart" in window);
     const shouldFreezePageBackground = (isBagModal || isTopSixProductModal) &&
       (navigator.maxTouchPoints > 0 || "ontouchstart" in window);
     const pageScrollX = window.scrollX;
     const pageScrollY = window.scrollY;
     const viewport = (isBagModal || isTopSixProductModal) ? window.visualViewport : null;
     let maxViewportHeight = viewport?.height ?? 0;
+    let viewportOrientation = window.innerWidth >= window.innerHeight ? "landscape" : "portrait";
+    const layoutViewportProbe = isIOSSafariBagModal ? document.createElement("div") : null;
+    if (layoutViewportProbe) {
+      layoutViewportProbe.setAttribute("aria-hidden", "true");
+      layoutViewportProbe.style.cssText = "position:fixed;top:0;left:0;width:0;height:100vh;height:100lvh;visibility:hidden;pointer-events:none;z-index:-1";
+      document.body.append(layoutViewportProbe);
+    }
     let revealFocusedFieldFrame = 0;
+    let bagPagePanFrame = 0;
     let bagViewportRefreshTimers: number[] = [];
+    let bagKeyboardCloseTimer: number | null = null;
+    let bagFieldRevealTimer: number | null = null;
+    const clearFormModalViewport = () => {
+      el.classList.remove("is-keyboard-open");
+      el.classList.remove("is-ios-full-layout");
+      el.style.removeProperty("--modal-viewport-height");
+      if (isBagModal) el.style.removeProperty("--modal-layout-height");
+      if (isBagModal) el.style.removeProperty("--modal-viewport-top");
+      if (isBagModal) el.style.removeProperty("--modal-sheet-height");
+      if (isBagModal) el.style.removeProperty("--modal-keyboard-overlap");
+      el.style.removeProperty("--modal-viewport-bottom-inset");
+    };
+    const isEditableBagField = (active: HTMLElement) =>
+      active.matches('input:not([type="radio"]):not([type="checkbox"]), textarea, select');
     const revealFocusedProductField = () => {
       if ((!isBagModal && !isTopSixProductModal) || !el.classList.contains("is-keyboard-open") || !viewport) return;
       const active = document.activeElement;
       if (!(active instanceof HTMLElement) || !el.contains(active)) return;
+      if (isBagModal && !isEditableBagField(active)) return;
 
+      const scrollable = isBagModal ? el.querySelector<HTMLElement>(".bag-content") ?? el : el;
       const fieldRect = active.getBoundingClientRect();
       const modalRect = el.getBoundingClientRect();
-      const visibleTop = (isBagModal ? modalRect.top : Math.max(viewport.offsetTop, modalRect.top)) + 16;
-      const bottomPadding = isBagModal ? 52 : 16;
-      const visibleBottom = (isBagModal ? modalRect.bottom : Math.min(viewport.offsetTop + viewport.height, modalRect.bottom)) - bottomPadding;
+      const scrollableRect = scrollable.getBoundingClientRect();
+      const visibleTop = isBagModal
+        ? Math.max(viewport.offsetTop, modalRect.top, scrollableRect.top) + 16
+        : Math.max(viewport.offsetTop, modalRect.top) + 16;
+      const bottomPadding = isBagModal ? 12 : 16;
+      const visibleBottom = isBagModal
+        ? Math.min(viewport.offsetTop + viewport.height, modalRect.bottom, scrollableRect.bottom) - bottomPadding
+        : Math.min(viewport.offsetTop + viewport.height, modalRect.bottom) - bottomPadding;
       if (fieldRect.top < visibleTop) {
-        el.scrollTop -= visibleTop - fieldRect.top;
+        scrollable.scrollTop -= visibleTop - fieldRect.top;
       } else if (fieldRect.bottom > visibleBottom) {
-        el.scrollTop += fieldRect.bottom - visibleBottom;
+        scrollable.scrollTop += fieldRect.bottom - visibleBottom;
       }
     };
     const queueRevealFocusedProductField = () => {
@@ -750,25 +931,86 @@ function Modal({
         revealFocusedProductField();
       });
     };
+    const queueBagFocusedFieldReveal = () => {
+      if (!isBagModal) return;
+      if (bagFieldRevealTimer !== null) {
+        window.clearTimeout(bagFieldRevealTimer);
+        bagFieldRevealTimer = null;
+      }
+      const active = document.activeElement;
+      if (!(active instanceof HTMLElement) || !el.contains(active) || !isEditableBagField(active)) return;
+      bagFieldRevealTimer = window.setTimeout(() => {
+        bagFieldRevealTimer = null;
+        revealFocusedProductField();
+      }, 300);
+    };
     const updateFormModalViewport = () => {
       if ((!isBagModal && !isTopSixProductModal) || !viewport) return;
-      if (isBagModal) maxViewportHeight = Math.max(maxViewportHeight, viewport.height);
+      const viewportHeight = isBagModal ? viewport.height : 0;
+      const viewportTop = isBagModal ? viewport.offsetTop : 0;
+      if (isBagModal) {
+        const nextOrientation = window.innerWidth >= window.innerHeight ? "landscape" : "portrait";
+        if (nextOrientation !== viewportOrientation) {
+          viewportOrientation = nextOrientation;
+          maxViewportHeight = 0;
+        }
+        maxViewportHeight = Math.max(
+          maxViewportHeight,
+          viewportHeight,
+          window.innerHeight,
+          document.documentElement.clientHeight,
+          layoutViewportProbe?.getBoundingClientRect().height ?? 0,
+        );
+      }
       const keyboardOpen = isBagModal
-        ? viewport.height < maxViewportHeight - 120
+        ? viewportHeight < maxViewportHeight - 120
         : viewport.height < window.innerHeight - 120;
       if (!keyboardOpen) {
-        el.classList.remove("is-keyboard-open");
-        el.style.removeProperty("--modal-viewport-height");
-        if (isBagModal) el.style.removeProperty("--modal-viewport-top");
-        if (isBagModal) el.style.removeProperty("--modal-sheet-height");
-        el.style.removeProperty("--modal-viewport-bottom-inset");
+        if (isBagModal && el.classList.contains("is-keyboard-open")) {
+          if (bagKeyboardCloseTimer === null) {
+            bagKeyboardCloseTimer = window.setTimeout(() => {
+              bagKeyboardCloseTimer = null;
+              if (viewport.height >= maxViewportHeight - 120) clearFormModalViewport();
+            }, 300);
+          }
+          return;
+        }
+        clearFormModalViewport();
         return;
       }
 
+      if (bagKeyboardCloseTimer !== null) {
+        window.clearTimeout(bagKeyboardCloseTimer);
+        bagKeyboardCloseTimer = null;
+      }
       if (isBagModal) {
-        el.style.setProperty("--modal-viewport-height", `${Math.floor(viewport.height)}px`);
-        el.style.setProperty("--modal-viewport-top", `${Math.round(viewport.offsetTop)}px`);
-        el.style.setProperty("--modal-sheet-height", `${Math.ceil(maxViewportHeight)}px`);
+        if (isIOSSafariBagModal) {
+          const layoutHeight = Math.max(
+            window.innerHeight,
+            document.documentElement.clientHeight,
+            maxViewportHeight,
+            layoutViewportProbe?.getBoundingClientRect().height ?? 0,
+          );
+          el.classList.add("is-ios-full-layout");
+          el.style.setProperty("--modal-layout-height", `${Math.floor(layoutHeight)}px`);
+          el.style.setProperty("--modal-viewport-height", `${Math.max(0, Math.floor(viewportHeight))}px`);
+          el.style.setProperty("--modal-viewport-top", `${Math.round(viewportTop)}px`);
+          el.style.setProperty("--modal-sheet-height", `${Math.floor(layoutHeight)}px`);
+          el.style.setProperty(
+            "--modal-keyboard-overlap",
+            `${Math.max(0, Math.ceil(layoutHeight - viewportHeight - viewportTop))}px`,
+          );
+        } else {
+          const dialogTop = Math.round(viewportTop);
+          const dialogHeight = Math.max(0, Math.floor(viewportHeight));
+          el.style.setProperty("--modal-viewport-height", `${dialogHeight}px`);
+          el.style.setProperty("--modal-viewport-top", `${dialogTop}px`);
+          el.style.setProperty("--modal-sheet-height", `${dialogHeight}px`);
+          el.style.setProperty(
+            "--modal-keyboard-overlap",
+            `${Math.max(0, Math.ceil(dialogTop + dialogHeight - viewportTop - viewportHeight))}px`,
+          );
+        }
         el.style.removeProperty("--modal-viewport-bottom-inset");
       } else {
         const viewportBottom = viewport.offsetTop + viewport.height;
@@ -784,6 +1026,21 @@ function Modal({
       el.classList.add("is-keyboard-open");
       if (isTopSixProductModal) queueRevealFocusedProductField();
     };
+    const handleBagPagePan = () => {
+      if (!isBagModal || !shouldFreezePageBackground || bagPagePanFrame || (window.scrollX === 0 && window.scrollY === 0)) return;
+      bagPagePanFrame = window.requestAnimationFrame(() => {
+        bagPagePanFrame = 0;
+        if (window.scrollX !== 0 || window.scrollY !== 0) window.scrollTo(0, 0);
+        updateFormModalViewport();
+        queueBagFocusedFieldReveal();
+      });
+    };
+    const handleBagViewportChange = () => {
+      updateFormModalViewport();
+      handleBagPagePan();
+      queueBagFocusedFieldReveal();
+    };
+    const handleFormModalViewportChange = isBagModal ? handleBagViewportChange : updateFormModalViewport;
     const scheduleBagViewportRefresh = () => {
       if (!isBagModal) return;
       bagViewportRefreshTimers.forEach((timer) => window.clearTimeout(timer));
@@ -796,6 +1053,14 @@ function Modal({
         }, delay);
         bagViewportRefreshTimers.push(timer);
       }
+    };
+    const handleBagFocusIn = () => {
+      if (bagKeyboardCloseTimer !== null) {
+        window.clearTimeout(bagKeyboardCloseTimer);
+        bagKeyboardCloseTimer = null;
+      }
+      scheduleBagViewportRefresh();
+      queueBagFocusedFieldReveal();
     };
     if (!el.open) {
       try {
@@ -812,8 +1077,10 @@ function Modal({
       top: body.style.top,
       left: body.style.left,
       width: body.style.width,
+      overscrollBehavior: body.style.overscrollBehavior,
     };
     const oldRootOverflow = root.style.overflow;
+    const oldRootOverscrollBehavior = root.style.overscrollBehavior;
     body.style.overflow = "hidden";
     if (shouldFreezePageBackground) {
       // iOS Safari can still scroll the page behind form modals when body overflow is hidden.
@@ -822,13 +1089,20 @@ function Modal({
       body.style.top = `${-pageScrollY}px`;
       body.style.left = `${-pageScrollX}px`;
       body.style.width = "100%";
+      if (isBagModal) {
+        root.style.overscrollBehavior = "none";
+        body.style.overscrollBehavior = "none";
+        window.scrollTo(0, 0);
+      }
     }
     updateFormModalViewport();
-    viewport?.addEventListener("resize", updateFormModalViewport);
-    if (isTopSixProductModal || isBagModal) viewport?.addEventListener("scroll", updateFormModalViewport);
-    window.addEventListener("resize", updateFormModalViewport);
+    viewport?.addEventListener("resize", handleFormModalViewportChange);
+    if (isTopSixProductModal) viewport?.addEventListener("scroll", updateFormModalViewport);
+    if (isBagModal) viewport?.addEventListener("scroll", handleBagViewportChange);
+    window.addEventListener("resize", handleFormModalViewportChange);
+    if (isBagModal) window.addEventListener("scroll", handleBagViewportChange, { passive: true });
     if (isTopSixProductModal) el.addEventListener("focusin", queueRevealFocusedProductField);
-    if (isBagModal) el.addEventListener("focusin", scheduleBagViewportRefresh);
+    if (isBagModal) el.addEventListener("focusin", handleBagFocusIn);
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
@@ -864,16 +1138,25 @@ function Modal({
     return () => {
       el.removeEventListener("keydown", handleKeyDown);
       if (isTopSixProductModal) el.removeEventListener("focusin", queueRevealFocusedProductField);
-      if (isBagModal) el.removeEventListener("focusin", scheduleBagViewportRefresh);
-      viewport?.removeEventListener("resize", updateFormModalViewport);
-      if (isTopSixProductModal || isBagModal) viewport?.removeEventListener("scroll", updateFormModalViewport);
-      window.removeEventListener("resize", updateFormModalViewport);
+      if (isBagModal) el.removeEventListener("focusin", handleBagFocusIn);
+      viewport?.removeEventListener("resize", handleFormModalViewportChange);
+      if (isTopSixProductModal) viewport?.removeEventListener("scroll", updateFormModalViewport);
+      if (isBagModal) viewport?.removeEventListener("scroll", handleBagViewportChange);
+      window.removeEventListener("resize", handleFormModalViewportChange);
+      if (isBagModal) window.removeEventListener("scroll", handleBagViewportChange);
       if (revealFocusedFieldFrame) window.cancelAnimationFrame(revealFocusedFieldFrame);
+      if (bagPagePanFrame) window.cancelAnimationFrame(bagPagePanFrame);
       bagViewportRefreshTimers.forEach((timer) => window.clearTimeout(timer));
+      if (bagKeyboardCloseTimer !== null) window.clearTimeout(bagKeyboardCloseTimer);
+      if (bagFieldRevealTimer !== null) window.clearTimeout(bagFieldRevealTimer);
+      layoutViewportProbe?.remove();
       el.classList.remove("is-keyboard-open");
+      el.classList.remove("is-ios-full-layout");
       el.style.removeProperty("--modal-viewport-height");
+      el.style.removeProperty("--modal-layout-height");
       el.style.removeProperty("--modal-viewport-top");
       el.style.removeProperty("--modal-sheet-height");
+      el.style.removeProperty("--modal-keyboard-overlap");
       el.style.removeProperty("--modal-viewport-bottom-inset");
       if (el.open) el.close();
       body.style.overflow = oldBodyStyles.overflow;
@@ -882,21 +1165,23 @@ function Modal({
         body.style.top = oldBodyStyles.top;
         body.style.left = oldBodyStyles.left;
         body.style.width = oldBodyStyles.width;
+        body.style.overscrollBehavior = oldBodyStyles.overscrollBehavior;
         root.style.overflow = oldRootOverflow;
+        root.style.overscrollBehavior = oldRootOverscrollBehavior;
         window.scrollTo(pageScrollX, pageScrollY);
       }
       if (previous && typeof previous.focus === "function") {
         previous.focus();
       }
     };
-  }, []);
+  }, [docScrollMode]);
 
-  return (
+  const dialog = (
     <dialog
       ref={ref}
       aria-label={label}
-      aria-modal="true"
-      className={`modal ${className}`}
+      aria-modal={docScrollMode ? undefined : "true"}
+      className={`modal ${className}${docScrollMode ? " docscroll-mode" : ""}`}
       onCancel={(e) => {
         e.preventDefault();
         onClose();
@@ -915,8 +1200,10 @@ function Modal({
         </button>
         {children}
       </div>
+      {showBagDebug && <BagModalDebugOverlay />}
     </dialog>
   );
+  return docScrollMode ? createPortal(dialog, document.body) : dialog;
 }
 // ↓ SEGMENTED: Radio group styled as a segmented control (arrow keys move selection)
 function Segmented({
@@ -1266,6 +1553,7 @@ function BiteCustomizeModal({
 
 function App() {
   const [currentPage, setCurrentPage] = useState<AppPage>(() => pageFromSearch(window.location.search));
+  const docScrollMode = new URLSearchParams(window.location.search).get("docscroll") === "1";
   const isFoodPage = currentPage === "diner-bites";
   const isBeveragesPage = currentPage === "beverages";
   const isStoryPage = currentPage === "our-story";
@@ -1280,6 +1568,7 @@ function App() {
   const [selected, setSelected] = useState<Product | null>(null);
   const [customizingBite, setCustomizingBite] = useState<DinerBite | null>(null);
   const [bagOpen, setBagOpen] = useState(false);
+  const bagBackgroundScrollRef = useRef<{ x: number; y: number } | null>(null);
   const [navOpen, setNavOpen] = useState(false);
   const [beverageCategory, setBeverageCategory] = useState("top-6");
   const [beverageQuery, setBeverageQuery] = useState("");
@@ -1297,6 +1586,7 @@ function App() {
     return () => window.clearTimeout(timeout);
   }, [pendingOrder]);
   const openOrderBag = () => {
+    if (docScrollMode) bagBackgroundScrollRef.current = { x: window.scrollX, y: window.scrollY };
     const saved = isPendingOrder(pendingOrder) ? pendingOrder : null;
     if (!saved && pendingOrder) setPendingOrder(null);
     setReceipt(cart.length === 0 && Boolean(saved));
@@ -1307,12 +1597,13 @@ function App() {
   useEffect(() => {
     if (receipt) {
       bagHeadingRef.current?.focus({ preventScroll: true });
-      bagHeadingRef.current?.closest("dialog")?.scrollTo({ top: 0 });
+      if (docScrollMode) window.scrollTo(0, 0);
+      else bagHeadingRef.current?.closest("dialog")?.scrollTo({ top: 0 });
       if (lastOrder) {
         copyToClipboard(lastOrder);
       }
     }
-  }, [receipt, lastOrder]);
+  }, [receipt, lastOrder, docScrollMode]);
   const [storeStatus, setStoreStatus] = useState(getStoreStatus);
   const [checkoutStep, setCheckoutStep] = useState<"bag" | "details">("bag");
   const bagContentRef = useRef<HTMLDivElement>(null);
@@ -1328,17 +1619,16 @@ function App() {
   const [checkoutName, setCheckoutName] = useState("");
   const [checkoutPhone, setCheckoutPhone] = useState("");
   useLayoutEffect(() => {
-    if (checkoutStep === "details" && bagContentRef.current) {
-      bagContentRef.current.scrollTop = 0;
-    }
-  }, [checkoutStep]);
+    if (docScrollMode) window.scrollTo(0, 0);
+    else if (checkoutStep === "details" && bagContentRef.current) bagContentRef.current.scrollTop = 0;
+  }, [checkoutStep, docScrollMode]);
   useLayoutEffect(() => {
     const scrollTop = orderTypeScrollTopRef.current;
     orderTypeScrollTopRef.current = null;
-    if (scrollTop !== null && bagContentRef.current) {
-      bagContentRef.current.scrollTop = scrollTop;
-    }
-  }, [checkoutOrderType]);
+    if (scrollTop === null) return;
+    if (docScrollMode) window.scrollTo(0, scrollTop);
+    else if (bagContentRef.current) bagContentRef.current.scrollTop = scrollTop;
+  }, [checkoutOrderType, docScrollMode]);
   const [checkoutErrors, setCheckoutErrors] = useState<{
     name?: string | null;
     phone?: string | null;
@@ -2385,7 +2675,9 @@ function App() {
         <Modal
           label="Your order bag"
           className="bag-modal"
+          documentScrollPosition={bagBackgroundScrollRef.current}
           onClose={() => {
+            bagBackgroundScrollRef.current = null;
             setBagOpen(false);
             setReceipt(false);
           }}
@@ -2521,7 +2813,7 @@ function App() {
                           className="receipt-copy-pill"
                           onClick={() => {
                             copyToClipboard(lastOrder);
-                            setToast("✓ Order details copied to clipboard!");
+                            setToast("Order details copied to clipboard!");
                           }}
                         >
                           <Icon name="check" size={13} /> Copy Text
@@ -2540,7 +2832,7 @@ function App() {
                       onClick={(e) => {
                         if (lastOrder) {
                           copyToClipboard(lastOrder);
-                          setToast("✓ Order details copied! Opening Messenger...");
+                          setToast("Order details copied! Opening Messenger...");
                         }
                         if (isMobileDevice() && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
                           e.preventDefault();
@@ -2548,7 +2840,7 @@ function App() {
                         }
                       }}
                     >
-                      Copy Order &amp; Open Messenger ↗
+                      Copy Order &amp; Open Messenger
                     </a>
                     <a
                       href={FACEBOOK_PAGE_URL}
@@ -2558,11 +2850,11 @@ function App() {
                       onClick={() => {
                         if (lastOrder) {
                           copyToClipboard(lastOrder);
-                          setToast("✓ Order details copied! Opening Facebook Page...");
+                          setToast("Order details copied! Opening Facebook Page...");
                         }
                       }}
                     >
-                      Open Bean Diner Facebook Page Directly ↗
+                      Open Bean Diner Facebook Page Directly
                     </a>
                   </div>
                 </div>
@@ -2830,7 +3122,9 @@ function App() {
                                 const input = event.currentTarget.querySelector("input");
                                 orderTypeScrollTopRef.current = input?.checked
                                   ? null
-                                  : bagContentRef.current?.scrollTop ?? null;
+                                  : docScrollMode
+                                    ? window.scrollY
+                                    : bagContentRef.current?.scrollTop ?? null;
                               }}
                             >
                               <input
@@ -3067,10 +3361,12 @@ function App() {
                         <label className="checkout-note-label" id="checkout-note-label" htmlFor="order-note">
                           Order note / special request <small>(optional)</small>
                         </label>
-                        <input
+                        <textarea
                           id="order-note"
-                          type="text"
+                          name="order-note"
+                          rows={1}
                           autoComplete="off"
+                          inputMode="text"
                           placeholder="e.g. separate syrup, extra napkins, less sweet"
                           value={checkoutNote}
                           onChange={(e) => setCheckoutNote(e.target.value)}
