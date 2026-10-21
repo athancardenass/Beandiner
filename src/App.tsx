@@ -751,12 +751,18 @@ function Modal({
     const updateBagViewportDebugOverlay = () => {
       if (!bagViewportDebugOverlay) return;
       const rect = el.getBoundingClientRect();
+      const bagContent = el.querySelector<HTMLElement>(".bag-content");
+      const bagContentRect = bagContent?.getBoundingClientRect();
       bagViewportDebugOverlay.textContent = [
         `vv.height: ${viewport?.height.toFixed(2) ?? "n/a"}`,
         `vv.offsetTop: ${viewport?.offsetTop.toFixed(2) ?? "n/a"}`,
         `window.innerHeight: ${window.innerHeight}`,
         `dialog.top: ${rect.top.toFixed(2)}`,
         `dialog.height: ${rect.height.toFixed(2)}`,
+        `bag-content.height: ${bagContentRect?.height.toFixed(2) ?? "n/a"}`,
+        `bag-content.scrollTop: ${bagContent?.scrollTop.toFixed(2) ?? "n/a"}`,
+        `focused field: ${(document.activeElement as HTMLElement | null)?.id || "(none)"}`,
+        `--modal-sheet-height: ${el.style.getPropertyValue("--modal-sheet-height") || "(unset)"}`,
         `--modal-viewport-height: ${el.style.getPropertyValue("--modal-viewport-height") || "(unset)"}`,
         `--modal-viewport-top: ${el.style.getPropertyValue("--modal-viewport-top") || "(unset)"}`,
       ].join("\n");
@@ -794,6 +800,7 @@ function Modal({
         el.classList.remove("is-keyboard-open");
         el.style.removeProperty("--modal-viewport-height");
         if (isBagModal) el.style.removeProperty("--modal-viewport-top");
+        if (isBagModal) el.style.removeProperty("--modal-sheet-height");
         el.style.removeProperty("--modal-viewport-bottom-inset");
         updateBagViewportDebugOverlay();
         return;
@@ -802,6 +809,7 @@ function Modal({
       if (isBagModal) {
         el.style.setProperty("--modal-viewport-height", `${Math.floor(viewport.height)}px`);
         el.style.setProperty("--modal-viewport-top", `${Math.round(viewport.offsetTop)}px`);
+        el.style.setProperty("--modal-sheet-height", `${Math.ceil(maxViewportHeight)}px`);
         el.style.removeProperty("--modal-viewport-bottom-inset");
       } else {
         const viewportBottom = viewport.offsetTop + viewport.height;
@@ -816,7 +824,7 @@ function Modal({
       }
       el.classList.add("is-keyboard-open");
       updateBagViewportDebugOverlay();
-      queueRevealFocusedProductField();
+      if (isTopSixProductModal) queueRevealFocusedProductField();
     };
     const scheduleBagViewportRefresh = () => {
       if (!isBagModal) return;
@@ -861,7 +869,7 @@ function Modal({
     viewport?.addEventListener("resize", updateFormModalViewport);
     if (isTopSixProductModal || isBagModal) viewport?.addEventListener("scroll", updateFormModalViewport);
     window.addEventListener("resize", updateFormModalViewport);
-    el.addEventListener("focusin", queueRevealFocusedProductField);
+    if (isTopSixProductModal) el.addEventListener("focusin", queueRevealFocusedProductField);
     if (isBagModal) el.addEventListener("focusin", scheduleBagViewportRefresh);
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -897,7 +905,7 @@ function Modal({
 
     return () => {
       el.removeEventListener("keydown", handleKeyDown);
-      el.removeEventListener("focusin", queueRevealFocusedProductField);
+      if (isTopSixProductModal) el.removeEventListener("focusin", queueRevealFocusedProductField);
       if (isBagModal) el.removeEventListener("focusin", scheduleBagViewportRefresh);
       viewport?.removeEventListener("resize", updateFormModalViewport);
       if (isTopSixProductModal || isBagModal) viewport?.removeEventListener("scroll", updateFormModalViewport);
@@ -907,6 +915,7 @@ function Modal({
       el.classList.remove("is-keyboard-open");
       el.style.removeProperty("--modal-viewport-height");
       el.style.removeProperty("--modal-viewport-top");
+      el.style.removeProperty("--modal-sheet-height");
       el.style.removeProperty("--modal-viewport-bottom-inset");
       bagViewportDebugOverlay?.remove();
       if (el.open) el.close();

@@ -5615,6 +5615,19 @@ body:has(.floating-bag-bubble) .footer-artisanal {
     max-height: min(92svh, var(--modal-viewport-height, 900px), 900px);
     height: min(92svh, var(--modal-viewport-height, 900px), 900px);
     overflow-x: hidden;
+    overflow-y: hidden;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .bag-modal[open] .modal-inner {
+    height: 100%;
+  }
+  .bag-modal[open] .bag-content {
+    box-sizing: border-box;
+    height: 100%;
+    min-height: 0;
+    max-height: 100%;
+    overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
@@ -5622,11 +5635,23 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   .bag-modal.is-keyboard-open[open] {
     position: fixed;
     inset: var(--modal-viewport-top, 0px) 0 auto 0;
-    height: var(--modal-viewport-height, 100svh);
+    height: var(--modal-sheet-height, 100svh);
     min-height: 0;
     max-height: none;
     margin: 0;
+    overflow: hidden;
     animation: none;
+  }
+  .bag-modal.is-keyboard-open[open] .bag-content {
+    box-sizing: border-box;
+    height: var(--modal-viewport-height, 100svh);
+    min-height: 0;
+    max-height: var(--modal-viewport-height, 100svh);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: calc(52px + env(safe-area-inset-bottom, 0px));
   }
   .product-modal:not(.bite-customize-modal).is-keyboard-open[open] {
     position: fixed;
