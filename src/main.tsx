@@ -15,6 +15,7 @@ const safariTestClasses: Record<string, string[]> = {
   "3": ["t-nofilter"],
   "4": ["t-nocover"],
   "5": ["t-nobag", "t-bg", "t-nofilter"],
+  "6": ["t-no-vh-range"],
 };
 const safariTest = new URLSearchParams(window.location.search).get("t");
 document.documentElement.classList.add(...(safariTestClasses[safariTest ?? ""] ?? []));
