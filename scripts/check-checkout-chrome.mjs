@@ -45,7 +45,7 @@ for (const engine of [chromium, webkit]) {
       const style = getComputedStyle(el, '::backdrop');
       return { background: style.backgroundColor, image: style.backgroundImage, filter: style.backdropFilter };
     });
-    await page.goto('http://127.0.0.1:5173/?page=beverages');
+    await page.goto('http://127.0.0.1:5173/?page=beverages&debug=1');
     const productBackgroundPosition = await page.evaluate(() => getComputedStyle(document.body).position);
     await page.getByRole('button', { name: 'Customize Strawberry Milk', exact: true }).last().click();
     assert.equal(await page.evaluate(() => getComputedStyle(document.body).position), 'fixed', 'The Top 6 customization modal must lock the page behind it on iPhone Safari');
@@ -121,6 +121,15 @@ for (const engine of [chromium, webkit]) {
     assert.equal(await page.evaluate(() => Math.round(document.body.getBoundingClientRect().top)), -backgroundScrollBeforeBag, 'Opening the Order Bag must keep the menu visually anchored');
     await expect.poll(bagBackdrop).toEqual({ background: 'rgba(18, 18, 18, 0.75)', image: 'none', filter: 'blur(5px)' });
     await expect.poll(pageContentVisibility).toBe('visible');
+    const bagDebugOverlay = page.locator('dialog.bag-modal > pre');
+    await expect(bagDebugOverlay).toContainText('vv.height:');
+    await expect(bagDebugOverlay).toContainText('vv.offsetTop:');
+    await expect(bagDebugOverlay).toContainText('window.innerHeight:');
+    await expect(bagDebugOverlay).toContainText('dialog.top:');
+    await expect(bagDebugOverlay).toContainText('dialog.height:');
+    await expect(bagDebugOverlay).toContainText('--modal-viewport-height:');
+    await expect(bagDebugOverlay).toContainText('--modal-viewport-top:');
+    assert.equal(await bagDebugOverlay.evaluate(el => getComputedStyle(el).pointerEvents), 'none', 'The bag viewport debug overlay must not block taps');
     await page.waitForTimeout(400);
     const bagModal = page.locator('dialog.bag-modal');
     const bagStepBounds = await bagModal.evaluate(el => {
@@ -259,6 +268,13 @@ for (const engine of [chromium, webkit]) {
       assert.equal(await page.locator(selector).getAttribute('autocomplete'), 'off', `${selector} should opt out of browser autocomplete`);
     }
     const note = page.locator('#order-note');
+    const initialWindowInnerHeight = await page.evaluate(() => window.innerHeight);
+    await page.evaluate(() => {
+      Object.defineProperty(window, '__bagCheckOriginalInnerHeight', {
+        configurable: true,
+        value: Object.getOwnPropertyDescriptor(window, 'innerHeight'),
+      });
+    });
     const bagViewportState = () => page.evaluate(() => {
       const modal = document.querySelector('dialog.bag-modal');
       const rect = modal.getBoundingClientRect();
@@ -267,40 +283,50 @@ for (const engine of [chromium, webkit]) {
         height: rect.height,
         top: rect.top,
         bottom: rect.bottom,
+        keyboardOpen: modal.classList.contains('is-keyboard-open'),
+        cssHeight: modal.style.getPropertyValue('--modal-viewport-height'),
+        cssTop: modal.style.getPropertyValue('--modal-viewport-top'),
+        cssBottomInset: modal.style.getPropertyValue('--modal-viewport-bottom-inset'),
         viewportTop: offsetTop,
         viewportBottom: offsetTop + height,
       };
     });
-    const setBagVisualViewport = (height, offsetTop, eventName) => page.evaluate(({ height, offsetTop, eventName }) => {
+    const setBagVisualViewport = (height, offsetTop, eventName, layoutHeight = initialWindowInnerHeight) => page.evaluate(({ height, offsetTop, eventName, layoutHeight }) => {
+      Object.defineProperty(window, 'innerHeight', { configurable: true, value: layoutHeight });
       const viewport = window.visualViewport;
       Object.defineProperty(viewport, 'height', { configurable: true, value: height });
       Object.defineProperty(viewport, 'offsetTop', { configurable: true, value: offsetTop });
       viewport.dispatchEvent(new Event(eventName));
-    }, { height, offsetTop, eventName });
+    }, { height, offsetTop, eventName, layoutHeight });
     for (const selector of ['#order-name', '#order-phone', '#order-note']) {
       const field = page.locator(selector);
       await field.scrollIntoViewIfNeeded();
       await field.focus();
-      await setBagVisualViewport(360, 0, 'resize');
+      await setBagVisualViewport(360, 0, 'resize', 360);
       const keyboardOpen = await bagViewportState();
-      await setBagVisualViewport(360, 32, 'scroll');
+      assert.equal(keyboardOpen.keyboardOpen, true, `${selector} must detect the keyboard when innerHeight shrinks with the visual viewport: ${JSON.stringify(keyboardOpen)}`);
+      assert.equal(keyboardOpen.cssHeight, '360px', `${selector} must size the bag from visualViewport.height: ${JSON.stringify(keyboardOpen)}`);
+      await setBagVisualViewport(360, 32, 'scroll', 360);
       const afterViewportScroll = await bagViewportState();
       assert.ok(afterViewportScroll.height >= keyboardOpen.height - 1, `${selector} focus must not collapse the bag on visualViewport scroll: ${JSON.stringify(afterViewportScroll)}`);
       assert.ok(Math.abs(afterViewportScroll.top - afterViewportScroll.viewportTop) <= 1, `${selector} scroll must keep the bag aligned to the visible viewport: ${JSON.stringify(afterViewportScroll)}`);
+      assert.equal(afterViewportScroll.cssTop, '32px', `${selector} must position the bag from visualViewport.offsetTop: ${JSON.stringify(afterViewportScroll)}`);
+      assert.equal(afterViewportScroll.cssBottomInset, '', `${selector} must not use a bottom inset to position the bag: ${JSON.stringify(afterViewportScroll)}`);
+      assert.ok(Math.abs(afterViewportScroll.bottom - afterViewportScroll.viewportBottom) <= 1, `${selector} dialog bottom must equal visualViewport.offsetTop + height: ${JSON.stringify(afterViewportScroll)}`);
 
       await page.waitForTimeout(120);
-      await setBagVisualViewport(326, 32, 'resize');
+      await setBagVisualViewport(326, 32, 'resize', 360);
       await page.waitForTimeout(120);
       const afterFirstAutofillBarStep = await bagViewportState();
       assert.ok(afterFirstAutofillBarStep.height >= 325 && afterFirstAutofillBarStep.height <= 326, `${selector} first AutoFill-bar height change must resize the bag: ${JSON.stringify(afterFirstAutofillBarStep)}`);
-      await setBagVisualViewport(300, 32, 'resize');
+      await setBagVisualViewport(300, 32, 'resize', 360);
       await page.waitForTimeout(120);
       const afterAutofillBar = await bagViewportState();
       assert.ok(afterAutofillBar.height >= 299 && afterAutofillBar.height <= 300, `${selector} AutoFill-bar resize must refresh bag height: ${JSON.stringify(afterAutofillBar)}`);
       assert.ok(Math.abs(afterAutofillBar.top - afterAutofillBar.viewportTop) <= 1, `${selector} must keep the bag top inside the visible viewport after AutoFill-bar resize: ${JSON.stringify(afterAutofillBar)}`);
       assert.ok(Math.abs(afterAutofillBar.bottom - afterAutofillBar.viewportBottom) <= 1, `${selector} must keep the bag bottom above the keyboard after AutoFill-bar resize: ${JSON.stringify(afterAutofillBar)}`);
 
-      await setBagVisualViewport(360, 0, 'scroll');
+      await setBagVisualViewport(360, 0, 'scroll', 360);
       const restoredKeyboard = await bagViewportState();
       assert.ok(restoredKeyboard.height >= keyboardOpen.height - 1, `${selector} must recover the full keyboard viewport height: ${JSON.stringify(restoredKeyboard)}`);
       await field.blur();
@@ -309,8 +335,14 @@ for (const engine of [chromium, webkit]) {
       const viewport = window.visualViewport;
       delete viewport.height;
       delete viewport.offsetTop;
+      Object.defineProperty(window, 'innerHeight', window.__bagCheckOriginalInnerHeight);
+      delete window.__bagCheckOriginalInnerHeight;
       viewport.dispatchEvent(new Event('resize'));
     });
+    const closedBagViewport = await bagViewportState();
+    assert.equal(closedBagViewport.keyboardOpen, false, 'The bag must clear keyboard state when the visual viewport returns to its full height');
+    assert.equal(closedBagViewport.cssHeight, '', 'The bag must clear its viewport height when the keyboard closes');
+    assert.equal(closedBagViewport.cssTop, '', 'The bag must clear its viewport top when the keyboard closes');
     await page.setViewportSize({ width: 390, height: 360 });
     await note.scrollIntoViewIfNeeded();
     await note.focus();
