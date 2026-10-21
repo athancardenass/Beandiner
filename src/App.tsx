@@ -726,62 +726,6 @@ function Modal({
     let maxViewportHeight = viewport?.height ?? 0;
     let revealFocusedFieldFrame = 0;
     let bagViewportRefreshTimers: number[] = [];
-    const bagViewportDebugOverlay = isBagModal && new URLSearchParams(window.location.search).get("debug") === "1"
-      ? document.createElement("pre")
-      : null;
-    if (bagViewportDebugOverlay) {
-      bagViewportDebugOverlay.setAttribute("aria-hidden", "true");
-      Object.assign(bagViewportDebugOverlay.style, {
-        position: "fixed",
-        top: "max(4px, var(--modal-viewport-top, 0px))",
-        left: "8px",
-        zIndex: "2147483647",
-        maxWidth: "calc(100vw - 16px)",
-        margin: "0",
-        padding: "8px",
-        borderRadius: "4px",
-        color: "#fff",
-        background: "rgba(0, 0, 0, 0.88)",
-        font: "12px/1.35 monospace",
-        whiteSpace: "pre-wrap",
-        pointerEvents: "none",
-        display: "none",
-      });
-      el.append(bagViewportDebugOverlay);
-    }
-    const updateBagViewportDebugOverlay = () => {
-      if (!bagViewportDebugOverlay) return;
-      const isDetailsStep = Boolean(el.querySelector(".checkout-split-layout"));
-      bagViewportDebugOverlay.style.display = isDetailsStep ? "block" : "none";
-      if (!isDetailsStep) return;
-      const rect = el.getBoundingClientRect();
-      const bagContent = el.querySelector<HTMLElement>(".bag-content");
-      const bagContentRect = bagContent?.getBoundingClientRect();
-      const htmlBackground = getComputedStyle(document.documentElement).backgroundColor;
-      const bodyBackground = getComputedStyle(document.body).backgroundColor;
-      bagViewportDebugOverlay.textContent = [
-        `vv.height: ${viewport?.height.toFixed(2) ?? "n/a"}`,
-        `vv.offsetTop: ${viewport?.offsetTop.toFixed(2) ?? "n/a"}`,
-        `window.innerHeight: ${window.innerHeight}`,
-        `dialog.top: ${rect.top.toFixed(2)}`,
-        `dialog.height: ${rect.height.toFixed(2)}`,
-        `html.backgroundColor: ${htmlBackground}`,
-        `body.backgroundColor: ${bodyBackground}`,
-        `bag-content.height: ${bagContentRect?.height.toFixed(2) ?? "n/a"}`,
-        `bag-content.scrollTop: ${bagContent?.scrollTop.toFixed(2) ?? "n/a"}`,
-        `focused field: ${(document.activeElement as HTMLElement | null)?.id || "(none)"}`,
-        `--modal-sheet-height: ${el.style.getPropertyValue("--modal-sheet-height") || "(unset)"}`,
-        `--modal-viewport-height: ${el.style.getPropertyValue("--modal-viewport-height") || "(unset)"}`,
-        `--modal-viewport-top: ${el.style.getPropertyValue("--modal-viewport-top") || "(unset)"}`,
-      ].join("\n");
-    };
-    const bagViewportDebugObserver = bagViewportDebugOverlay
-      ? new MutationObserver(updateBagViewportDebugOverlay)
-      : null;
-    const debugBagContent = el.querySelector(".bag-content");
-    if (bagViewportDebugObserver && debugBagContent) {
-      bagViewportDebugObserver.observe(debugBagContent, { childList: true, subtree: true });
-    }
     const revealFocusedProductField = () => {
       if ((!isBagModal && !isTopSixProductModal) || !el.classList.contains("is-keyboard-open") || !viewport) return;
       const active = document.activeElement;
@@ -817,7 +761,6 @@ function Modal({
         if (isBagModal) el.style.removeProperty("--modal-viewport-top");
         if (isBagModal) el.style.removeProperty("--modal-sheet-height");
         el.style.removeProperty("--modal-viewport-bottom-inset");
-        updateBagViewportDebugOverlay();
         return;
       }
 
@@ -838,7 +781,6 @@ function Modal({
         );
       }
       el.classList.add("is-keyboard-open");
-      updateBagViewportDebugOverlay();
       if (isTopSixProductModal) queueRevealFocusedProductField();
     };
     const scheduleBagViewportRefresh = () => {
@@ -925,7 +867,6 @@ function Modal({
       viewport?.removeEventListener("resize", updateFormModalViewport);
       if (isTopSixProductModal || isBagModal) viewport?.removeEventListener("scroll", updateFormModalViewport);
       window.removeEventListener("resize", updateFormModalViewport);
-      bagViewportDebugObserver?.disconnect();
       if (revealFocusedFieldFrame) window.cancelAnimationFrame(revealFocusedFieldFrame);
       bagViewportRefreshTimers.forEach((timer) => window.clearTimeout(timer));
       el.classList.remove("is-keyboard-open");
@@ -933,7 +874,6 @@ function Modal({
       el.style.removeProperty("--modal-viewport-top");
       el.style.removeProperty("--modal-sheet-height");
       el.style.removeProperty("--modal-viewport-bottom-inset");
-      bagViewportDebugOverlay?.remove();
       if (el.open) el.close();
       body.style.overflow = oldBodyStyles.overflow;
       if (shouldFreezePageBackground) {

@@ -26,6 +26,37 @@ async function assertFieldDoesNotZoomOrResize(field, label) {
 for (const engine of [chromium, webkit]) {
   const browser = await engine.launch();
   try {
+    const homepagePage = await browser.newPage({
+      viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce',
+    });
+    await homepagePage.goto('http://127.0.0.1:5173/?page=beverages');
+    const homepageCanvas = () => homepagePage.evaluate(() => ({
+      root: getComputedStyle(document.documentElement).backgroundColor,
+      body: getComputedStyle(document.body).backgroundColor,
+    }));
+    await expect.poll(homepageCanvas).toEqual({ root: white, body: white });
+    await homepagePage.getByRole('button', { name: 'Customize Strawberry Milk', exact: true }).last().click();
+    await homepagePage.getByRole('button', { name: 'Add to bag ₱160', exact: true }).click();
+    await homepagePage.goto('http://127.0.0.1:5173/');
+    await expect.poll(homepageCanvas).toEqual({ root: 'rgb(18, 18, 18)', body: 'rgb(18, 18, 18)' });
+    await homepagePage.getByRole('button', { name: 'Open bag, 1 items', exact: true }).click();
+    await homepagePage.getByRole('button', { name: 'Proceed to Details', exact: true }).click();
+    const homepageKeyboardOpen = await homepagePage.evaluate(() => {
+      const viewport = window.visualViewport;
+      Object.defineProperty(viewport, 'height', { configurable: true, value: 360 });
+      viewport.dispatchEvent(new Event('resize'));
+      return document.querySelector('dialog.bag-modal').classList.contains('is-keyboard-open');
+    });
+    assert.equal(homepageKeyboardOpen, true, 'The homepage Order Bag must detect the keyboard');
+    await expect.poll(homepageCanvas).toEqual({ root: white, body: white });
+    await homepagePage.evaluate(() => {
+      delete window.visualViewport.height;
+      window.visualViewport.dispatchEvent(new Event('resize'));
+    });
+    await expect.poll(homepageCanvas).toEqual({ root: 'rgb(18, 18, 18)', body: 'rgb(18, 18, 18)' });
+    await homepagePage.keyboard.press('Escape');
+    await homepagePage.close();
+
     const page = await browser.newPage({
       viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce',
     });
@@ -45,7 +76,7 @@ for (const engine of [chromium, webkit]) {
       const style = getComputedStyle(el, '::backdrop');
       return { background: style.backgroundColor, image: style.backgroundImage, filter: style.backdropFilter };
     });
-    await page.goto('http://127.0.0.1:5173/?page=beverages&debug=1');
+    await page.goto('http://127.0.0.1:5173/?page=beverages');
     const productBackgroundPosition = await page.evaluate(() => getComputedStyle(document.body).position);
     await page.getByRole('button', { name: 'Customize Strawberry Milk', exact: true }).last().click();
     assert.equal(await page.evaluate(() => getComputedStyle(document.body).position), 'fixed', 'The Top 6 customization modal must lock the page behind it on iPhone Safari');
@@ -121,18 +152,6 @@ for (const engine of [chromium, webkit]) {
     assert.equal(await page.evaluate(() => Math.round(document.body.getBoundingClientRect().top)), -backgroundScrollBeforeBag, 'Opening the Order Bag must keep the menu visually anchored');
     await expect.poll(bagBackdrop).toEqual({ background: 'rgba(18, 18, 18, 0.75)', image: 'none', filter: 'blur(5px)' });
     await expect.poll(pageContentVisibility).toBe('visible');
-    const bagDebugOverlay = page.locator('dialog.bag-modal > pre');
-    await expect(bagDebugOverlay).toContainText('vv.height:');
-    await expect(bagDebugOverlay).toContainText('vv.offsetTop:');
-    await expect(bagDebugOverlay).toContainText('window.innerHeight:');
-    await expect(bagDebugOverlay).toContainText('dialog.top:');
-    await expect(bagDebugOverlay).toContainText('dialog.height:');
-    await expect(bagDebugOverlay).toContainText('bag-content.height:');
-    await expect(bagDebugOverlay).toContainText('--modal-sheet-height:');
-    await expect(bagDebugOverlay).toContainText('bag-content.scrollTop:');
-    await expect(bagDebugOverlay).toContainText('--modal-viewport-height:');
-    await expect(bagDebugOverlay).toContainText('--modal-viewport-top:');
-    assert.equal(await bagDebugOverlay.evaluate(el => getComputedStyle(el).pointerEvents), 'none', 'The bag viewport debug overlay must not block taps');
     await page.waitForTimeout(400);
     const bagModal = page.locator('dialog.bag-modal');
     const bagStepBounds = await bagModal.evaluate(el => {
@@ -268,7 +287,8 @@ for (const engine of [chromium, webkit]) {
     assert.ok(fieldFontSizes.length > 0, 'Order Bag should expose form controls');
     assert.ok(fieldFontSizes.every(({ size }) => size >= 16), `Every Order Bag form control must be at least 16px: ${JSON.stringify(fieldFontSizes)}`);
     assert.doesNotMatch(await page.locator('meta[name="viewport"]').getAttribute('content'), /maximum-scale|user-scalable\s*=\s*no/i, 'Viewport must keep pinch zoom available');
-    await page.getByRole('radio', { name: 'Custom time', exact: true }).check();
+    await page.locator('.timing-choice-row label').filter({ hasText: 'Custom time' }).click();
+    await expect(page.getByRole('radio', { name: 'Custom time', exact: true })).toBeChecked();
     assert.equal(await page.locator('#checkout-custom-time').getAttribute('type'), 'time', 'Custom pickup time must use the native time picker instead of a text keyboard');
     assert.equal(await page.locator('#checkout-custom-time').getAttribute('min'), '10:00');
     assert.equal(await page.locator('#checkout-custom-time').getAttribute('max'), '20:59');
