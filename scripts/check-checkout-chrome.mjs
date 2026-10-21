@@ -121,7 +121,20 @@ for (const engine of [chromium, webkit]) {
     assert.equal(await page.evaluate(() => Math.round(document.body.getBoundingClientRect().top)), -backgroundScrollBeforeBag, 'Opening the Order Bag must keep the menu visually anchored');
     await expect.poll(bagBackdrop).toEqual({ background: 'rgba(18, 18, 18, 0.75)', image: 'none', filter: 'blur(5px)' });
     await expect.poll(pageContentVisibility).toBe('visible');
+    await page.waitForTimeout(400);
+    const bagModal = page.locator('dialog.bag-modal');
+    const bagStepBounds = await bagModal.evaluate(el => {
+      const rect = el.getBoundingClientRect();
+      return { top: rect.top, height: rect.height };
+    });
     await page.getByRole('button', { name: 'Proceed to Details', exact: true }).click();
+    await expect(page.locator('.checkout-form-title')).toHaveText('Order Information');
+    const detailsStepBounds = await bagModal.evaluate(el => {
+      const rect = el.getBoundingClientRect();
+      return { top: rect.top, height: rect.height };
+    });
+    assert.ok(Math.abs(detailsStepBounds.height - bagStepBounds.height) <= 1, `Opening Fill Out Form must keep the bag modal height: ${JSON.stringify({ bagStepBounds, detailsStepBounds })}`);
+    assert.ok(Math.abs(detailsStepBounds.top - bagStepBounds.top) <= 1, `Opening Fill Out Form must not jump the bag modal: ${JSON.stringify({ bagStepBounds, detailsStepBounds })}`);
     const dialog = page.getByRole('dialog', { name: 'Your order bag', exact: true });
     const simulatedKeyboard = await page.evaluate(() => {
       const viewport = window.visualViewport;

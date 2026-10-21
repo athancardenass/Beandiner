@@ -5613,7 +5613,7 @@ body:has(.floating-bag-bubble) .footer-artisanal {
     width: 100%;
     min-height: 0;
     max-height: min(92svh, var(--modal-viewport-height, 900px), 900px);
-    height: auto;
+    height: min(92svh, var(--modal-viewport-height, 900px), 900px);
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior-y: contain;
