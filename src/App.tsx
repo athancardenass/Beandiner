@@ -1,6 +1,7 @@
 // ↓ IMPORTS: React 19 hooks and types
 import {
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type CSSProperties,
@@ -1314,6 +1315,8 @@ function App() {
   }, [receipt, lastOrder]);
   const [storeStatus, setStoreStatus] = useState(getStoreStatus);
   const [checkoutStep, setCheckoutStep] = useState<"bag" | "details">("bag");
+  const bagContentRef = useRef<HTMLDivElement>(null);
+  const orderTypeScrollTopRef = useRef<number | null>(null);
   const [checkoutPickupTime, setCheckoutPickupTime] = useState(() =>
     validateOrderTiming("ASAP (~15-20 mins)", "") ? "Custom time" : "ASAP (~15-20 mins)",
   );
@@ -1324,6 +1327,18 @@ function App() {
   const [checkoutPayment, setCheckoutPayment] = useState<CheckoutPayment>("gcash");
   const [checkoutName, setCheckoutName] = useState("");
   const [checkoutPhone, setCheckoutPhone] = useState("");
+  useLayoutEffect(() => {
+    if (checkoutStep === "details" && bagContentRef.current) {
+      bagContentRef.current.scrollTop = 0;
+    }
+  }, [checkoutStep]);
+  useLayoutEffect(() => {
+    const scrollTop = orderTypeScrollTopRef.current;
+    orderTypeScrollTopRef.current = null;
+    if (scrollTop !== null && bagContentRef.current) {
+      bagContentRef.current.scrollTop = scrollTop;
+    }
+  }, [checkoutOrderType]);
   const [checkoutErrors, setCheckoutErrors] = useState<{
     name?: string | null;
     phone?: string | null;
@@ -2375,7 +2390,7 @@ function App() {
             setReceipt(false);
           }}
         >
-          <div className="bag-content">
+          <div className="bag-content" ref={bagContentRef}>
             <span className="eyebrow">BEAN DINER · BAYAMBANG</span>
             <h2 ref={bagHeadingRef} tabIndex={receipt ? -1 : undefined}>
               {receipt
@@ -2811,6 +2826,12 @@ function App() {
                             <label
                               className={checkoutOrderType === t.id ? "selected" : ""}
                               key={t.id}
+                              onPointerDown={(event) => {
+                                const input = event.currentTarget.querySelector("input");
+                                orderTypeScrollTopRef.current = input?.checked
+                                  ? null
+                                  : bagContentRef.current?.scrollTop ?? null;
+                              }}
                             >
                               <input
                                 type="radio"

@@ -158,14 +158,36 @@ for (const engine of [chromium, webkit]) {
       const rect = el.getBoundingClientRect();
       return { top: rect.top, height: rect.height };
     });
+    const bagContent = page.locator('dialog.bag-modal .bag-content');
+    await bagContent.evaluate(el => {
+      const probe = document.createElement('div');
+      probe.dataset.checkoutScrollProbe = 'true';
+      probe.style.height = '1000px';
+      el.append(probe);
+      el.scrollTop = 200;
+    });
+    assert.ok(await bagContent.evaluate(el => el.scrollTop) > 0, 'The bag step must scroll before checking the Details transition');
     await page.getByRole('button', { name: 'Proceed to Details', exact: true }).click();
     await expect(page.locator('.checkout-form-title')).toHaveText('Order Information');
+    await expect.poll(() => bagContent.evaluate(el => el.scrollTop)).toBe(0);
+    await bagContent.evaluate(el => el.querySelector('[data-checkout-scroll-probe]')?.remove());
     const detailsStepBounds = await bagModal.evaluate(el => {
       const rect = el.getBoundingClientRect();
       return { top: rect.top, height: rect.height };
     });
     assert.ok(Math.abs(detailsStepBounds.height - bagStepBounds.height) <= 1, `Opening Fill Out Form must keep the bag modal height: ${JSON.stringify({ bagStepBounds, detailsStepBounds })}`);
     assert.ok(Math.abs(detailsStepBounds.top - bagStepBounds.top) <= 1, `Opening Fill Out Form must not jump the bag modal: ${JSON.stringify({ bagStepBounds, detailsStepBounds })}`);
+    await page.locator('.timing-choice-row label').nth(3).click();
+    await page.locator('#checkout-custom-time').fill('18:00');
+    await page.locator('.payment-choice-row label').nth(1).click();
+    const orderTypeScrollBefore = await page.evaluate(() => {
+      const content = document.querySelector('dialog.bag-modal .bag-content');
+      const row = document.querySelector('.order-type-row');
+      const contentRect = content.getBoundingClientRect();
+      const rowRect = row.getBoundingClientRect();
+      content.scrollTop = Math.max(0, content.scrollTop + rowRect.top - contentRect.top - 100);
+      return content.scrollTop;
+    });
     const dialog = page.getByRole('dialog', { name: 'Your order bag', exact: true });
     const simulatedKeyboard = await page.evaluate(() => {
       const viewport = window.visualViewport;
@@ -211,7 +233,18 @@ for (const engine of [chromium, webkit]) {
     });
     const orderTypeBodyTop = await page.evaluate(() => document.body.style.top);
     for (const [index, fieldSelector] of [[1, '#checkout-table'], [2, '#checkout-address'], [0, null]]) {
-      await page.locator('.order-type-row label').nth(index).click();
+      const orderTypeLabel = page.locator('.order-type-row label').nth(index);
+      await orderTypeLabel.locator('input').evaluate(input => {
+        input.addEventListener('focus', () => {
+          input.closest('.bag-content').scrollTop = 0;
+        }, { once: true });
+      });
+      await orderTypeLabel.click();
+      await expect(page.locator('dialog.bag-modal h2')).toHaveText('Checkout Details');
+      assert.equal(await page.locator('.timing-choice-row input:checked').evaluate(el => el.closest('label').innerText.trim()), 'Custom time', 'Changing order type must keep the selected preferred timing');
+      assert.equal(await page.locator('.payment-choice-row input:checked').getAttribute('value'), 'maya', 'Changing order type must keep the selected payment method');
+      const orderTypeScrollAfter = await page.locator('dialog.bag-modal .bag-content').evaluate(el => el.scrollTop);
+      assert.ok(Math.abs(orderTypeScrollAfter - orderTypeScrollBefore) <= 1, `Changing order type must keep the form at its current position: ${JSON.stringify({ orderTypeScrollBefore, orderTypeScrollAfter, index })}`);
       const state = await page.evaluate(() => {
         const bag = document.querySelector('dialog.bag-modal');
         const rect = bag.querySelector('.bag-content').getBoundingClientRect();
