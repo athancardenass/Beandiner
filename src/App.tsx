@@ -38,6 +38,7 @@ import {
   scrollListIntoView,
   useStickyHeaderOffset,
 } from "./ui/menu";
+import { isSafariBrowser, shouldUseDocumentScrollMode } from "./ui/browser";
 
 // ↓ UTILITY: Philippine Peso currency formatter
 const money = (n: number) => `₱${n.toLocaleString("en-PH")}`;
@@ -70,6 +71,13 @@ const clickScrollBehavior = (): ScrollBehavior =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches
     ? "instant"
     : "smooth";
+
+const isDocumentScrollModeEnabled = () =>
+  shouldUseDocumentScrollMode(
+    window.location.search,
+    isSafariBrowser(),
+    navigator.maxTouchPoints > 0 || "ontouchstart" in window,
+  );
 
 
 const scrollToPageAnchor = (animate = false) => {
@@ -797,7 +805,7 @@ function Modal({
   const docScrollPositionRef = useRef<{ x: number; y: number } | null>(documentScrollPosition);
   onCloseRef.current = onClose;
   const isBagModal = className.split(/\s+/).includes("bag-modal");
-  const docScrollMode = isBagModal && new URLSearchParams(window.location.search).get("docscroll") === "1";
+  const docScrollMode = isBagModal && isDocumentScrollModeEnabled();
   const showBagDebug = isBagModal && new URLSearchParams(window.location.search).get("debug") === "1";
 
   useLayoutEffect(() => {
@@ -1553,7 +1561,7 @@ function BiteCustomizeModal({
 
 function App() {
   const [currentPage, setCurrentPage] = useState<AppPage>(() => pageFromSearch(window.location.search));
-  const docScrollMode = new URLSearchParams(window.location.search).get("docscroll") === "1";
+  const docScrollMode = isDocumentScrollModeEnabled();
   const isFoodPage = currentPage === "diner-bites";
   const isBeveragesPage = currentPage === "beverages";
   const isStoryPage = currentPage === "our-story";

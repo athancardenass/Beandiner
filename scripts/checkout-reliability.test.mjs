@@ -9,6 +9,15 @@ import {
   PENDING_ORDER_TTL_MS,
   validateOrderTiming,
 } from '../src/utils/checkout.ts';
+import { shouldUseDocumentScrollMode } from '../src/ui/browser.ts';
+
+test('document-scroll order flow defaults on touch Safari with explicit comparison overrides', () => {
+  assert.equal(shouldUseDocumentScrollMode('', true, true), true);
+  assert.equal(shouldUseDocumentScrollMode('', true, false), false);
+  assert.equal(shouldUseDocumentScrollMode('', false, true), false);
+  assert.equal(shouldUseDocumentScrollMode('?docscroll=1', false, false), true);
+  assert.equal(shouldUseDocumentScrollMode('?docscroll=0', true, true), false);
+});
 
 const at = (time) => new Date(`2026-10-19T${time}:00+08:00`);
 
