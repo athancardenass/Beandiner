@@ -331,6 +331,37 @@ for (const engine of [chromium, webkit]) {
       assert.ok(restoredKeyboard.height >= keyboardOpen.height - 1, `${selector} must recover the full keyboard viewport height: ${JSON.stringify(restoredKeyboard)}`);
       await field.blur();
     }
+    const secondFieldTapScroll = await page.evaluate(() => {
+      const bag = document.querySelector('dialog.bag-modal');
+      const field = document.querySelector('#order-phone');
+      const viewport = window.visualViewport;
+      Object.defineProperty(viewport, 'offsetTop', { configurable: true, value: 320 });
+      viewport.dispatchEvent(new Event('scroll'));
+      Object.defineProperty(bag, 'getBoundingClientRect', {
+        configurable: true,
+        value: () => new DOMRect(0, 0, 390, 360),
+      });
+      Object.defineProperty(field, 'getBoundingClientRect', {
+        configurable: true,
+        value: () => new DOMRect(20, 200, 300, 50),
+      });
+      bag.scrollTop = 200;
+      field.focus({ preventScroll: true });
+      return bag.scrollTop;
+    });
+    await page.waitForTimeout(50);
+    const secondFieldTapScrollAfterReveal = await page.locator('dialog.bag-modal').evaluate(el => el.scrollTop);
+    assert.equal(
+      secondFieldTapScrollAfterReveal,
+      secondFieldTapScroll,
+      `Tapping a second field inside Safari's scrolled visual viewport must not scroll the bag twice: ${JSON.stringify({ secondFieldTapScroll, secondFieldTapScrollAfterReveal })}`,
+    );
+    await page.evaluate(() => {
+      const bag = document.querySelector('dialog.bag-modal');
+      delete bag.getBoundingClientRect;
+      delete document.querySelector('#order-phone').getBoundingClientRect;
+      document.querySelector('#order-phone').blur();
+    });
     await page.evaluate(() => {
       const viewport = window.visualViewport;
       delete viewport.height;

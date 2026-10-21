@@ -768,9 +768,9 @@ function Modal({
 
       const fieldRect = active.getBoundingClientRect();
       const modalRect = el.getBoundingClientRect();
-      const visibleTop = Math.max(viewport.offsetTop, modalRect.top) + 16;
+      const visibleTop = (isBagModal ? modalRect.top : Math.max(viewport.offsetTop, modalRect.top)) + 16;
       const bottomPadding = isBagModal ? 52 : 16;
-      const visibleBottom = Math.min(viewport.offsetTop + viewport.height, modalRect.bottom) - bottomPadding;
+      const visibleBottom = (isBagModal ? modalRect.bottom : Math.min(viewport.offsetTop + viewport.height, modalRect.bottom)) - bottomPadding;
       if (fieldRect.top < visibleTop) {
         el.scrollTop -= visibleTop - fieldRect.top;
       } else if (fieldRect.bottom > visibleBottom) {
