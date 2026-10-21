@@ -9684,3 +9684,7 @@ html.t-nofilter * {
 html.t-no-vh-range:has(.video-hero) {
   --mobile-toolbar-range: 0px !important;
 }
+
+html.t-bag-light-canvas:has(.video-hero):has(.bag-modal.is-keyboard-open[open]) {
+  --viewport-background: var(--surface-page) !important;
+}
