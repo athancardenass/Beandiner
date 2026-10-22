@@ -787,6 +787,60 @@ function BagModalDebugOverlay() {
   return <pre className="bag-modal-debug-overlay" aria-hidden="true">{snapshot}</pre>;
 }
 
+// DEBUG-TEMP: Read-only page geometry for comparing menu content under Safari chrome.
+function MenuPageDebugOverlay({ page }: { page: "diner-bites" | "beverages" }) {
+  const [snapshot, setSnapshot] = useState("");
+
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    const describeElement = (element: Element | null) => {
+      if (!element) return "none";
+      const id = element.id ? `#${element.id}` : "";
+      const classes = typeof element.className === "string"
+        ? element.className.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((name) => `.${name}`).join("")
+        : "";
+      const style = getComputedStyle(element);
+      return `${element.tagName.toLowerCase()}${id}${classes} bg:${style.backgroundColor}`;
+    };
+    const update = () => {
+      const main = document.querySelector<HTMLElement>("main#main");
+      const mainRect = main?.getBoundingClientRect();
+      const rootStyle = getComputedStyle(document.documentElement);
+      const bodyStyle = getComputedStyle(document.body);
+      const pointY = Math.max(0, Math.min(window.innerHeight - 1, (viewport?.offsetTop ?? 0) + (viewport?.height ?? window.innerHeight) - 2));
+      const bottomElement = document.elementFromPoint(window.innerWidth / 2, pointY);
+      const edgeStyle = getComputedStyle(document.body, "::after");
+      const next = [
+        "DEBUG-TEMP · Menu / Safari pill",
+        `edge sampling: ${edgeStyle.content === '""' ? "on" : "off"} · filter: ${edgeStyle.backdropFilter || edgeStyle.getPropertyValue("-webkit-backdrop-filter") || "none"}`,
+        `page: ${page} · viewport-fit: ${document.querySelector<HTMLMetaElement>('meta[name="viewport"]')?.content.includes("viewport-fit=cover") ? "cover" : "default"}`,
+        `vv height/offset: ${viewport?.height.toFixed(1) ?? "n/a"} / ${viewport?.offsetTop.toFixed(1) ?? "n/a"} · innerHeight: ${window.innerHeight} · screen: ${window.screen.height}`,
+        `scrollY: ${window.scrollY} · document scrollHeight: ${document.documentElement.scrollHeight} · scrollingElement: ${document.scrollingElement?.tagName.toLowerCase() ?? "none"}`,
+        `main rect top/bottom/height: ${mainRect?.top.toFixed(1) ?? "n/a"} / ${mainRect?.bottom.toFixed(1) ?? "n/a"} / ${mainRect?.height.toFixed(1) ?? "n/a"}`,
+        `html/body/main bg: ${rootStyle.backgroundColor} / ${bodyStyle.backgroundColor} / ${main ? getComputedStyle(main).backgroundColor : "n/a"}`,
+        `element at viewport bottom: ${describeElement(bottomElement)}`,
+      ].join("\n");
+      setSnapshot((current) => current === next ? current : next);
+    };
+
+    update();
+    const interval = window.setInterval(update, 250);
+    viewport?.addEventListener("resize", update);
+    viewport?.addEventListener("scroll", update);
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, { passive: true });
+    return () => {
+      window.clearInterval(interval);
+      viewport?.removeEventListener("resize", update);
+      viewport?.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update);
+    };
+  }, [page]);
+
+  return <pre className="bag-modal-debug-overlay" aria-hidden="true">{snapshot}</pre>;
+}
+
 function Modal({
   children,
   onClose,
@@ -2504,6 +2558,9 @@ function App() {
           </>
         )}
       </main>
+      {new URLSearchParams(window.location.search).get("debug") === "1" && !bagOpen && (isFoodPage || isBeveragesPage) && (
+        <MenuPageDebugOverlay page={isFoodPage ? "diner-bites" : "beverages"} />
+      )}
       {/* ↓ FOOTER: Elevated artisanal diner footer */}
       {!isFoodPage && !isBeveragesPage && !isStoryPage && (
       <footer className="footer-artisanal">

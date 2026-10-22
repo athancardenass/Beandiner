@@ -8,9 +8,6 @@ import { isSafariBrowser } from "./ui/browser";
 import App from "./App";
 
 document.documentElement.dataset.browserFamily = isSafariBrowser() ? "safari" : "other";
-if (new URLSearchParams(window.location.search).get("safari-glass-test") === "6") {
-  document.documentElement.dataset.safariGlassTest = "6";
-}
 
 // ↓ MOUNT: Create React root and render App in StrictMode
 createRoot(document.getElementById("root")!).render(

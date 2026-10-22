@@ -6566,6 +6566,25 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   margin: 0 0 24px;
 }
 
+@media (max-width: 820px) and (pointer: coarse) {
+  /* Keep Safari's toolbar underlay translucent without painting or adding page space.
+     A backdrop filter marks this edge as mixed content instead of a solid tint.
+     Exclude every open dialog so the approved checkout flow is unaffected. */
+  html[data-browser-family="safari"] body:has(main > .food-page-menu):not(:has(dialog[open]))::after {
+    content: "";
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 6px;
+    z-index: 92;
+    background: transparent;
+    -webkit-backdrop-filter: blur(0px);
+    backdrop-filter: blur(0px);
+    pointer-events: none;
+  }
+}
+
 @media (max-width: 640px) {
   .bev-page-grid {
     grid-template-columns: 1fr;
