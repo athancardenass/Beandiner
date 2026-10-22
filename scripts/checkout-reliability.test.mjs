@@ -10,6 +10,31 @@ import {
   validateOrderTiming,
 } from '../src/utils/checkout.ts';
 import { shouldUseDocumentScrollMode } from '../src/ui/browser.ts';
+import { getWhatsAppUrl, withOrderRequestStatus, WHATSAPP_NUMBER, WHATSAPP_URL_LIMIT } from '../src/utils/whatsapp.ts';
+
+test('WhatsApp inquiries and web fallback use the same international number', () => {
+  assert.equal(WHATSAPP_NUMBER, '639635913031');
+  assert.equal(getWhatsAppUrl(), `https://wa.me/${WHATSAPP_NUMBER}`);
+  assert.equal(new URL(getWhatsAppUrl('', true)).searchParams.get('phone'), WHATSAPP_NUMBER);
+});
+
+test('WhatsApp preserves the entire order text, special characters, emoji and line breaks', () => {
+  const message = withOrderRequestStatus('Order #1: 50% + syrup & ice\nNote: "less sweet" 🍵\nSecond line');
+  for (const web of [false, true]) {
+    const link = getWhatsAppUrl(message, web);
+    assert.ok(link.includes(`text=${encodeURIComponent(message)}`));
+    assert.equal(new URL(link).searchParams.get('text'), message);
+  }
+  assert.ok(message.endsWith('Order request, awaiting confirmation.'));
+  assert.equal(withOrderRequestStatus(message), message, 'Recovered summaries must not duplicate the request status');
+});
+
+test('WhatsApp length limit applies to encoded URLs rather than raw message length', () => {
+  assert.equal(WHATSAPP_URL_LIMIT, 2000);
+  const message = '🍵'.repeat(180);
+  assert.ok(message.length < WHATSAPP_URL_LIMIT);
+  assert.ok(getWhatsAppUrl(message).length > WHATSAPP_URL_LIMIT);
+});
 
 test('document-scroll order flow defaults on touch Safari with explicit comparison overrides', () => {
   assert.equal(shouldUseDocumentScrollMode('', true, true), true);

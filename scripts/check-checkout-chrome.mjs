@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { chromium, webkit, expect, devices } from '@playwright/test';
 
+// Exercise the preserved fixed-scroller comparison mode explicitly.
 const white = 'rgb(255, 255, 255)';
 
 async function assertFieldDoesNotZoomOrResize(field, label) {
@@ -29,7 +30,7 @@ for (const engine of [chromium, webkit]) {
     const homepagePage = await browser.newPage({
       viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce',
     });
-    await homepagePage.goto('http://127.0.0.1:5173/?page=beverages');
+    await homepagePage.goto('http://127.0.0.1:5173/?page=beverages&docscroll=0');
     const homepageCanvas = () => homepagePage.evaluate(() => ({
       root: getComputedStyle(document.documentElement).backgroundColor,
       body: getComputedStyle(document.body).backgroundColor,
@@ -37,7 +38,7 @@ for (const engine of [chromium, webkit]) {
     await expect.poll(homepageCanvas).toEqual({ root: white, body: white });
     await homepagePage.getByRole('button', { name: 'Customize Strawberry Milk', exact: true }).last().click();
     await homepagePage.getByRole('button', { name: 'Add to bag ₱160', exact: true }).click();
-    await homepagePage.goto('http://127.0.0.1:5173/');
+    await homepagePage.goto('http://127.0.0.1:5173/?docscroll=0');
     await expect.poll(homepageCanvas).toEqual({ root: 'rgb(18, 18, 18)', body: 'rgb(18, 18, 18)' });
     await homepagePage.getByRole('button', { name: 'Open bag, 1 items', exact: true }).click();
     await homepagePage.getByRole('button', { name: 'Proceed to Details', exact: true }).click();
@@ -84,7 +85,7 @@ for (const engine of [chromium, webkit]) {
       const style = getComputedStyle(el, '::backdrop');
       return { background: style.backgroundColor, image: style.backgroundImage, filter: style.backdropFilter };
     });
-    await page.goto('http://127.0.0.1:5173/?page=beverages');
+    await page.goto('http://127.0.0.1:5173/?page=beverages&docscroll=0');
     const productBackgroundPosition = await page.evaluate(() => getComputedStyle(document.body).position);
     await page.getByRole('button', { name: 'Customize Strawberry Milk', exact: true }).last().click();
     assert.equal(await page.evaluate(() => getComputedStyle(document.body).position), 'fixed', 'The Top 6 customization modal must lock the page behind it on iPhone Safari');
@@ -623,7 +624,7 @@ for (const engine of [chromium, webkit]) {
       return { bottom, after: content.scrollTop };
     });
     assert.ok(upwardScroll.bottom > 0 && upwardScroll.after < upwardScroll.bottom, 'Order Bag content must scroll upward while an input has focus');
-    const submit = page.getByRole('button', { name: 'Send order via Messenger', exact: true });
+    const submit = page.getByRole('button', { name: 'Review order', exact: true });
     await submit.scrollIntoViewIfNeeded();
     const submitScrollState = await submit.evaluate(el => {
       const rect = el.getBoundingClientRect();
@@ -690,7 +691,7 @@ for (const engine of [chromium, webkit]) {
     await page.keyboard.press('Escape');
     await expect.poll(canvas).toEqual({ root: white, body: white, scheme: 'light', theme: '#FFFFFF' });
     await expect.poll(viewportBackground).toBe('');
-    await page.goto('http://127.0.0.1:5173/');
+    await page.goto('http://127.0.0.1:5173/?docscroll=0');
     await expect.poll(viewportBackground).toBe('#121212');
     await page.getByRole('button', { name: 'Open bag, 1 items', exact: true }).click();
     await expect.poll(viewportBackground).toBe('#121212');
@@ -700,8 +701,8 @@ for (const engine of [chromium, webkit]) {
     await expect.poll(viewportBackground).toBe('#121212');
     await expect.poll(pageContentVisibility).toBe('visible');
 
-    await page.goto('http://127.0.0.1:5173/?safari-glass-test=6');
-    assert.equal(await page.locator('html').getAttribute('data-safari-glass-test'), '6', 'The glass test URL must activate its temporary layout rule');
+    await page.goto('http://127.0.0.1:5173/?docscroll=0');
+    assert.equal(await page.locator('html').getAttribute('data-safari-glass-test'), null, 'Production must not depend on the retired glass-test flag');
     assert.equal(await page.locator('pre[aria-hidden="true"]').count(), 0, 'Temporary debug telemetry must be removed');
     await page.getByRole('button', { name: 'Open bag, 1 items', exact: true }).click();
     await page.getByRole('button', { name: 'Proceed to Details', exact: true }).click();

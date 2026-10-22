@@ -39,6 +39,7 @@ import {
   useStickyHeaderOffset,
 } from "./ui/menu";
 import { isSafariBrowser, shouldUseDocumentScrollMode } from "./ui/browser";
+import { getWhatsAppUrl, withOrderRequestStatus, WHATSAPP_URL_LIMIT } from "./utils/whatsapp";
 
 // ↓ UTILITY: Philippine Peso currency formatter
 const money = (n: number) => `₱${n.toLocaleString("en-PH")}`;
@@ -372,7 +373,7 @@ type CartItem = {
   isFood?: boolean;
   note?: string;
 };
-// ↓ HELPER: Send formatted order to Bean Diner Facebook Messenger
+// ↓ HELPER: Prepare a complete order request for WhatsApp.
 const formatOrderMessage = (
   items: CartItem[],
   customerName: string,
@@ -434,7 +435,7 @@ const formatOrderMessage = (
   const timingLine = pickupTime ? `Preferred Timing: ${pickupTime}` : null;
   const noteLine = orderNote?.trim() ? `Order Note: "${orderNote.trim()}"` : null;
 
-  return [
+  return withOrderRequestStatus([
     `Hello Bean Diner Bayambang! I would like to place an order:`,
     ``,
     ...lines,
@@ -448,7 +449,7 @@ const formatOrderMessage = (
     noteLine,
   ]
     .filter(Boolean)
-    .join("\n");
+    .join("\n"));
 };
 
 // ↓ BULLETPROOF CLIPBOARD COPY: Synchronous execCommand inside active modal/container + Async navigator.clipboard
@@ -508,63 +509,56 @@ const copyToClipboard = (text: string): boolean => {
   return copied;
 };
 
-// ↓ MESSENGER URL: Universal Mobile App Deep Link & Desktop Messenger Destination
+// Footer Messenger contact destination.
 const MESSENGER_PAGE_ID = "100959311683531";
 
-const isMobileDevice = () => {
-  if (typeof navigator === "undefined") return false;
-  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || "");
-};
-
-// Every anchor keeps a safe web destination for new-tab and modified clicks.
+// Meta short link supports Messenger app handoff and a web fallback.
 const getMessengerUrl = () =>
-  `https://www.facebook.com/messages/t/${MESSENGER_PAGE_ID}`;
+  `https://m.me/${MESSENGER_PAGE_ID}`;
+
+let cancelMessengerHandoff: (() => void) | undefined;
+
+const openMessengerOnMobile = (event: MouseEvent<HTMLAnchorElement>) => {
+  const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+    || (/Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+  if (!mobile || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+  event.preventDefault();
+  cancelMessengerHandoff?.();
+  const webUrl = event.currentTarget.href;
+  const cleanup = () => {
+    window.clearTimeout(timer);
+    document.removeEventListener("visibilitychange", onVisibilityChange);
+    window.removeEventListener("pagehide", cleanup);
+    cancelMessengerHandoff = undefined;
+  };
+  const onVisibilityChange = () => {
+    if (document.visibilityState === "hidden") cleanup();
+  };
+  const timer = window.setTimeout(() => {
+    cleanup();
+    if (document.visibilityState === "visible") window.location.assign(webUrl);
+  }, 2500);
+  cancelMessengerHandoff = cleanup;
+  document.addEventListener("visibilitychange", onVisibilityChange);
+  window.addEventListener("pagehide", cleanup);
+  // Launch synchronously during the tap so the browser retains user activation.
+  window.location.assign(`fb-messenger://user-thread/${MESSENGER_PAGE_ID}`);
+};
 
 const FACEBOOK_PAGE_URL = "https://www.facebook.com/beandiner";
-
-let cancelMessengerFallback: (() => void) | undefined;
-
-// Only the native scheme may leave this tab. Web destinations always open separately.
-const openMessengerApp = () => {
-  cancelMessengerFallback?.();
-  if (isMobileDevice()) {
-    const appUrl = `fb-messenger://user-thread/${MESSENGER_PAGE_ID}`;
-    const cleanup = () => {
-      window.clearTimeout(timer);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
-      window.removeEventListener("pagehide", cleanup);
-      cancelMessengerFallback = undefined;
-    };
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "hidden") cleanup();
-    };
-    const timer = window.setTimeout(() => {
-      cleanup();
-      if (document.visibilityState === "visible") {
-        // If a browser blocks delayed popups, the receipt also offers a direct web link.
-        window.open(getMessengerUrl(), "_blank", "noopener,noreferrer");
-      }
-    }, 1500);
-    cancelMessengerFallback = cleanup;
-    document.addEventListener("visibilitychange", onVisibilityChange);
-    window.addEventListener("pagehide", cleanup);
-    window.location.href = appUrl;
-  } else {
-    window.open(getMessengerUrl(), "_blank", "noopener,noreferrer");
-  }
-};
 
 function OrderingSteps({ handoff = false }: { handoff?: boolean }) {
   const steps = handoff
     ? [
-        ["Order Copied", "Details are saved to your clipboard"],
-        ["Open Chat", "Tap the button below to launch Messenger"],
-        ["Paste & Send", "Long-press the chat bar, tap Paste, and send"],
+        ["Review Order", "Check the items, contact details, and timing below"],
+        ["Open WhatsApp", "Your message is prefilled. For long orders, copy and paste the summary"],
+        ["Send Request", "Tap Send in WhatsApp, then wait for our crew to confirm your order"],
       ]
     : [
         ["Choose Your Sips & Bites", "Explore signature iced roasts and comfort kitchen plates"],
         ["Pick Order Mode", "For pick up, Dine in with table #, or Door to door delivery"],
-        ["Paste in Messenger", "Your order is auto-formatted; paste to chat with our crew"],
+        ["Send on WhatsApp", "Send your formatted order request and wait for our crew to confirm"],
       ];
 
   return (
@@ -725,7 +719,7 @@ function BagModalDebugOverlay() {
     const update = () => {
       const content = dialog.querySelector<HTMLElement>(".bag-content");
       const stickyCta = dialog.querySelector<HTMLElement>(
-        ".button-proceed-checkout, .button-messenger-checkout",
+        ".button-proceed-checkout, .button-whatsapp-checkout",
       );
       const dialogRect = dialog.getBoundingClientRect();
       const contentRect = content?.getBoundingClientRect();
@@ -1637,7 +1631,17 @@ function App() {
   const [receipt, setReceipt] = useState(false);
   const [toast, setToast] = useState("");
   const [pendingOrder, setPendingOrder] = useState<PendingOrder | null>(readPendingOrder);
-  const lastOrder = pendingOrder?.message ?? "";
+  const lastOrder = pendingOrder?.message ? withOrderRequestStatus(pendingOrder.message) : "";
+  const whatsappOrderUrl = getWhatsAppUrl(lastOrder);
+  const orderNeedsCopy = whatsappOrderUrl.length > WHATSAPP_URL_LIMIT;
+  const whatsappSendUrl = orderNeedsCopy ? getWhatsAppUrl() : whatsappOrderUrl;
+  const whatsappWebUrl = getWhatsAppUrl(orderNeedsCopy ? "" : lastOrder, true);
+  const copyOrderRequest = () => {
+    const copied = copyToClipboard(lastOrder);
+    setToast(copied
+      ? "Order request copied. Paste it into WhatsApp and tap Send."
+      : "If copying was blocked, select and copy the order summary below.");
+  };
   useEffect(() => {
     writePendingOrder(pendingOrder);
     if (!pendingOrder) return;
@@ -2309,18 +2313,7 @@ function App() {
             <a href={homeHref("together")} onClick={handlePageLink} className="nav-item nav-together">
               <span className="nav-label">Better together</span>
             </a>
-            <a
-              href="https://www.facebook.com/beandiner"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="nav-fb-icon"
-              aria-label="Visit Bean Diner on Facebook"
-              title="Facebook"
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M13.36 21v-8.2h2.76l.41-3.2h-3.17V7.56c0-.93.26-1.57 1.59-1.57h1.7V3.12C16.35 3.04 15.16 3 13.79 3c-2.86 0-4.81 1.75-4.81 4.97V9.6H6v3.2h2.98V21h4.38Z" />
-              </svg>
-            </a>
+
           </nav>
           <div className="header-actions">
             <button
@@ -2547,7 +2540,7 @@ function App() {
           <h2>
             Same corner.
             <br />
-            <em>Another cup?</em>
+            <em>Another bite?</em>
           </h2>
           <a href={beveragesHref} className="button" onClick={handlePageLink}>
             Explore the menu <Icon name="arrow" />
@@ -2661,26 +2654,11 @@ function App() {
           </div>
         </div>
 
-      {/* ↓ FOOTER MESSENGER BUTTON: Direct chat with Bean Diner */}
-      <a
-        href={getMessengerUrl()}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="footer-messenger"
-        aria-label="Chat with Bean Diner on Facebook Messenger"
-        onClick={(e) => {
-          if (isMobileDevice() && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
-            e.preventDefault();
-            openMessengerApp();
-          }
-        }}
-      >
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-          <path d="M12 2C6.48 2 2 6.03 2 11c0 2.87 1.5 5.43 3.84 7.02l-.65 2.45a.75.75 0 0 0 .97.9l2.84-1.22c.96.28 1.97.43 3 .43 5.52 0 10-4.03 10-9s-4.48-9-10-9zm1.06 12.15-2.58-2.75-5.04 2.75 5.54-5.88 2.64 2.75 4.98-2.75-5.54 5.88z" />
-        </svg>
-        <span>Chat with us on Messenger</span>
-      </a>
-
+        <div className="footer-top-action">
+          <a href="#top" className="back-top-pill" aria-label="Back to top" onClick={scrollToTop}>
+            Back to top <Icon name="arrow" size={17} />
+          </a>
+        </div>
 
         <div className="footer-bottom-bar">
           <div className="footer-copy">
@@ -2695,9 +2673,45 @@ function App() {
           <span className="footer-closing handwritten">
             Tara, kain at kape tayo.
           </span>
-          <a href="#top" className="back-top-pill" onClick={scrollToTop}>
-            Back to top <span>↑</span>
-          </a>
+          <nav className="footer-social-links" aria-label="Bean Diner social channels">
+            {/* Brand glyphs: Simple Icons (CC0), https://simpleicons.org/ */}
+            <a href={FACEBOOK_PAGE_URL} target="_blank" rel="noopener noreferrer" aria-label="Bean Diner on Facebook">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="#0866FF" aria-hidden="true">
+                <path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.686 1.686 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647Z" />
+              </svg>
+            </a>
+            <a href={"https://instagram.com/bean.diner"} target="_blank" rel="noopener noreferrer" aria-label="Bean Diner on Instagram">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="url(#footer-instagram-color)" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="footer-instagram-color" x1="0" y1="1" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#FEDA75" />
+                      <stop offset="30%" stopColor="#FA7E1E" />
+                      <stop offset="55%" stopColor="#D62976" />
+                      <stop offset="80%" stopColor="#962FBF" />
+                      <stop offset="100%" stopColor="#4F5BD5" />
+                    </linearGradient>
+                  </defs>
+                <path d="M7.0301.084c-1.2768.0602-2.1487.264-2.911.5634-.7888.3075-1.4575.72-2.1228 1.3877-.6652.6677-1.075 1.3368-1.3802 2.127-.2954.7638-.4956 1.6365-.552 2.914-.0564 1.2775-.0689 1.6882-.0626 4.947.0062 3.2586.0206 3.6671.0825 4.9473.061 1.2765.264 2.1482.5635 2.9107.308.7889.72 1.4573 1.388 2.1228.6679.6655 1.3365 1.0743 2.1285 1.38.7632.295 1.6361.4961 2.9134.552 1.2773.056 1.6884.069 4.9462.0627 3.2578-.0062 3.668-.0207 4.9478-.0814 1.28-.0607 2.147-.2652 2.9098-.5633.7889-.3086 1.4578-.72 2.1228-1.3881.665-.6682 1.0745-1.3378 1.3795-2.1284.2957-.7632.4966-1.636.552-2.9124.056-1.2809.0692-1.6898.063-4.948-.0063-3.2583-.021-3.6668-.0817-4.9465-.0607-1.2797-.264-2.1487-.5633-2.9117-.3084-.7889-.72-1.4568-1.3876-2.1228C21.2982 1.33 20.628.9208 19.8378.6165 19.074.321 18.2017.1197 16.9244.0645 15.6471.0093 15.236-.005 11.977.0014 8.718.0076 8.31.0215 7.0301.0839m.1402 21.6932c-1.17-.0509-1.8053-.2453-2.2287-.408-.5606-.216-.96-.4771-1.3819-.895-.422-.4178-.6811-.8186-.9-1.378-.1644-.4234-.3624-1.058-.4171-2.228-.0595-1.2645-.072-1.6442-.079-4.848-.007-3.2037.0053-3.583.0607-4.848.05-1.169.2456-1.805.408-2.2282.216-.5613.4762-.96.895-1.3816.4188-.4217.8184-.6814 1.3783-.9003.423-.1651 1.0575-.3614 2.227-.4171 1.2655-.06 1.6447-.072 4.848-.079 3.2033-.007 3.5835.005 4.8495.0608 1.169.0508 1.8053.2445 2.228.408.5608.216.96.4754 1.3816.895.4217.4194.6816.8176.9005 1.3787.1653.4217.3617 1.056.4169 2.2263.0602 1.2655.0739 1.645.0796 4.848.0058 3.203-.0055 3.5834-.061 4.848-.051 1.17-.245 1.8055-.408 2.2294-.216.5604-.4763.96-.8954 1.3814-.419.4215-.8181.6811-1.3783.9-.4224.1649-1.0577.3617-2.2262.4174-1.2656.0595-1.6448.072-4.8493.079-3.2045.007-3.5825-.006-4.848-.0608M16.953 5.5864A1.44 1.44 0 1 0 18.39 4.144a1.44 1.44 0 0 0-1.437 1.4424M5.8385 12.012c.0067 3.4032 2.7706 6.1557 6.173 6.1493 3.4026-.0065 6.157-2.7701 6.1506-6.1733-.0065-3.4032-2.771-6.1565-6.174-6.1498-3.403.0067-6.156 2.771-6.1496 6.1738M8 12.0077a4 4 0 1 1 4.008 3.9921A3.9996 3.9996 0 0 1 8 12.0077" />
+              </svg>
+            </a>
+            <a href={getWhatsAppUrl()} target="_blank" rel="noopener noreferrer" aria-label="Bean Diner on WhatsApp">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="#25D366" aria-hidden="true">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+              </svg>
+            </a>
+            <a href={getMessengerUrl()} onClick={openMessengerOnMobile} target="_blank" rel="noopener noreferrer" aria-label="Bean Diner on Messenger">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="url(#footer-messenger-color)" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="footer-messenger-color" x1="0" y1="1" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#0099FF" />
+                      <stop offset="50%" stopColor="#A033FF" />
+                      <stop offset="100%" stopColor="#FF5280" />
+                    </linearGradient>
+                  </defs>
+                <path d="M12 0C5.24 0 0 4.952 0 11.64c0 3.499 1.434 6.521 3.769 8.61a.96.96 0 0 1 .323.683l.065 2.135a.96.96 0 0 0 1.347.85l2.381-1.053a.96.96 0 0 1 .641-.046A13 13 0 0 0 12 23.28c6.76 0 12-4.952 12-11.64S18.76 0 12 0m6.806 7.44c.522-.03.971.567.63 1.094l-4.178 6.457a.707.707 0 0 1-.977.208l-3.87-2.504a.44.44 0 0 0-.49.007l-4.363 3.01c-.637.438-1.415-.317-.995-.966l4.179-6.457a.706.706 0 0 1 .977-.21l3.87 2.505c.15.097.344.094.491-.007l4.362-3.008a.7.7 0 0 1 .364-.13" />
+              </svg>
+            </a>
+          </nav>
         </div>
       </footer>
       )}
@@ -2857,13 +2871,13 @@ function App() {
                         <span className="receipt-brand-sub">Gen. Antonio Luna Street · Official Order Ticket</span>
                       </div>
                     </div>
-                    <span className="receipt-status-pill">Ready to send</span>
+                    <span className="receipt-status-pill">Request ready</span>
                   </div>
 
                   <div className="receipt-perforation" aria-hidden="true" />
 
                   <p className="receipt-intro">
-                    Your order summary is ready and copied to your clipboard. Follow the 3 steps below and send it to our team in Messenger.
+                    Review your order request, then tap Send in WhatsApp. Your order is only confirmed when our crew confirms it.
                   </p>
 
                   <OrderingSteps handoff />
@@ -2872,16 +2886,13 @@ function App() {
                   {lastOrder && (
                     <div className="receipt-summary-box">
                       <div className="receipt-summary-box-top">
-                        <span className="receipt-box-label">Order Summary for Messenger</span>
+                        <span className="receipt-box-label">Order request for WhatsApp</span>
                         <button
                           type="button"
                           className="receipt-copy-pill"
-                          onClick={() => {
-                            copyToClipboard(lastOrder);
-                            setToast("Order details copied to clipboard!");
-                          }}
+                          onClick={copyOrderRequest}
                         >
-                          <Icon name="check" size={13} /> Copy Text
+                          <Icon name="check" size={13} /> Copy order
                         </button>
                       </div>
                       <pre className="receipt-summary-text">{lastOrder}</pre>
@@ -2889,38 +2900,20 @@ function App() {
                   )}
 
                   <div className="receipt-actions-group">
-                    <a
-                      href={getMessengerUrl()}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="button button-copy-messenger prominent"
-                      onClick={(e) => {
-                        if (lastOrder) {
-                          copyToClipboard(lastOrder);
-                          setToast("Order details copied! Opening Messenger...");
-                        }
-                        if (isMobileDevice() && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
-                          e.preventDefault();
-                          openMessengerApp();
-                        }
-                      }}
-                    >
-                      Copy Order &amp; Open Messenger
+                    {orderNeedsCopy && (
+                      <>
+                        <p className="whatsapp-length-warning" id="whatsapp-length-warning" role="status">
+                          This request is too long for a WhatsApp link. Copy your order, open WhatsApp, paste it into the chat, then tap Send.
+                        </p>
+                        <button type="button" className="button button-whatsapp-order prominent" onClick={copyOrderRequest}>Copy order</button>
+                      </>
+                    )}
+                    <a href={whatsappSendUrl} target="_blank" rel="noopener noreferrer"
+                      className={orderNeedsCopy ? "button button-whatsapp-web" : "button button-whatsapp-order prominent"}
+                      aria-describedby={orderNeedsCopy ? "whatsapp-length-warning" : undefined}>
+                      {orderNeedsCopy ? "Open WhatsApp" : "Send order on WhatsApp"}
                     </a>
-                    <a
-                      href={FACEBOOK_PAGE_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="button button-facebook-fallback"
-                      onClick={() => {
-                        if (lastOrder) {
-                          copyToClipboard(lastOrder);
-                          setToast("Order details copied! Opening Facebook Page...");
-                        }
-                      }}
-                    >
-                      Open Bean Diner Facebook Page Directly
-                    </a>
+                    <a href={whatsappWebUrl} target="_blank" rel="noopener noreferrer" className="button button-whatsapp-web">Use WhatsApp Web</a>
                   </div>
                 </div>
 
@@ -3160,7 +3153,7 @@ function App() {
                       );
                       copyToClipboard(msg);
                       setPendingOrder({ message: msg, createdAt: Date.now() });
-                      setToast("Order copied! Follow the guide below to send.");
+                      setToast("Order request ready. Review it before sending on WhatsApp.");
                       setReceipt(true);
                       setCart([]);
                       setCheckoutName("");
@@ -3225,7 +3218,7 @@ function App() {
                       {checkoutOrderType === "delivery" && (
                         <div className="order-extra-field">
                           <label htmlFor="checkout-address">Delivery address &amp; landmark:</label>
-                          <small id="delivery-arrangements-note">Delivery arrangements are confirmed in Messenger.</small>
+                          <small id="delivery-arrangements-note">Delivery arrangements are confirmed in WhatsApp.</small>
                           <input
                             id="checkout-address"
                             autoComplete="off"
@@ -3496,20 +3489,20 @@ function App() {
 
                     <div className="checkout-summary-badge">
                       <Icon name="check" size={14} />
-                      <span>Bayambang crew confirms orders live in Messenger</span>
+                      <span>Bayambang crew confirms order requests in WhatsApp</span>
                     </div>
                   </div>
                 </aside>
                 <div className="checkout-actions-block">
                   <button
-                    className="button button-messenger-checkout prominent"
+                    className="button button-whatsapp-checkout prominent"
                     type="submit"
                     form="checkout-order-form"
                   >
-                    Send order via Messenger <Icon name="arrow" size={17} />
+                    Review order <Icon name="arrow" size={17} />
                   </button>
                   <small className="checkout-actions-hint">
-                    Copies your order summary and guides you to Facebook Messenger to confirm with our crew.
+                    Review your request, then send it in WhatsApp for crew confirmation.
                   </small>
                 </div>
               </div>
@@ -3561,22 +3554,14 @@ function App() {
                   money(coffeeDatePairPrice),
                 href: homeHref("together"),
               },
-              {
-                num: "06",
-                label: "Facebook Page ↗",
-                sub: "Community updates & direct messages",
-                href: "https://www.facebook.com/beandiner",
-                isExternal: true,
-              },
+
             ].map((item) => (
               <a
                 key={item.href}
                 href={item.href}
-                target={item.isExternal ? "_blank" : undefined}
-                rel={item.isExternal ? "noopener noreferrer" : undefined}
                 aria-current={isStoryPage && item.href === storyHref ? "page" : undefined}
-                onClick={item.isExternal ? () => setNavOpen(false) : handlePageLink}
-                className={`mobile-nav-item ${item.isExternal ? "mobile-nav-fb" : ""}`}
+                onClick={handlePageLink}
+                className="mobile-nav-item"
               >
                 <div className="mobile-nav-meta">
                   <span className="mobile-nav-num">{item.num}</span>

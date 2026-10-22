@@ -18,7 +18,7 @@
         location.href = "/?page=beverages";
       };
       const summary = (createdAt) => JSON.stringify({
-        message: "QA recovery summary\n1x Plain Croffle - ₱90\nTotal: ₱90\nNot submitted to Messenger.",
+        message: "QA recovery summary\n1x Plain Croffle - ₱90\nTotal: ₱90\nNot submitted to WhatsApp.",
         createdAt,
       });
       document.querySelector("#fresh").onclick = () => load(summary(Date.now()));
