@@ -1,3 +1,4 @@
+import { copyToClipboard } from "./utils/clipboard";
 // ↓ IMPORTS: React 19 hooks and types
 import {
   useEffect,
@@ -452,63 +453,6 @@ const formatOrderMessage = (
     .join("\n"));
 };
 
-// ↓ BULLETPROOF CLIPBOARD COPY: Synchronous execCommand inside active modal/container + Async navigator.clipboard
-const copyToClipboard = (text: string): boolean => {
-  if (!text) return false;
-  let copied = false;
-
-  // 1. Synchronous fallback: Executes immediately inside the user click/submit gesture.
-  // Critical fix: When dialog.showModal() is active, elements appended to document.body
-  // are marked inert by the browser, which silently breaks textarea.focus() and selection!
-  // Appending inside dialog[open] ensures the element is in the active focusable subtree.
-  try {
-    const container =
-      document.querySelector<HTMLElement>("dialog[open]") ||
-      document.body;
-
-    const textarea = document.createElement("textarea");
-    textarea.value = text;
-    textarea.style.position = "absolute";
-    textarea.style.left = "0";
-    textarea.style.top = "0";
-    textarea.style.width = "1px";
-    textarea.style.height = "1px";
-    textarea.style.padding = "0";
-    textarea.style.border = "none";
-    textarea.style.outline = "none";
-    textarea.style.boxShadow = "none";
-    textarea.style.background = "transparent";
-    textarea.style.color = "transparent";
-    textarea.style.opacity = "0.01";
-    textarea.style.pointerEvents = "none";
-    textarea.style.zIndex = "-1";
-    textarea.style.fontSize = "16px";
-    textarea.setAttribute("readonly", "");
-
-    container.appendChild(textarea);
-    textarea.focus({ preventScroll: true });
-    textarea.select();
-    textarea.setSelectionRange(0, text.length);
-
-    copied = document.execCommand("copy");
-    container.removeChild(textarea);
-  } catch {
-    /* fallback handled below */
-  }
-
-  // 2. Also trigger modern async navigator.clipboard as backup when available & allowed
-  if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
-    navigator.clipboard
-      .writeText(text)
-      .then(() => {
-        copied = true;
-      })
-      .catch(() => {});
-  }
-
-  return copied;
-};
-
 // Footer Messenger contact destination.
 const MESSENGER_PAGE_ID = "100959311683531";
 
@@ -702,7 +646,7 @@ function Sun({ className = "" }: { className?: string }) {
 }
 // ↓ MODAL COMPONENT: Base dialog with backdrop, focus trap, Esc-to-close, and return focus
 // DEBUG-TEMP: Device-only readout for the Order Bag surface under iOS Safari chrome.
-function BagModalDebugOverlay() {
+const BagModalDebugOverlay = import.meta.env.DEV ? function BagModalDebugOverlay() {
   const [snapshot, setSnapshot] = useState("");
 
   useEffect(() => {
@@ -779,10 +723,10 @@ function BagModalDebugOverlay() {
   }, []);
 
   return <pre className="bag-modal-debug-overlay" aria-hidden="true">{snapshot}</pre>;
-}
+} : () => null;
 
 // DEBUG-TEMP: Read-only page geometry for comparing menu content under Safari chrome.
-function MenuPageDebugOverlay({ page }: { page: "diner-bites" | "beverages" }) {
+const MenuPageDebugOverlay = import.meta.env.DEV ? function MenuPageDebugOverlay({ page }: { page: "diner-bites" | "beverages" }) {
   const [snapshot, setSnapshot] = useState("");
 
   useEffect(() => {
@@ -833,6 +777,10 @@ function MenuPageDebugOverlay({ page }: { page: "diner-bites" | "beverages" }) {
   }, [page]);
 
   return <pre className="bag-modal-debug-overlay" aria-hidden="true">{snapshot}</pre>;
+} : () => null;
+
+if (import.meta.env.DEV) {
+  void import("./debug-overlays.css");
 }
 
 function Modal({
@@ -854,7 +802,7 @@ function Modal({
   onCloseRef.current = onClose;
   const isBagModal = className.split(/\s+/).includes("bag-modal");
   const docScrollMode = isBagModal && isDocumentScrollModeEnabled();
-  const showBagDebug = isBagModal && new URLSearchParams(window.location.search).get("debug") === "1";
+  const showBagDebug = import.meta.env.DEV && isBagModal && new URLSearchParams(window.location.search).get("debug") === "1";
 
   useLayoutEffect(() => {
     const el = ref.current;
@@ -1256,7 +1204,7 @@ function Modal({
         </button>
         {children}
       </div>
-      {showBagDebug && <BagModalDebugOverlay />}
+      {import.meta.env.DEV && showBagDebug && <BagModalDebugOverlay />}
     </dialog>
   );
   return docScrollMode ? createPortal(dialog, document.body) : dialog;
@@ -1636,8 +1584,8 @@ function App() {
   const orderNeedsCopy = whatsappOrderUrl.length > WHATSAPP_URL_LIMIT;
   const whatsappSendUrl = orderNeedsCopy ? getWhatsAppUrl() : whatsappOrderUrl;
   const whatsappWebUrl = getWhatsAppUrl(orderNeedsCopy ? "" : lastOrder, true);
-  const copyOrderRequest = () => {
-    const copied = copyToClipboard(lastOrder);
+  const copyOrderRequest = async () => {
+    const copied = await copyToClipboard(lastOrder);
     setToast(copied
       ? "Order request copied. Paste it into WhatsApp and tap Send."
       : "If copying was blocked, select and copy the order summary below.");
@@ -1666,7 +1614,10 @@ function App() {
       if (docScrollMode) window.scrollTo(0, 0);
       else bagHeadingRef.current?.closest("dialog")?.scrollTo({ top: 0 });
       if (lastOrder) {
-        copyToClipboard(lastOrder);
+        void (async () => {
+          const copied = await copyToClipboard(lastOrder);
+          if (!copied) setToast("If copying was blocked, select and copy the order summary below.");
+        })();
       }
     }
   }, [receipt, lastOrder, docScrollMode]);
@@ -2551,7 +2502,7 @@ function App() {
           </>
         )}
       </main>
-      {new URLSearchParams(window.location.search).get("debug") === "1" && !bagOpen && (isFoodPage || isBeveragesPage) && (
+      {import.meta.env.DEV && new URLSearchParams(window.location.search).get("debug") === "1" && !bagOpen && (isFoodPage || isBeveragesPage) && (
         <MenuPageDebugOverlay page={isFoodPage ? "diner-bites" : "beverages"} />
       )}
       {/* ↓ FOOTER: Elevated artisanal diner footer */}
@@ -3100,7 +3051,7 @@ function App() {
                     className="checkout-form checkout-form-compact"
                     autoComplete="off"
                     noValidate
-                    onSubmit={(e) => {
+                    onSubmit={async (e) => {
                       e.preventDefault();
                       const currentAddressErr = validateDeliveryAddress(checkoutExtra, checkoutOrderType);
                       const currentNameErr = validateCustomerName(checkoutName);
@@ -3151,9 +3102,11 @@ function App() {
                         resolvedTiming,
                         checkoutNote.trim(),
                       );
-                      copyToClipboard(msg);
+                      const copied = await copyToClipboard(msg);
                       setPendingOrder({ message: msg, createdAt: Date.now() });
-                      setToast("Order request ready. Review it before sending on WhatsApp.");
+                      setToast(copied
+                        ? "Order request ready. Review it before sending on WhatsApp."
+                        : "If copying was blocked, select and copy the order summary below.");
                       setReceipt(true);
                       setCart([]);
                       setCheckoutName("");
@@ -3168,11 +3121,11 @@ function App() {
                       <fieldset className="checkout-fieldset">
                         <legend>Order type</legend>
                         <div className="choice-row order-type-row">
-                          {[
+                          {([
                             { id: "pickup", label: "For pick up" },
                             { id: "dine-in", label: "Dine in" },
                             { id: "delivery", label: "Door to door" },
-                          ].map((t) => (
+                          ] satisfies { id: typeof checkoutOrderType; label: string }[]).map((t) => (
                             <label
                               className={checkoutOrderType === t.id ? "selected" : ""}
                               key={t.id}
@@ -3190,7 +3143,7 @@ function App() {
                                 name="checkoutOrderType"
                                 checked={checkoutOrderType === t.id}
                                 onChange={() => {
-                                  setCheckoutOrderType(t.id as any);
+                                  setCheckoutOrderType(t.id);
                                   setCheckoutExtra("");
                                   setCheckoutErrors((prev) => ({ ...prev, address: null }));
                                 }}
