@@ -2267,6 +2267,13 @@ main {
 .bag-content {
   padding: 55px 32px 30px;
 }
+@media (min-width: 821px) {
+  /* Avoid continuously blurring the moving page behind the desktop bag. */
+  .bag-modal::backdrop {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
 .bag-content h2 {
   font-size: 44px;
   color: var(--ink);
