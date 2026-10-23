@@ -2542,7 +2542,7 @@ function App() {
             <br />
             <em>Another bite?</em>
           </h2>
-          <a href={beveragesHref} className="button" onClick={handlePageLink}>
+          <a href={foodHref} className="button" onClick={handlePageLink}>
             Explore the menu <Icon name="arrow" />
           </a>
           <Ingredient kind="leaf" className="final-leaf" />
