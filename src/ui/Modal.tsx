@@ -207,6 +207,7 @@ export function Modal({
       if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
       window.scrollTo(pageScrollX, pageScrollY);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Run only when docScrollMode changes; read the initial scroll position through a ref.
   }, [docScrollMode]);
 
   // ── Mode B: native <dialog> modal (focus trap, keyboard-aware viewport) ─────
