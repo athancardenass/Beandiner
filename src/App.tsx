@@ -32,7 +32,7 @@ import {
   writePendingOrder,
   type PendingOrder,
 } from "./utils/checkout";
-import { cartItemSpecs, mergeCartItem } from "./utils/cart";
+import { cartItemSpecs, MAX_CART_QUANTITY, mergeCartItem } from "./utils/cart";
 import { copyToClipboard } from "./utils/clipboard";
 import { FACEBOOK_PAGE_URL, getMessengerUrl, openMessengerOnMobile } from "./utils/messenger";
 import {
@@ -401,7 +401,7 @@ function readInitialCart(): CartItem[] {
               item.price > 0 &&
               Number.isInteger(item.quantity) &&
               item.quantity > 0 &&
-              item.quantity <= 20,
+              item.quantity <= MAX_CART_QUANTITY,
           )
           .map((item: CartItem) =>
             item.id === "latte" &&
@@ -928,7 +928,7 @@ function App() {
       items
         .map((i) =>
           i.key === key
-            ? { ...i, quantity: Math.min(20, i.quantity + difference) }
+            ? { ...i, quantity: Math.min(MAX_CART_QUANTITY, i.quantity + difference) }
             : i,
         )
         .filter((i) => i.quantity > 0),
@@ -1768,7 +1768,7 @@ function App() {
                               <button
                                 aria-label={`Add one ${title}`}
                                 onClick={() => changeQuantity(item.key, 1)}
-                                disabled={item.quantity >= 20}
+                                disabled={item.quantity >= MAX_CART_QUANTITY}
                               >
                                 <Icon name="plus" size={14} />
                               </button>

@@ -3,6 +3,7 @@ import type { DinerBite } from "../dinerBites";
 import type { CartItem, Product } from "../types";
 import { Icon } from "../ui/graphics";
 import { Modal } from "../ui/Modal";
+import { MAX_CART_QUANTITY } from "../utils/cart";
 import { money, productImage } from "../utils/presentation";
 
 // ↓ SEGMENTED: Radio group styled as a segmented control (arrow keys move selection)
@@ -215,9 +216,9 @@ export function ProductModal({
             <output aria-live="polite">{quantity}</output>
             <button
               type="button"
-              onClick={() => setQuantity((q) => Math.min(20, q + 1))}
+              onClick={() => setQuantity((q) => Math.min(MAX_CART_QUANTITY, q + 1))}
               aria-label="Increase quantity"
-              disabled={quantity === 20}
+              disabled={quantity === MAX_CART_QUANTITY}
             >
               <Icon name="plus" size={16} />
             </button>
@@ -333,8 +334,8 @@ export function BiteCustomizeModal({
             <span aria-live="polite">{quantity}</span>
             <button
               type="button"
-              onClick={() => setQuantity((q) => Math.min(20, q + 1))}
-              disabled={quantity >= 20}
+              onClick={() => setQuantity((q) => Math.min(MAX_CART_QUANTITY, q + 1))}
+              disabled={quantity >= MAX_CART_QUANTITY}
               aria-label="Increase quantity"
             >
               <Icon name="plus" size={16} />
