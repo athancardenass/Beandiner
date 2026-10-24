@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { listen } from "../utils/events";
 
 // DEBUG-TEMP: Device-only readout for the Order Bag surface under iOS Safari chrome.
 export const BagModalDebugOverlay = import.meta.env.DEV ? function BagModalDebugOverlay() {
@@ -58,20 +59,17 @@ export const BagModalDebugOverlay = import.meta.env.DEV ? function BagModalDebug
 
     update();
     const interval = window.setInterval(update, 250);
-    viewport?.addEventListener("resize", update);
-    viewport?.addEventListener("scroll", update);
-    window.addEventListener("resize", update);
-    window.addEventListener("scroll", update, { passive: true });
-    document.addEventListener("focusin", update);
-    document.addEventListener("focusout", update);
+    const removeListeners = [
+      listen(viewport, "resize", update),
+      listen(viewport, "scroll", update),
+      listen(window, "resize", update),
+      listen(window, "scroll", update, { passive: true }),
+      listen(document, "focusin", update),
+      listen(document, "focusout", update),
+    ];
     return () => {
       window.clearInterval(interval);
-      viewport?.removeEventListener("resize", update);
-      viewport?.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
-      window.removeEventListener("scroll", update);
-      document.removeEventListener("focusin", update);
-      document.removeEventListener("focusout", update);
+      removeListeners.forEach((remove) => remove());
       layoutProbe.remove();
       dynamicProbe.remove();
     };
@@ -118,16 +116,15 @@ export const MenuPageDebugOverlay = import.meta.env.DEV ? function MenuPageDebug
 
     update();
     const interval = window.setInterval(update, 250);
-    viewport?.addEventListener("resize", update);
-    viewport?.addEventListener("scroll", update);
-    window.addEventListener("resize", update);
-    window.addEventListener("scroll", update, { passive: true });
+    const removeListeners = [
+      listen(viewport, "resize", update),
+      listen(viewport, "scroll", update),
+      listen(window, "resize", update),
+      listen(window, "scroll", update, { passive: true }),
+    ];
     return () => {
       window.clearInterval(interval);
-      viewport?.removeEventListener("resize", update);
-      viewport?.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
-      window.removeEventListener("scroll", update);
+      removeListeners.forEach((remove) => remove());
     };
   }, [page]);
 

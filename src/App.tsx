@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type MouseEvent } from "react";
 import DinerBitesPage from "./DinerBitesPage";
 import BeveragesPage from "./BeveragesPage";
 import OurStoryPage from "./OurStoryPage";
@@ -24,15 +24,20 @@ import {
   useStickyHeaderOffset,
 } from "./ui/menu";
 import {
+  ASAP_TIMING_LABEL,
+  CUSTOM_TIMING_LABEL,
   getStoreStatus,
   isPendingOrder,
+  ORDER_TIMING_OPTIONS,
   PENDING_ORDER_TTL_MS,
   readPendingOrder,
   validateOrderTiming,
   writePendingOrder,
   type PendingOrder,
 } from "./utils/checkout";
+import { cartItemSpecs, MAX_CART_QUANTITY, mergeCartItem } from "./utils/cart";
 import { copyToClipboard } from "./utils/clipboard";
+import { listen } from "./utils/events";
 import { FACEBOOK_PAGE_URL, getMessengerUrl, openMessengerOnMobile } from "./utils/messenger";
 import {
   clickScrollBehavior,
@@ -44,6 +49,25 @@ import {
 } from "./utils/navigation";
 import { money, productImage } from "./utils/presentation";
 import { getWhatsAppUrl, withOrderRequestStatus, WHATSAPP_URL_LIMIT } from "./utils/whatsapp";
+
+const PAGE_METADATA: Record<AppPage, { title: string; description: string }> = {
+  home: {
+    title: "Bean Diner | Good Food. Great Coffee. Warm Vibes.",
+    description: "Bean Diner in Bayambang, Pangasinan. Founded by a US-trained Chef & Middle East-skilled Barista. Comfort food, Oatside creations, Benguet highland coffee, and warm community vibes.",
+  },
+  "diner-bites": {
+    title: "Diner Bites & Comfort Plates | Bean Diner",
+    description: "Crispy chicken wings, loaded nachos, rice plates, pasta, sandwiches, and warm croffles at Bean Diner in Bayambang, Pangasinan.",
+  },
+  beverages: {
+    title: "Artisanal Brews & Specialty Sips | Bean Diner",
+    description: "Hot and iced coffee, matcha, chai, milkshakes, and plant-based add-ons at Bean Diner in Bayambang, Pangasinan.",
+  },
+  "our-story": {
+    title: "Our Story | Bean Diner Bayambang",
+    description: "Meet the US-trained Chef and Middle East specialty coffee Barista behind Bean Diner in Bayambang, Pangasinan.",
+  },
+};
 
 const beanDinerMapsUrl =
   "https://www.google.com/maps/place/Bean+Diner/@15.8103457,120.4573329,17z/data=!4m14!1m7!3m6!1s0x339149ebf4721bcb:0xff2c7401d69cb887!2sBean+Diner!8m2!3d15.8103457!4d120.4573329!16s%2Fg%2F11vljpcbmt!3m5!1s0x339149ebf4721bcb:0xff2c7401d69cb887!8m2!3d15.8103457!4d120.4573329!16s%2Fg%2F11vljpcbmt?entry=ttu&g_ep=EgoyMDI2MDkyMi4wIKXMDSoASAFQAw%3D%3D";
@@ -282,6 +306,15 @@ const allProducts = [...products, ...heroSelectorProducts];
 
 const findProduct = (id: string) => allProducts.find((product) => product.id === id);
 
+const resolveCartItem = (item: CartItem) => {
+  const p = findProduct(item.id);
+  const b = dinerBites.find((b) => b.id === item.id);
+  const bev = allBeverages.find((bev) => bev.id === item.id);
+  const mod = [...beverageAddOns, ...beverageSubs].find((m) => m.id === item.id);
+  const title = p ? p.name : b ? b.name : bev ? bev.name : mod ? mod.name : item.name || "Item";
+  return { p, bev, mod, title };
+};
+
 const spanishLatte = products.find((product) => product.id === "latte")!;
 
 const coffeeDateSaltedCaramel = allBeverages.find(
@@ -313,11 +346,7 @@ const formatOrderMessage = (
   orderNote: string = "",
 ) => {
   const lines = items.map((item) => {
-    const p = findProduct(item.id);
-    const b = dinerBites.find((b) => b.id === item.id);
-    const bev = allBeverages.find((bev) => bev.id === item.id);
-    const mod = [...beverageAddOns, ...beverageSubs].find((m) => m.id === item.id);
-    const title = p ? p.name : b ? b.name : bev ? bev.name : mod ? mod.name : item.name || "Item";
+    const { bev, mod, title } = resolveCartItem(item);
     const noteSuffix = item.note?.trim()
       ? ` - Note: "${item.note.trim()}"`
       : "";
@@ -337,14 +366,7 @@ const formatOrderMessage = (
           item.price * item.quantity,
         )}`;
     }
-    const specs = [
-      item.size,
-      item.temperature,
-      item.sweetness,
-      item.temperature === "Iced" ? item.iceLevel : null,
-      item.milk && item.milk !== "Regular" ? `${item.milk} milk` : null,
-    ]
-      .filter(Boolean)
+    const specs = cartItemSpecs(item)
       .join(", ");
     return `• ${item.quantity}x ${title} (${specs})${noteSuffix} - ${money(
         item.price * item.quantity,
@@ -378,6 +400,64 @@ const formatOrderMessage = (
     .filter(Boolean)
     .join("\n"));
 };
+
+function readInitialCart(): CartItem[] {
+  try {
+    const value = JSON.parse(
+      localStorage.getItem("beandiner-bag-v2") ||
+        localStorage.getItem("saya-bag") ||
+        "[]",
+    );
+    return Array.isArray(value)
+      ? value
+          .filter(
+            (item: CartItem) =>
+              (!!findProduct(item.id) ||
+                dinerBites.some(
+                  (b) => b.id === item.id && !b.sample && b.price !== null,
+                ) ||
+                allBeverages.some((b) => b.id === item.id) ||
+                beverageAddOns.some((m) => m.id === item.id) ||
+                beverageSubs.some((m) => m.id === item.id)) &&
+              typeof item.key === "string" &&
+              Number.isFinite(item.price) &&
+              item.price > 0 &&
+              Number.isInteger(item.quantity) &&
+              item.quantity > 0 &&
+              item.quantity <= MAX_CART_QUANTITY,
+          )
+          .map((item: CartItem) =>
+            item.id === "latte" &&
+            item.name === "Classic Iced Caffe Latte"
+              ? {
+                  ...item,
+                  name: spanishLatte.name,
+                  price: item.price + 5,
+                }
+              : item,
+          )
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function observeReveals() {
+  document.documentElement.classList.add("js-ready");
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("revealed");
+          observer.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.05, rootMargin: "100px" },
+  );
+  document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
+  return () => observer.disconnect();
+}
 
 function App() {
   const [currentPage, setCurrentPage] = useState<AppPage>(() => pageFromSearch(window.location.search));
@@ -437,12 +517,14 @@ function App() {
       bagHeadingRef.current?.focus({ preventScroll: true });
       if (docScrollMode) window.scrollTo(0, 0);
       else bagHeadingRef.current?.closest("dialog")?.scrollTo({ top: 0 });
-      if (lastOrder) {
-        void (async () => {
-          const copied = await copyToClipboard(lastOrder);
-          if (!copied) setToast("If copying was blocked, select and copy the order summary below.");
-        })();
-      }
+    }
+  }, [receipt, lastOrder, docScrollMode]);
+  useEffect(() => {
+    if (receipt && lastOrder) {
+      void (async () => {
+        const copied = await copyToClipboard(lastOrder);
+        if (!copied) setToast("If copying was blocked, select and copy the order summary below.");
+      })();
     }
   }, [receipt, lastOrder, docScrollMode]);
   const [storeStatus, setStoreStatus] = useState(getStoreStatus);
@@ -450,7 +532,7 @@ function App() {
   const bagContentRef = useRef<HTMLDivElement>(null);
   const orderTypeScrollTopRef = useRef<number | null>(null);
   const [checkoutPickupTime, setCheckoutPickupTime] = useState(() =>
-    validateOrderTiming("ASAP (~15-20 mins)", "") ? "Custom time" : "ASAP (~15-20 mins)",
+    validateOrderTiming(ASAP_TIMING_LABEL, "") ? CUSTOM_TIMING_LABEL : ASAP_TIMING_LABEL,
   );
   const [checkoutCustomTime, setCheckoutCustomTime] = useState("");
   const [checkoutNote, setCheckoutNote] = useState("");
@@ -552,46 +634,7 @@ function App() {
     navigateToUrl(new URL(event.currentTarget.href));
   };
   // ↓ CART STATE: Persisted to localStorage with backwards compatibility
-  const [cart, setCart] = useState<CartItem[]>(() => {
-    try {
-      const value = JSON.parse(
-        localStorage.getItem("beandiner-bag-v2") ||
-          localStorage.getItem("saya-bag") ||
-          "[]",
-      );
-      return Array.isArray(value)
-        ? value
-            .filter(
-              (item: CartItem) =>
-                (!!findProduct(item.id) ||
-                  dinerBites.some(
-                    (b) => b.id === item.id && !b.sample && b.price !== null,
-                  ) ||
-                  allBeverages.some((b) => b.id === item.id) ||
-                  beverageAddOns.some((m) => m.id === item.id) ||
-                  beverageSubs.some((m) => m.id === item.id)) &&
-                typeof item.key === "string" &&
-                Number.isFinite(item.price) &&
-                item.price > 0 &&
-                Number.isInteger(item.quantity) &&
-                item.quantity > 0 &&
-                item.quantity <= 20,
-            )
-            .map((item: CartItem) =>
-              item.id === "latte" &&
-              item.name === "Classic Iced Caffe Latte"
-                ? {
-                    ...item,
-                    name: spanishLatte.name,
-                    price: item.price + 5,
-                  }
-                : item,
-            )
-        : [];
-    } catch {
-      return [];
-    }
-  });
+  const [cart, setCart] = useState<CartItem[]>(readInitialCart);
   const hero = useRef<HTMLElement>(null);
   const videoHero = useRef<HTMLVideoElement>(null);
   const videoPlaybackTime = useRef(0);
@@ -608,7 +651,7 @@ function App() {
         videoPlaybackTime.current = video.currentTime;
       }
     };
-    video.addEventListener("timeupdate", rememberPlaybackTime);
+    const stopRememberingPlaybackTime = listen(video, "timeupdate", rememberPlaybackTime);
 
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     let isVisible = false;
@@ -648,45 +691,36 @@ function App() {
     }, { threshold: 0.05 });
 
     observer.observe(video);
-    reducedMotion.addEventListener("change", syncPlayback);
-    document.addEventListener("visibilitychange", syncPlayback);
-    window.addEventListener("pageshow", syncPlayback);
-    window.addEventListener("online", recoverPlayback);
-    document.addEventListener("pointerdown", syncPlayback, { passive: true });
-    document.addEventListener("keydown", syncPlayback);
-    video.addEventListener("canplay", syncPlayback);
+    const removePlaybackListeners = [
+      listen(reducedMotion, "change", syncPlayback),
+      listen(document, "visibilitychange", syncPlayback),
+      listen(window, "pageshow", syncPlayback),
+      listen(window, "online", recoverPlayback),
+      listen(document, "pointerdown", syncPlayback, { passive: true }),
+      listen(document, "keydown", syncPlayback),
+      listen(video, "canplay", syncPlayback),
+    ];
     const recoveryTimer = window.setInterval(recoverPlayback, 4000);
     return () => {
       disposed = true;
       window.clearInterval(recoveryTimer);
       rememberPlaybackTime();
       observer.disconnect();
-      reducedMotion.removeEventListener("change", syncPlayback);
-      document.removeEventListener("visibilitychange", syncPlayback);
-      window.removeEventListener("pageshow", syncPlayback);
-      window.removeEventListener("online", recoverPlayback);
-      document.removeEventListener("pointerdown", syncPlayback);
-      document.removeEventListener("keydown", syncPlayback);
-      video.removeEventListener("canplay", syncPlayback);
-      video.removeEventListener("timeupdate", rememberPlaybackTime);
+      removePlaybackListeners.forEach((remove) => remove());
+      stopRememberingPlaybackTime();
       video.pause();
     };
   }, [currentPage]);
   useEffect(() => {
-    document.title = isFoodPage
-      ? "Diner Bites & Comfort Plates | Bean Diner"
+    const page = isFoodPage
+      ? "diner-bites"
       : isBeveragesPage
-      ? "Artisanal Brews & Specialty Sips | Bean Diner"
+      ? "beverages"
       : isStoryPage
-      ? "Our Story | Bean Diner Bayambang"
-      : "Bean Diner | Good Food. Great Coffee. Warm Vibes.";
-    const description = isFoodPage
-      ? "Crispy chicken wings, loaded nachos, rice plates, pasta, sandwiches, and warm croffles at Bean Diner in Bayambang, Pangasinan."
-      : isBeveragesPage
-      ? "Hot and iced coffee, matcha, chai, milkshakes, and plant-based add-ons at Bean Diner in Bayambang, Pangasinan."
-      : isStoryPage
-      ? "Meet the US-trained Chef and Middle East specialty coffee Barista behind Bean Diner in Bayambang, Pangasinan."
-      : "Bean Diner in Bayambang, Pangasinan. Founded by a US-trained Chef & Middle East-skilled Barista. Comfort food, Oatside creations, Benguet highland coffee, and warm community vibes.";
+      ? "our-story"
+      : "home";
+    const { title, description } = PAGE_METADATA[page];
+    document.title = title;
     document
       .querySelector<HTMLMetaElement>('meta[name="description"]')
       ?.setAttribute("content", description);
@@ -694,10 +728,10 @@ function App() {
   useEffect(() => {
     const updateStoreStatus = () => setStoreStatus(getStoreStatus());
     const interval = window.setInterval(updateStoreStatus, 60_000);
-    document.addEventListener("visibilitychange", updateStoreStatus);
+    const stopUpdatingStoreStatus = listen(document, "visibilitychange", updateStoreStatus);
     return () => {
       window.clearInterval(interval);
-      document.removeEventListener("visibilitychange", updateStoreStatus);
+      stopUpdatingStoreStatus();
     };
   }, []);
   // Keep browser history and in-page anchors in sync without remounting the cart.
@@ -713,9 +747,9 @@ function App() {
       navigationFrame.current = requestAnimationFrame(() => scrollToPageAnchor());
     };
     syncLocation();
-    window.addEventListener("popstate", syncLocation);
+    const stopSyncingLocation = listen(window, "popstate", syncLocation);
     return () => {
-      window.removeEventListener("popstate", syncLocation);
+      stopSyncingLocation();
       cancelAnimationFrame(navigationFrame.current);
     };
   }, []);
@@ -787,33 +821,20 @@ function App() {
     const resizeObserver = new ResizeObserver(measure);
     resizeObserver.observe(document.body);
     resizeObserver.observe(document.documentElement);
-    window.addEventListener("scroll", handle, { passive: true });
-    window.addEventListener("resize", measure);
-    reduced.addEventListener("change", handle);
-    coarsePointer.addEventListener("change", handle);
+    const removeScrollListeners = [
+      listen(window, "scroll", handle, { passive: true }),
+      listen(window, "resize", measure),
+      listen(reduced, "change", handle),
+      listen(coarsePointer, "change", handle),
+    ];
     measure();
-    document.documentElement.classList.add("js-ready");
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("revealed");
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.05, rootMargin: "100px" },
-    );
-    document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
+    const stopObservingReveals = observeReveals();
     return () => {
-      window.removeEventListener("scroll", handle);
-      window.removeEventListener("resize", measure);
-      reduced.removeEventListener("change", handle);
-      coarsePointer.removeEventListener("change", handle);
+      removeScrollListeners.forEach((remove) => remove());
       resizeObserver.disconnect();
       heroVisibility?.disconnect();
       cancelAnimationFrame(frame);
-      observer.disconnect();
+      stopObservingReveals();
     };
   }, [currentPage]);
   // ↓ ADD FEEDBACK: Bump bag icon, toast "Added <item>" with Undo snapshot
@@ -836,16 +857,7 @@ function App() {
   // ↓ ADD TO CART: Merge duplicates, show toast
   const add = (item: CartItem) => {
     announceAdd(item.name || "item");
-    setCart((current) => {
-      const existing = current.find((i) => i.key === item.key);
-      return existing
-        ? current.map((i) =>
-            i.key === item.key
-              ? { ...i, quantity: Math.min(20, i.quantity + item.quantity) }
-              : i,
-          )
-        : [...current, item];
-    });
+    setCart((current) => mergeCartItem(current, item));
     setSelected(null);
     setReceipt(false);
   };
@@ -870,16 +882,7 @@ function App() {
       isFood: true,
     };
     announceAdd(cleanName);
-    setCart((current) => {
-      const existing = current.find((i) => i.key === item.key);
-      return existing
-        ? current.map((i) =>
-            i.key === item.key
-              ? { ...i, quantity: Math.min(20, i.quantity + 1) }
-              : i,
-          )
-        : [...current, item];
-    });
+    setCart((current) => mergeCartItem(current, item));
     setReceipt(false);
   };
 
@@ -918,21 +921,7 @@ function App() {
     }));
 
     announceAdd("Salted Caramel + Matcha coffee date");
-    setCart((current) =>
-      pairItems.reduce((items, item) => {
-        const existing = items.find((candidate) => candidate.key === item.key);
-        return existing
-          ? items.map((candidate) =>
-              candidate.key === item.key
-                ? {
-                    ...candidate,
-                    quantity: Math.min(20, candidate.quantity + item.quantity),
-                  }
-                : candidate,
-            )
-          : [...items, item];
-      }, current),
-    );
+    setCart((current) => pairItems.reduce(mergeCartItem, current));
     setSelected(null);
     setReceipt(false);
   };
@@ -959,11 +948,68 @@ function App() {
       items
         .map((i) =>
           i.key === key
-            ? { ...i, quantity: Math.min(20, i.quantity + difference) }
+            ? { ...i, quantity: Math.min(MAX_CART_QUANTITY, i.quantity + difference) }
             : i,
         )
         .filter((i) => i.quantity > 0),
     );
+  const submitCheckout = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const currentAddressErr = validateDeliveryAddress(checkoutExtra, checkoutOrderType);
+    const currentNameErr = validateCustomerName(checkoutName);
+    const currentPhoneErr = validateCustomerPhone(checkoutPhone);
+    const currentTimeErr = validateOrderTiming(checkoutPickupTime, checkoutCustomTime);
+
+    setCheckoutErrors({
+      name: currentNameErr,
+      phone: currentPhoneErr,
+      address: currentAddressErr,
+      time: currentTimeErr,
+    });
+
+    const firstInvalidField = [
+      { error: currentAddressErr, id: "checkout-address" },
+      { error: currentNameErr, id: "order-name" },
+      { error: currentTimeErr, id: checkoutPickupTime === CUSTOM_TIMING_LABEL ? "checkout-custom-time" : "checkout-timing" },
+      { error: currentPhoneErr, id: "order-phone" },
+    ].find(({ error }) => error);
+    if (firstInvalidField) {
+      document.getElementById(firstInvalidField.id)?.focus();
+      return;
+    }
+
+    const customerName = checkoutName.trim();
+    const customerPhone = checkoutPhone.trim();
+    const resolvedTiming =
+      checkoutPickupTime === CUSTOM_TIMING_LABEL
+        ? checkoutCustomTime.trim()
+        : checkoutPickupTime;
+
+    const msg = formatOrderMessage(
+      cart,
+      customerName,
+      customerPhone,
+      subtotal,
+      checkoutOrderType,
+      checkoutExtra.trim(),
+      checkoutPayment,
+      resolvedTiming,
+      checkoutNote.trim(),
+    );
+    const copied = await copyToClipboard(msg);
+    setPendingOrder({ message: msg, createdAt: Date.now() });
+    setToast(copied
+      ? "Order request ready. Review it before sending on WhatsApp."
+      : "If copying was blocked, select and copy the order summary below.");
+    setReceipt(true);
+    setCart([]);
+    setCheckoutName("");
+    setCheckoutPhone("");
+    setCheckoutExtra("");
+    setCheckoutNote("");
+    setCheckoutCustomTime("");
+    setCheckoutErrors({});
+  };
   const scrollToMenu = () => {
     navigateToUrl(new URL(pageHref(isFoodPage ? "diner-bites" : "beverages", isFoodPage ? "food-menu" : "drinks-menu")));
   };
@@ -1746,11 +1792,7 @@ function App() {
                 </button>
                 <div className="cart-items">
                   {cart.map((item) => {
-                    const p = findProduct(item.id);
-                    const b = dinerBites.find((b) => b.id === item.id);
-                    const bev = allBeverages.find((bev) => bev.id === item.id);
-                    const mod = [...beverageAddOns, ...beverageSubs].find((m) => m.id === item.id);
-                    const title = p ? p.name : b ? b.name : bev ? bev.name : mod ? mod.name : item.name || "Item";
+                    const { p, bev, mod, title } = resolveCartItem(item);
                     const desc = item.isFood
                       ? item.size && item.size !== "Plate"
                         ? `Flavor: ${item.size}`
@@ -1759,16 +1801,7 @@ function App() {
                         ? `${item.size || bev.defaultSize} · ${bev.hot ? "Hot" : "Over Iced"}`
                         : mod
                           ? "Barista Customization"
-                          : [
-                              item.size,
-                              item.temperature,
-                              item.sweetness,
-                              item.temperature === "Iced" ? item.iceLevel : null,
-                              item.milk && item.milk !== "Regular"
-                                ? `${item.milk} milk`
-                                : null,
-                            ]
-                              .filter(Boolean)
+                          : cartItemSpecs(item)
                               .join(" · ");
                     return (
                       <div className="cart-item" key={item.key}>
@@ -1812,7 +1845,7 @@ function App() {
                               <button
                                 aria-label={`Add one ${title}`}
                                 onClick={() => changeQuantity(item.key, 1)}
-                                disabled={item.quantity >= 20}
+                                disabled={item.quantity >= MAX_CART_QUANTITY}
                               >
                                 <Icon name="plus" size={14} />
                               </button>
@@ -1875,71 +1908,7 @@ function App() {
                     className="checkout-form checkout-form-compact"
                     autoComplete="off"
                     noValidate
-                    onSubmit={async (e) => {
-                      e.preventDefault();
-                      const currentAddressErr = validateDeliveryAddress(checkoutExtra, checkoutOrderType);
-                      const currentNameErr = validateCustomerName(checkoutName);
-                      const currentPhoneErr = validateCustomerPhone(checkoutPhone);
-                      const currentTimeErr = validateOrderTiming(checkoutPickupTime, checkoutCustomTime);
-
-                      setCheckoutErrors({
-                        name: currentNameErr,
-                        phone: currentPhoneErr,
-                        address: currentAddressErr,
-                        time: currentTimeErr,
-                      });
-
-                      if (currentAddressErr) {
-                        document.getElementById("checkout-address")?.focus();
-                        return;
-                      }
-                      if (currentNameErr) {
-                        document.getElementById("order-name")?.focus();
-                        return;
-                      }
-                      if (currentTimeErr) {
-                        document.getElementById(
-                          checkoutPickupTime === "Custom time" ? "checkout-custom-time" : "checkout-timing",
-                        )?.focus();
-                        return;
-                      }
-                      if (currentPhoneErr) {
-                        document.getElementById("order-phone")?.focus();
-                        return;
-                      }
-
-                      const customerName = checkoutName.trim();
-                      const customerPhone = checkoutPhone.trim();
-                      const resolvedTiming =
-                        checkoutPickupTime === "Custom time"
-                          ? checkoutCustomTime.trim()
-                          : checkoutPickupTime;
-
-                      const msg = formatOrderMessage(
-                        cart,
-                        customerName,
-                        customerPhone,
-                        subtotal,
-                        checkoutOrderType,
-                        checkoutExtra.trim(),
-                        checkoutPayment,
-                        resolvedTiming,
-                        checkoutNote.trim(),
-                      );
-                      const copied = await copyToClipboard(msg);
-                      setPendingOrder({ message: msg, createdAt: Date.now() });
-                      setToast(copied
-                        ? "Order request ready. Review it before sending on WhatsApp."
-                        : "If copying was blocked, select and copy the order summary below.");
-                      setReceipt(true);
-                      setCart([]);
-                      setCheckoutName("");
-                      setCheckoutPhone("");
-                      setCheckoutExtra("");
-                      setCheckoutNote("");
-                      setCheckoutCustomTime("");
-                      setCheckoutErrors({});
-                    }}
+                    onSubmit={submitCheckout}
                   >
                     <div className="checkout-form-section">
                       <fieldset className="checkout-fieldset">
@@ -2107,12 +2076,7 @@ function App() {
                         <legend>Pickup / Preferred timing</legend>
                         {!storeStatus.isOpen && <small role="status">{storeStatus.text}</small>}
                         <div className="timing-choice-row">
-                          {[
-                            "ASAP (~15-20 mins)",
-                            "In 30 mins",
-                            "In 1 hour",
-                            "Custom time",
-                          ].map((timeOption) => (
+                          {ORDER_TIMING_OPTIONS.map(({ label: timeOption }) => (
                             <label
                               key={timeOption}
                               className={checkoutPickupTime === timeOption ? "selected" : ""}
@@ -2121,7 +2085,7 @@ function App() {
                                 type="radio"
                                 name="checkoutPickupTime"
                                 checked={checkoutPickupTime === timeOption}
-                                disabled={timeOption !== "Custom time" && Boolean(validateOrderTiming(timeOption, ""))}
+                                disabled={timeOption !== CUSTOM_TIMING_LABEL && Boolean(validateOrderTiming(timeOption, ""))}
                                 onChange={() => {
                                   setCheckoutPickupTime(timeOption);
                                   setCheckoutErrors((prev) => ({ ...prev, time: null }));
@@ -2131,7 +2095,7 @@ function App() {
                             </label>
                           ))}
                         </div>
-                        {checkoutPickupTime === "Custom time" && (
+                        {checkoutPickupTime === CUSTOM_TIMING_LABEL && (
                           <div className="custom-time-field">
                             <label htmlFor="checkout-custom-time">Choose time today:</label>
                             <input
@@ -2147,7 +2111,7 @@ function App() {
                                 setCheckoutCustomTime(e.target.value);
                                 setCheckoutErrors((prev) => ({
                                   ...prev,
-                                  time: validateOrderTiming("Custom time", e.target.value),
+                                  time: validateOrderTiming(CUSTOM_TIMING_LABEL, e.target.value),
                                 }));
                               }}
                               aria-invalid={showTimeError ? "true" : "false"}
@@ -2229,11 +2193,7 @@ function App() {
 
                     <div className="checkout-summary-items">
                       {cart.map((item) => {
-                        const p = findProduct(item.id);
-                        const b = dinerBites.find((b) => b.id === item.id);
-                        const bev = allBeverages.find((bev) => bev.id === item.id);
-                        const mod = [...beverageAddOns, ...beverageSubs].find((m) => m.id === item.id);
-                        const title = p ? p.name : b ? b.name : bev ? bev.name : mod ? mod.name : item.name || "Item";
+                        const { title } = resolveCartItem(item);
                         return (
                           <div key={item.key} className="checkout-summary-item">
                             <div className="checkout-summary-item-left">

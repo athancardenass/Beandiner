@@ -3,7 +3,11 @@ import type { DinerBite } from "../dinerBites";
 import type { CartItem, Product } from "../types";
 import { Icon } from "../ui/graphics";
 import { Modal } from "../ui/Modal";
+import { MAX_CART_QUANTITY } from "../utils/cart";
 import { money, productImage } from "../utils/presentation";
+
+const OAT_MILK_SURCHARGE = 35;
+const ITEM_NOTE_MAX_LENGTH = 120;
 
 // ↓ SEGMENTED: Radio group styled as a segmented control (arrow keys move selection)
 function Segmented({
@@ -53,7 +57,7 @@ export function ProductModal({
 }) {
   const isIcedDrink = product.fixedTemperature === "Iced" || product.name.toLowerCase().includes("iced");
   const isHotDrink = product.fixedTemperature === "Hot" || product.name.toLowerCase().includes("hot");
-  const fixedTemperature = product.fixedTemperature ?? (isIcedDrink ? "Iced" : isHotDrink ? "Hot" : product.hot ? "Hot" : undefined);
+  const fixedTemperature = product.fixedTemperature ?? (isIcedDrink ? "Iced" : isHotDrink || product.hot ? "Hot" : undefined);
   const sizeOptions = product.sizePrices ?? [
     { size: "16 oz", price: product.price },
     { size: "22 oz", price: product.price + 30 },
@@ -70,7 +74,7 @@ export function ProductModal({
   const hasMilk = product.allowMilkCustomization ?? true;
   const price =
     (sizeOptions.find((option) => option.size === size)?.price ?? product.price) +
-    (hasMilk && milk === "Oat" ? 35 : 0);
+    (hasMilk && milk === "Oat" ? OAT_MILK_SURCHARGE : 0);
 
   return (
     <Modal
@@ -134,11 +138,11 @@ export function ProductModal({
             name="size"
             value={size}
             onChange={setSize}
-            options={sizeOptions.map((option, index) => ({
+            options={sizeOptions.map((option) => ({
               value: option.size,
               label: option.size,
               extra:
-                index > 0 && option.price > sizeOptions[0].price
+                option.price > sizeOptions[0].price
                   ? `+${money(option.price - sizeOptions[0].price)}`
                   : undefined,
             }))}
@@ -155,7 +159,7 @@ export function ProductModal({
             onChange={setMilk}
             options={[
               { value: "Regular", label: "Regular" },
-              { value: "Oat", label: "Oat", extra: "+₱35" },
+              { value: "Oat", label: "Oat", extra: `+${money(OAT_MILK_SURCHARGE)}` },
             ]}
           />
         )}
@@ -198,7 +202,7 @@ export function ProductModal({
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="e.g. separate syrup"
-            maxLength={120}
+            maxLength={ITEM_NOTE_MAX_LENGTH}
           />
         </div>
 
@@ -215,9 +219,9 @@ export function ProductModal({
             <output aria-live="polite">{quantity}</output>
             <button
               type="button"
-              onClick={() => setQuantity((q) => Math.min(20, q + 1))}
+              onClick={() => setQuantity((q) => Math.min(MAX_CART_QUANTITY, q + 1))}
               aria-label="Increase quantity"
-              disabled={quantity === 20}
+              disabled={quantity === MAX_CART_QUANTITY}
             >
               <Icon name="plus" size={16} />
             </button>
@@ -316,7 +320,7 @@ export function BiteCustomizeModal({
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="e.g. Extra crispy, dip on the side, less seasoning..."
-            maxLength={120}
+            maxLength={ITEM_NOTE_MAX_LENGTH}
           />
         </div>
 
@@ -333,8 +337,8 @@ export function BiteCustomizeModal({
             <span aria-live="polite">{quantity}</span>
             <button
               type="button"
-              onClick={() => setQuantity((q) => Math.min(20, q + 1))}
-              disabled={quantity >= 20}
+              onClick={() => setQuantity((q) => Math.min(MAX_CART_QUANTITY, q + 1))}
+              disabled={quantity >= MAX_CART_QUANTITY}
               aria-label="Increase quantity"
             >
               <Icon name="plus" size={16} />
