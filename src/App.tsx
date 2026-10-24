@@ -32,7 +32,7 @@ import {
   writePendingOrder,
   type PendingOrder,
 } from "./utils/checkout";
-import { mergeCartItem } from "./utils/cart";
+import { cartItemSpecs, mergeCartItem } from "./utils/cart";
 import { copyToClipboard } from "./utils/clipboard";
 import { FACEBOOK_PAGE_URL, getMessengerUrl, openMessengerOnMobile } from "./utils/messenger";
 import {
@@ -283,6 +283,15 @@ const allProducts = [...products, ...heroSelectorProducts];
 
 const findProduct = (id: string) => allProducts.find((product) => product.id === id);
 
+const resolveCartItem = (item: CartItem) => {
+  const p = findProduct(item.id);
+  const b = dinerBites.find((b) => b.id === item.id);
+  const bev = allBeverages.find((bev) => bev.id === item.id);
+  const mod = [...beverageAddOns, ...beverageSubs].find((m) => m.id === item.id);
+  const title = p ? p.name : b ? b.name : bev ? bev.name : mod ? mod.name : item.name || "Item";
+  return { p, bev, mod, title };
+};
+
 const spanishLatte = products.find((product) => product.id === "latte")!;
 
 const coffeeDateSaltedCaramel = allBeverages.find(
@@ -314,11 +323,7 @@ const formatOrderMessage = (
   orderNote: string = "",
 ) => {
   const lines = items.map((item) => {
-    const p = findProduct(item.id);
-    const b = dinerBites.find((b) => b.id === item.id);
-    const bev = allBeverages.find((bev) => bev.id === item.id);
-    const mod = [...beverageAddOns, ...beverageSubs].find((m) => m.id === item.id);
-    const title = p ? p.name : b ? b.name : bev ? bev.name : mod ? mod.name : item.name || "Item";
+    const { bev, mod, title } = resolveCartItem(item);
     const noteSuffix = item.note?.trim()
       ? ` - Note: "${item.note.trim()}"`
       : "";
@@ -338,14 +343,7 @@ const formatOrderMessage = (
           item.price * item.quantity,
         )}`;
     }
-    const specs = [
-      item.size,
-      item.temperature,
-      item.sweetness,
-      item.temperature === "Iced" ? item.iceLevel : null,
-      item.milk && item.milk !== "Regular" ? `${item.milk} milk` : null,
-    ]
-      .filter(Boolean)
+    const specs = cartItemSpecs(item)
       .join(", ");
     return `• ${item.quantity}x ${title} (${specs})${noteSuffix} - ${money(
         item.price * item.quantity,
@@ -1715,11 +1713,7 @@ function App() {
                 </button>
                 <div className="cart-items">
                   {cart.map((item) => {
-                    const p = findProduct(item.id);
-                    const b = dinerBites.find((b) => b.id === item.id);
-                    const bev = allBeverages.find((bev) => bev.id === item.id);
-                    const mod = [...beverageAddOns, ...beverageSubs].find((m) => m.id === item.id);
-                    const title = p ? p.name : b ? b.name : bev ? bev.name : mod ? mod.name : item.name || "Item";
+                    const { p, bev, mod, title } = resolveCartItem(item);
                     const desc = item.isFood
                       ? item.size && item.size !== "Plate"
                         ? `Flavor: ${item.size}`
@@ -1728,16 +1722,7 @@ function App() {
                         ? `${item.size || bev.defaultSize} · ${bev.hot ? "Hot" : "Over Iced"}`
                         : mod
                           ? "Barista Customization"
-                          : [
-                              item.size,
-                              item.temperature,
-                              item.sweetness,
-                              item.temperature === "Iced" ? item.iceLevel : null,
-                              item.milk && item.milk !== "Regular"
-                                ? `${item.milk} milk`
-                                : null,
-                            ]
-                              .filter(Boolean)
+                          : cartItemSpecs(item)
                               .join(" · ");
                     return (
                       <div className="cart-item" key={item.key}>
@@ -2198,11 +2183,7 @@ function App() {
 
                     <div className="checkout-summary-items">
                       {cart.map((item) => {
-                        const p = findProduct(item.id);
-                        const b = dinerBites.find((b) => b.id === item.id);
-                        const bev = allBeverages.find((bev) => bev.id === item.id);
-                        const mod = [...beverageAddOns, ...beverageSubs].find((m) => m.id === item.id);
-                        const title = p ? p.name : b ? b.name : bev ? bev.name : mod ? mod.name : item.name || "Item";
+                        const { title } = resolveCartItem(item);
                         return (
                           <div key={item.key} className="checkout-summary-item">
                             <div className="checkout-summary-item-left">

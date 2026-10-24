@@ -10,3 +10,11 @@ export function mergeCartItem(items: CartItem[], item: CartItem): CartItem[] {
       )
     : [...items, item];
 }
+
+export const cartItemSpecs = (item: CartItem) => [
+  item.size,
+  item.temperature,
+  item.sweetness,
+  item.temperature === "Iced" ? item.iceLevel : null,
+  item.milk && item.milk !== "Regular" ? `${item.milk} milk` : null,
+].filter(Boolean);
