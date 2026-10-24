@@ -14,6 +14,11 @@ const prefersReducedMotion = () =>
 /* Menus longer than this get a search field. */
 export const SEARCH_THRESHOLD = 15;
 
+const CATEGORY_TAB_SELECTOR = ".menu-tab";
+const CATEGORY_CLIP_TOLERANCE = 0.5;
+const CATEGORY_SCROLL_GUTTER = 4;
+const CATEGORY_SCROLL_EDGE_TOLERANCE = 1;
+
 export const normalizeQuery = (value: string) =>
   value
     .toLowerCase()
@@ -271,12 +276,12 @@ export function CategoryTabs({
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         const bounds = container.getBoundingClientRect();
-        const buttons = container.querySelectorAll<HTMLButtonElement>(".menu-tab");
+        const buttons = container.querySelectorAll<HTMLButtonElement>(CATEGORY_TAB_SELECTOR);
         buttons.forEach((button) => {
           const buttonBounds = button.getBoundingClientRect();
           button.dataset.edgeClipped = String(
-            buttonBounds.left < bounds.left - 0.5 ||
-              buttonBounds.right > bounds.right + 0.5,
+            buttonBounds.left < bounds.left - CATEGORY_CLIP_TOLERANCE ||
+              buttonBounds.right > bounds.right + CATEGORY_CLIP_TOLERANCE,
           );
         });
 
@@ -284,12 +289,12 @@ export function CategoryTabs({
         const startOffset = firstButton
           ? Math.max(
               0,
-              container.scrollLeft + firstButton.getBoundingClientRect().left - bounds.left - 4,
+              container.scrollLeft + firstButton.getBoundingClientRect().left - bounds.left - CATEGORY_SCROLL_GUTTER,
             )
           : 0;
         const next = {
-          left: container.scrollLeft > startOffset + 1,
-          right: container.scrollLeft + container.clientWidth < container.scrollWidth - 1,
+          left: container.scrollLeft > startOffset + CATEGORY_SCROLL_EDGE_TOLERANCE,
+          right: container.scrollLeft + container.clientWidth < container.scrollWidth - CATEGORY_SCROLL_EDGE_TOLERANCE,
         };
         setScrollState((previous) =>
           previous.left === next.left && previous.right === next.right ? previous : next,
@@ -301,7 +306,7 @@ export function CategoryTabs({
     container.addEventListener("scroll", update, { passive: true });
     const resizeObserver = new ResizeObserver(update);
     resizeObserver.observe(container);
-    container.querySelectorAll(".menu-tab").forEach((button) => resizeObserver.observe(button));
+    container.querySelectorAll(CATEGORY_TAB_SELECTOR).forEach((button) => resizeObserver.observe(button));
 
     return () => {
       cancelAnimationFrame(frame);
@@ -315,18 +320,18 @@ export function CategoryTabs({
     if (!container) return;
 
     const bounds = container.getBoundingClientRect();
-    const buttons = Array.from(container.querySelectorAll<HTMLButtonElement>(".menu-tab"));
+    const buttons = Array.from(container.querySelectorAll<HTMLButtonElement>(CATEGORY_TAB_SELECTOR));
     const target =
       direction > 0
-        ? buttons.find((button) => button.getBoundingClientRect().right > bounds.right - 0.5)
+        ? buttons.find((button) => button.getBoundingClientRect().right > bounds.right - CATEGORY_CLIP_TOLERANCE)
         : [...buttons]
             .reverse()
-            .find((button) => button.getBoundingClientRect().left < bounds.left + 0.5);
+            .find((button) => button.getBoundingClientRect().left < bounds.left + CATEGORY_CLIP_TOLERANCE);
 
     if (!target) return;
 
     const targetLeft =
-      container.scrollLeft + target.getBoundingClientRect().left - bounds.left - 4;
+      container.scrollLeft + target.getBoundingClientRect().left - bounds.left - CATEGORY_SCROLL_GUTTER;
     container.scrollTo({
       left: Math.max(0, targetLeft),
       behavior: prefersReducedMotion() ? "auto" : "smooth",
