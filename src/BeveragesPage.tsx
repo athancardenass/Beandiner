@@ -391,57 +391,41 @@ export default function BeveragesPage({
               </div>
 
               <div className="bev-modifiers-container">
-                {/* Add-Ons Column */}
-                <div className="bev-modifier-card">
-                  <div className="bev-modifier-card-header">
-                    <h4>Beverage Add-Ons</h4>
-                    <span className="bev-modifier-count">{addOns.length} options</span>
+                {[
+                  {
+                    title: "Beverage Add-Ons", items: addOns, labelPrefix: "Add",
+                    onAdd: (modifier: BeverageModifier) => onAddModifier(modifier, "Add-on"),
+                  },
+                  {
+                    title: "Substitutions (Subs)", items: subs, labelPrefix: "Add substitution",
+                    onAdd: (modifier: BeverageModifier) => onAddModifier(modifier, "Sub"),
+                  },
+                ].map(({ title, items, labelPrefix, onAdd }) => (
+                  <div key={title} className="bev-modifier-card">
+                    <div className="bev-modifier-card-header">
+                      <h4>{title}</h4>
+                      <span className="bev-modifier-count">{items.length} options</span>
+                    </div>
+                    <ul className="bev-modifier-list">
+                      {items.map((modifier) => (
+                        <li key={modifier.id} className="bev-modifier-row">
+                          <div className="bev-modifier-info">
+                            <span className="bev-modifier-name">{modifier.name}</span>
+                            <span className="bev-modifier-price">{money(modifier.price)}</span>
+                          </div>
+                          <button
+                            type="button"
+                            className="button button-small bev-modifier-add menu-add-btn"
+                            onClick={() => onAdd(modifier)}
+                            aria-label={`${labelPrefix} ${modifier.name} to bag`}
+                          >
+                            <PlusIcon size={13} /> Add
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <ul className="bev-modifier-list">
-                    {addOns.map((addon) => (
-                      <li key={addon.id} className="bev-modifier-row">
-                        <div className="bev-modifier-info">
-                          <span className="bev-modifier-name">{addon.name}</span>
-                          <span className="bev-modifier-price">{money(addon.price)}</span>
-                        </div>
-                        <button
-                          type="button"
-                          className="button button-small bev-modifier-add menu-add-btn"
-                          onClick={() => onAddModifier(addon, "Add-on")}
-                          aria-label={`Add ${addon.name} to bag`}
-                        >
-                          <PlusIcon size={13} /> Add
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Substitutions Column */}
-                <div className="bev-modifier-card">
-                  <div className="bev-modifier-card-header">
-                    <h4>Substitutions (Subs)</h4>
-                    <span className="bev-modifier-count">{subs.length} options</span>
-                  </div>
-                  <ul className="bev-modifier-list">
-                    {subs.map((sub) => (
-                      <li key={sub.id} className="bev-modifier-row">
-                        <div className="bev-modifier-info">
-                          <span className="bev-modifier-name">{sub.name}</span>
-                          <span className="bev-modifier-price">{money(sub.price)}</span>
-                        </div>
-                        <button
-                          type="button"
-                          className="button button-small bev-modifier-add menu-add-btn"
-                          onClick={() => onAddModifier(sub, "Sub")}
-                          aria-label={`Add substitution ${sub.name} to bag`}
-                        >
-                          <PlusIcon size={13} /> Add
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                ))}
               </div>
             </section>
           )}
