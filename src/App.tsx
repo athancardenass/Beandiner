@@ -34,6 +34,7 @@ import {
 } from "./utils/checkout";
 import { cartItemSpecs, MAX_CART_QUANTITY, mergeCartItem } from "./utils/cart";
 import { copyToClipboard } from "./utils/clipboard";
+import { listen } from "./utils/events";
 import { FACEBOOK_PAGE_URL, getMessengerUrl, openMessengerOnMobile } from "./utils/messenger";
 import {
   clickScrollBehavior,
@@ -609,7 +610,7 @@ function App() {
         videoPlaybackTime.current = video.currentTime;
       }
     };
-    video.addEventListener("timeupdate", rememberPlaybackTime);
+    const stopRememberingPlaybackTime = listen(video, "timeupdate", rememberPlaybackTime);
 
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     let isVisible = false;
@@ -649,27 +650,23 @@ function App() {
     }, { threshold: 0.05 });
 
     observer.observe(video);
-    reducedMotion.addEventListener("change", syncPlayback);
-    document.addEventListener("visibilitychange", syncPlayback);
-    window.addEventListener("pageshow", syncPlayback);
-    window.addEventListener("online", recoverPlayback);
-    document.addEventListener("pointerdown", syncPlayback, { passive: true });
-    document.addEventListener("keydown", syncPlayback);
-    video.addEventListener("canplay", syncPlayback);
+    const removePlaybackListeners = [
+      listen(reducedMotion, "change", syncPlayback),
+      listen(document, "visibilitychange", syncPlayback),
+      listen(window, "pageshow", syncPlayback),
+      listen(window, "online", recoverPlayback),
+      listen(document, "pointerdown", syncPlayback, { passive: true }),
+      listen(document, "keydown", syncPlayback),
+      listen(video, "canplay", syncPlayback),
+    ];
     const recoveryTimer = window.setInterval(recoverPlayback, 4000);
     return () => {
       disposed = true;
       window.clearInterval(recoveryTimer);
       rememberPlaybackTime();
       observer.disconnect();
-      reducedMotion.removeEventListener("change", syncPlayback);
-      document.removeEventListener("visibilitychange", syncPlayback);
-      window.removeEventListener("pageshow", syncPlayback);
-      window.removeEventListener("online", recoverPlayback);
-      document.removeEventListener("pointerdown", syncPlayback);
-      document.removeEventListener("keydown", syncPlayback);
-      video.removeEventListener("canplay", syncPlayback);
-      video.removeEventListener("timeupdate", rememberPlaybackTime);
+      removePlaybackListeners.forEach((remove) => remove());
+      stopRememberingPlaybackTime();
       video.pause();
     };
   }, [currentPage]);
@@ -695,10 +692,10 @@ function App() {
   useEffect(() => {
     const updateStoreStatus = () => setStoreStatus(getStoreStatus());
     const interval = window.setInterval(updateStoreStatus, 60_000);
-    document.addEventListener("visibilitychange", updateStoreStatus);
+    const stopUpdatingStoreStatus = listen(document, "visibilitychange", updateStoreStatus);
     return () => {
       window.clearInterval(interval);
-      document.removeEventListener("visibilitychange", updateStoreStatus);
+      stopUpdatingStoreStatus();
     };
   }, []);
   // Keep browser history and in-page anchors in sync without remounting the cart.
@@ -714,9 +711,9 @@ function App() {
       navigationFrame.current = requestAnimationFrame(() => scrollToPageAnchor());
     };
     syncLocation();
-    window.addEventListener("popstate", syncLocation);
+    const stopSyncingLocation = listen(window, "popstate", syncLocation);
     return () => {
-      window.removeEventListener("popstate", syncLocation);
+      stopSyncingLocation();
       cancelAnimationFrame(navigationFrame.current);
     };
   }, []);
@@ -788,10 +785,12 @@ function App() {
     const resizeObserver = new ResizeObserver(measure);
     resizeObserver.observe(document.body);
     resizeObserver.observe(document.documentElement);
-    window.addEventListener("scroll", handle, { passive: true });
-    window.addEventListener("resize", measure);
-    reduced.addEventListener("change", handle);
-    coarsePointer.addEventListener("change", handle);
+    const removeScrollListeners = [
+      listen(window, "scroll", handle, { passive: true }),
+      listen(window, "resize", measure),
+      listen(reduced, "change", handle),
+      listen(coarsePointer, "change", handle),
+    ];
     measure();
     document.documentElement.classList.add("js-ready");
     const observer = new IntersectionObserver(
@@ -807,10 +806,7 @@ function App() {
     );
     document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
     return () => {
-      window.removeEventListener("scroll", handle);
-      window.removeEventListener("resize", measure);
-      reduced.removeEventListener("change", handle);
-      coarsePointer.removeEventListener("change", handle);
+      removeScrollListeners.forEach((remove) => remove());
       resizeObserver.disconnect();
       heroVisibility?.disconnect();
       cancelAnimationFrame(frame);
