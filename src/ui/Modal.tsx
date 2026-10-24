@@ -478,7 +478,7 @@ export function Modal({
       resetViewportState(el);
       if (el.open) el.close();
       unlockPage();
-      if (previousFocus && typeof previousFocus.focus === "function") previousFocus.focus();
+      if (previousFocus && typeof previousFocus.focus === "function") previousFocus.focus({ preventScroll: true });
     };
   }, [docScrollMode]);
 

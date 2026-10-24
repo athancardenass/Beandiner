@@ -18,6 +18,29 @@ export async function checkPages({ page, goto, setViewport }) {
   }
 }
 
+export async function checkNavigationDismissal({ page, goto, setViewport }) {
+  await setViewport({ width: 390, height: 844 });
+  await goto(`${base}/`);
+  await page.getByRole('button', { name: 'Open navigation', exact: true }).waitFor({ state: 'visible' });
+  const before = await page.evaluate(async () => {
+    await document.fonts.ready;
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    window.scrollTo(0, 900);
+    return { x: scrollX, y: scrollY };
+  });
+  await page.evaluate(() => {
+    const menu = document.querySelector('.header .mobile-menu');
+    menu.focus({ preventScroll: true });
+    menu.click();
+  });
+  await page.getByRole('dialog', { name: 'Navigation', exact: true }).waitFor({ state: 'visible' });
+  await page.getByRole('dialog', { name: 'Navigation', exact: true }).evaluate(dialog => dialog.click());
+  await page.getByRole('dialog', { name: 'Navigation', exact: true }).waitFor({ state: 'hidden' });
+  const after = await page.evaluate(() => ({ x: scrollX, y: scrollY }));
+  assert.deepEqual(after, before, 'Dismissing navigation must preserve the page scroll position');
+  assert.equal(await page.evaluate(() => document.activeElement === document.querySelector('.header .mobile-menu')), true);
+}
+
 export async function checkBag({ page, goto }) {
   await goto(`${base}/`);
   await page.getByRole('button', { name: 'Make it a coffee date', exact: true }).click();
@@ -259,6 +282,7 @@ export async function checkWhatsApp({ page, goto, setViewport }) {
 
 export async function checkAll(harness) {
   await checkPages(harness);
+  await checkNavigationDismissal(harness);
   await checkBag(harness);
   await checkOrdering(harness);
   await checkCheckoutRotation(harness);
