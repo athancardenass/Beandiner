@@ -32,6 +32,7 @@ import {
   writePendingOrder,
   type PendingOrder,
 } from "./utils/checkout";
+import { mergeCartItem } from "./utils/cart";
 import { copyToClipboard } from "./utils/clipboard";
 import { FACEBOOK_PAGE_URL, getMessengerUrl, openMessengerOnMobile } from "./utils/messenger";
 import {
@@ -836,16 +837,7 @@ function App() {
   // ↓ ADD TO CART: Merge duplicates, show toast
   const add = (item: CartItem) => {
     announceAdd(item.name || "item");
-    setCart((current) => {
-      const existing = current.find((i) => i.key === item.key);
-      return existing
-        ? current.map((i) =>
-            i.key === item.key
-              ? { ...i, quantity: Math.min(20, i.quantity + item.quantity) }
-              : i,
-          )
-        : [...current, item];
-    });
+    setCart((current) => mergeCartItem(current, item));
     setSelected(null);
     setReceipt(false);
   };
@@ -870,16 +862,7 @@ function App() {
       isFood: true,
     };
     announceAdd(cleanName);
-    setCart((current) => {
-      const existing = current.find((i) => i.key === item.key);
-      return existing
-        ? current.map((i) =>
-            i.key === item.key
-              ? { ...i, quantity: Math.min(20, i.quantity + 1) }
-              : i,
-          )
-        : [...current, item];
-    });
+    setCart((current) => mergeCartItem(current, item));
     setReceipt(false);
   };
 
@@ -918,21 +901,7 @@ function App() {
     }));
 
     announceAdd("Salted Caramel + Matcha coffee date");
-    setCart((current) =>
-      pairItems.reduce((items, item) => {
-        const existing = items.find((candidate) => candidate.key === item.key);
-        return existing
-          ? items.map((candidate) =>
-              candidate.key === item.key
-                ? {
-                    ...candidate,
-                    quantity: Math.min(20, candidate.quantity + item.quantity),
-                  }
-                : candidate,
-            )
-          : [...items, item];
-      }, current),
-    );
+    setCart((current) => pairItems.reduce(mergeCartItem, current));
     setSelected(null);
     setReceipt(false);
   };
