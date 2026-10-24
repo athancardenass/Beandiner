@@ -24,8 +24,11 @@ import {
   useStickyHeaderOffset,
 } from "./ui/menu";
 import {
+  ASAP_TIMING_LABEL,
+  CUSTOM_TIMING_LABEL,
   getStoreStatus,
   isPendingOrder,
+  ORDER_TIMING_OPTIONS,
   PENDING_ORDER_TTL_MS,
   readPendingOrder,
   validateOrderTiming,
@@ -529,7 +532,7 @@ function App() {
   const bagContentRef = useRef<HTMLDivElement>(null);
   const orderTypeScrollTopRef = useRef<number | null>(null);
   const [checkoutPickupTime, setCheckoutPickupTime] = useState(() =>
-    validateOrderTiming("ASAP (~15-20 mins)", "") ? "Custom time" : "ASAP (~15-20 mins)",
+    validateOrderTiming(ASAP_TIMING_LABEL, "") ? CUSTOM_TIMING_LABEL : ASAP_TIMING_LABEL,
   );
   const [checkoutCustomTime, setCheckoutCustomTime] = useState("");
   const [checkoutNote, setCheckoutNote] = useState("");
@@ -967,7 +970,7 @@ function App() {
     const firstInvalidField = [
       { error: currentAddressErr, id: "checkout-address" },
       { error: currentNameErr, id: "order-name" },
-      { error: currentTimeErr, id: checkoutPickupTime === "Custom time" ? "checkout-custom-time" : "checkout-timing" },
+      { error: currentTimeErr, id: checkoutPickupTime === CUSTOM_TIMING_LABEL ? "checkout-custom-time" : "checkout-timing" },
       { error: currentPhoneErr, id: "order-phone" },
     ].find(({ error }) => error);
     if (firstInvalidField) {
@@ -978,7 +981,7 @@ function App() {
     const customerName = checkoutName.trim();
     const customerPhone = checkoutPhone.trim();
     const resolvedTiming =
-      checkoutPickupTime === "Custom time"
+      checkoutPickupTime === CUSTOM_TIMING_LABEL
         ? checkoutCustomTime.trim()
         : checkoutPickupTime;
 
@@ -2073,12 +2076,7 @@ function App() {
                         <legend>Pickup / Preferred timing</legend>
                         {!storeStatus.isOpen && <small role="status">{storeStatus.text}</small>}
                         <div className="timing-choice-row">
-                          {[
-                            "ASAP (~15-20 mins)",
-                            "In 30 mins",
-                            "In 1 hour",
-                            "Custom time",
-                          ].map((timeOption) => (
+                          {ORDER_TIMING_OPTIONS.map(({ label: timeOption }) => (
                             <label
                               key={timeOption}
                               className={checkoutPickupTime === timeOption ? "selected" : ""}
@@ -2087,7 +2085,7 @@ function App() {
                                 type="radio"
                                 name="checkoutPickupTime"
                                 checked={checkoutPickupTime === timeOption}
-                                disabled={timeOption !== "Custom time" && Boolean(validateOrderTiming(timeOption, ""))}
+                                disabled={timeOption !== CUSTOM_TIMING_LABEL && Boolean(validateOrderTiming(timeOption, ""))}
                                 onChange={() => {
                                   setCheckoutPickupTime(timeOption);
                                   setCheckoutErrors((prev) => ({ ...prev, time: null }));
@@ -2097,7 +2095,7 @@ function App() {
                             </label>
                           ))}
                         </div>
-                        {checkoutPickupTime === "Custom time" && (
+                        {checkoutPickupTime === CUSTOM_TIMING_LABEL && (
                           <div className="custom-time-field">
                             <label htmlFor="checkout-custom-time">Choose time today:</label>
                             <input
@@ -2113,7 +2111,7 @@ function App() {
                                 setCheckoutCustomTime(e.target.value);
                                 setCheckoutErrors((prev) => ({
                                   ...prev,
-                                  time: validateOrderTiming("Custom time", e.target.value),
+                                  time: validateOrderTiming(CUSTOM_TIMING_LABEL, e.target.value),
                                 }));
                               }}
                               aria-invalid={showTimeError ? "true" : "false"}

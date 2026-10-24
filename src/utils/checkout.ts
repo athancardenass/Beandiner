@@ -53,9 +53,18 @@ export function getStoreStatus(now = new Date()) {
   };
 }
 
+export const ASAP_TIMING_LABEL = "ASAP (~15-20 mins)";
+export const CUSTOM_TIMING_LABEL = "Custom time";
+export const ORDER_TIMING_OPTIONS = [
+  { label: ASAP_TIMING_LABEL, offset: 20 },
+  { label: "In 30 mins", offset: 30 },
+  { label: "In 1 hour", offset: 60 },
+  { label: CUSTOM_TIMING_LABEL, offset: null },
+];
+
 export function validateOrderTiming(option: string, custom: string, now = new Date()): string | null {
   const current = manilaMinutes(now);
-  if (option === "Custom time") {
+  if (option === CUSTOM_TIMING_LABEL) {
     if (!custom.trim()) return "Please specify your preferred time";
     const match = custom.trim().match(/^(\d{1,2})(?::([0-5]\d))?\s*(am|pm)?$/i);
     if (!match) return "Enter a time such as 2:45 PM or 14:45.";
@@ -73,8 +82,7 @@ export function validateOrderTiming(option: string, custom: string, now = new Da
     if (requested <= current) return "Please choose a time later today.";
     return null;
   }
-  const offset = option === "ASAP (~15-20 mins)" ? 20
-    : option === "In 30 mins" ? 30 : option === "In 1 hour" ? 60 : null;
+  const offset = ORDER_TIMING_OPTIONS.find((timing) => timing.label === option)?.offset ?? null;
   if (offset === null) return "Please select a preferred time.";
   if (current < opens || current >= closes) {
     return "The diner is closed. Please choose a custom time during opening hours.";
