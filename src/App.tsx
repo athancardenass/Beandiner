@@ -47,6 +47,25 @@ import {
 import { money, productImage } from "./utils/presentation";
 import { getWhatsAppUrl, withOrderRequestStatus, WHATSAPP_URL_LIMIT } from "./utils/whatsapp";
 
+const PAGE_METADATA: Record<AppPage, { title: string; description: string }> = {
+  home: {
+    title: "Bean Diner | Good Food. Great Coffee. Warm Vibes.",
+    description: "Bean Diner in Bayambang, Pangasinan. Founded by a US-trained Chef & Middle East-skilled Barista. Comfort food, Oatside creations, Benguet highland coffee, and warm community vibes.",
+  },
+  "diner-bites": {
+    title: "Diner Bites & Comfort Plates | Bean Diner",
+    description: "Crispy chicken wings, loaded nachos, rice plates, pasta, sandwiches, and warm croffles at Bean Diner in Bayambang, Pangasinan.",
+  },
+  beverages: {
+    title: "Artisanal Brews & Specialty Sips | Bean Diner",
+    description: "Hot and iced coffee, matcha, chai, milkshakes, and plant-based add-ons at Bean Diner in Bayambang, Pangasinan.",
+  },
+  "our-story": {
+    title: "Our Story | Bean Diner Bayambang",
+    description: "Meet the US-trained Chef and Middle East specialty coffee Barista behind Bean Diner in Bayambang, Pangasinan.",
+  },
+};
+
 const beanDinerMapsUrl =
   "https://www.google.com/maps/place/Bean+Diner/@15.8103457,120.4573329,17z/data=!4m14!1m7!3m6!1s0x339149ebf4721bcb:0xff2c7401d69cb887!2sBean+Diner!8m2!3d15.8103457!4d120.4573329!16s%2Fg%2F11vljpcbmt!3m5!1s0x339149ebf4721bcb:0xff2c7401d69cb887!8m2!3d15.8103457!4d120.4573329!16s%2Fg%2F11vljpcbmt?entry=ttu&g_ep=EgoyMDI2MDkyMi4wIKXMDSoASAFQAw%3D%3D";
 
@@ -690,20 +709,15 @@ function App() {
     };
   }, [currentPage]);
   useEffect(() => {
-    document.title = isFoodPage
-      ? "Diner Bites & Comfort Plates | Bean Diner"
+    const page = isFoodPage
+      ? "diner-bites"
       : isBeveragesPage
-      ? "Artisanal Brews & Specialty Sips | Bean Diner"
+      ? "beverages"
       : isStoryPage
-      ? "Our Story | Bean Diner Bayambang"
-      : "Bean Diner | Good Food. Great Coffee. Warm Vibes.";
-    const description = isFoodPage
-      ? "Crispy chicken wings, loaded nachos, rice plates, pasta, sandwiches, and warm croffles at Bean Diner in Bayambang, Pangasinan."
-      : isBeveragesPage
-      ? "Hot and iced coffee, matcha, chai, milkshakes, and plant-based add-ons at Bean Diner in Bayambang, Pangasinan."
-      : isStoryPage
-      ? "Meet the US-trained Chef and Middle East specialty coffee Barista behind Bean Diner in Bayambang, Pangasinan."
-      : "Bean Diner in Bayambang, Pangasinan. Founded by a US-trained Chef & Middle East-skilled Barista. Comfort food, Oatside creations, Benguet highland coffee, and warm community vibes.";
+      ? "our-story"
+      : "home";
+    const { title, description } = PAGE_METADATA[page];
+    document.title = title;
     document
       .querySelector<HTMLMetaElement>('meta[name="description"]')
       ?.setAttribute("content", description);
