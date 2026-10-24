@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { foodCategories, type DinerBite } from "./dinerBites";
+import { money } from "./utils/presentation";
 import {
   CategoryTabs,
   FadeImage,
@@ -16,9 +17,6 @@ import {
 type DinerBitesPageProps = {
   onAdd: (bite: DinerBite) => void;
 };
-
-const money = (amount: number | null) =>
-  amount !== null ? `₱${amount.toLocaleString("en-PH")}` : "Price TBD";
 
 function FoodItem({
   bite,
