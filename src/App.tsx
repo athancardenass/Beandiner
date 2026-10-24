@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type MouseEvent } from "react";
 import DinerBitesPage from "./DinerBitesPage";
 import BeveragesPage from "./BeveragesPage";
 import OurStoryPage from "./OurStoryPage";
@@ -929,6 +929,63 @@ function App() {
         )
         .filter((i) => i.quantity > 0),
     );
+  const submitCheckout = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const currentAddressErr = validateDeliveryAddress(checkoutExtra, checkoutOrderType);
+    const currentNameErr = validateCustomerName(checkoutName);
+    const currentPhoneErr = validateCustomerPhone(checkoutPhone);
+    const currentTimeErr = validateOrderTiming(checkoutPickupTime, checkoutCustomTime);
+
+    setCheckoutErrors({
+      name: currentNameErr,
+      phone: currentPhoneErr,
+      address: currentAddressErr,
+      time: currentTimeErr,
+    });
+
+    const firstInvalidField = [
+      { error: currentAddressErr, id: "checkout-address" },
+      { error: currentNameErr, id: "order-name" },
+      { error: currentTimeErr, id: checkoutPickupTime === "Custom time" ? "checkout-custom-time" : "checkout-timing" },
+      { error: currentPhoneErr, id: "order-phone" },
+    ].find(({ error }) => error);
+    if (firstInvalidField) {
+      document.getElementById(firstInvalidField.id)?.focus();
+      return;
+    }
+
+    const customerName = checkoutName.trim();
+    const customerPhone = checkoutPhone.trim();
+    const resolvedTiming =
+      checkoutPickupTime === "Custom time"
+        ? checkoutCustomTime.trim()
+        : checkoutPickupTime;
+
+    const msg = formatOrderMessage(
+      cart,
+      customerName,
+      customerPhone,
+      subtotal,
+      checkoutOrderType,
+      checkoutExtra.trim(),
+      checkoutPayment,
+      resolvedTiming,
+      checkoutNote.trim(),
+    );
+    const copied = await copyToClipboard(msg);
+    setPendingOrder({ message: msg, createdAt: Date.now() });
+    setToast(copied
+      ? "Order request ready. Review it before sending on WhatsApp."
+      : "If copying was blocked, select and copy the order summary below.");
+    setReceipt(true);
+    setCart([]);
+    setCheckoutName("");
+    setCheckoutPhone("");
+    setCheckoutExtra("");
+    setCheckoutNote("");
+    setCheckoutCustomTime("");
+    setCheckoutErrors({});
+  };
   const scrollToMenu = () => {
     navigateToUrl(new URL(pageHref(isFoodPage ? "diner-bites" : "beverages", isFoodPage ? "food-menu" : "drinks-menu")));
   };
@@ -1827,71 +1884,7 @@ function App() {
                     className="checkout-form checkout-form-compact"
                     autoComplete="off"
                     noValidate
-                    onSubmit={async (e) => {
-                      e.preventDefault();
-                      const currentAddressErr = validateDeliveryAddress(checkoutExtra, checkoutOrderType);
-                      const currentNameErr = validateCustomerName(checkoutName);
-                      const currentPhoneErr = validateCustomerPhone(checkoutPhone);
-                      const currentTimeErr = validateOrderTiming(checkoutPickupTime, checkoutCustomTime);
-
-                      setCheckoutErrors({
-                        name: currentNameErr,
-                        phone: currentPhoneErr,
-                        address: currentAddressErr,
-                        time: currentTimeErr,
-                      });
-
-                      if (currentAddressErr) {
-                        document.getElementById("checkout-address")?.focus();
-                        return;
-                      }
-                      if (currentNameErr) {
-                        document.getElementById("order-name")?.focus();
-                        return;
-                      }
-                      if (currentTimeErr) {
-                        document.getElementById(
-                          checkoutPickupTime === "Custom time" ? "checkout-custom-time" : "checkout-timing",
-                        )?.focus();
-                        return;
-                      }
-                      if (currentPhoneErr) {
-                        document.getElementById("order-phone")?.focus();
-                        return;
-                      }
-
-                      const customerName = checkoutName.trim();
-                      const customerPhone = checkoutPhone.trim();
-                      const resolvedTiming =
-                        checkoutPickupTime === "Custom time"
-                          ? checkoutCustomTime.trim()
-                          : checkoutPickupTime;
-
-                      const msg = formatOrderMessage(
-                        cart,
-                        customerName,
-                        customerPhone,
-                        subtotal,
-                        checkoutOrderType,
-                        checkoutExtra.trim(),
-                        checkoutPayment,
-                        resolvedTiming,
-                        checkoutNote.trim(),
-                      );
-                      const copied = await copyToClipboard(msg);
-                      setPendingOrder({ message: msg, createdAt: Date.now() });
-                      setToast(copied
-                        ? "Order request ready. Review it before sending on WhatsApp."
-                        : "If copying was blocked, select and copy the order summary below.");
-                      setReceipt(true);
-                      setCart([]);
-                      setCheckoutName("");
-                      setCheckoutPhone("");
-                      setCheckoutExtra("");
-                      setCheckoutNote("");
-                      setCheckoutCustomTime("");
-                      setCheckoutErrors({});
-                    }}
+                    onSubmit={submitCheckout}
                   >
                     <div className="checkout-form-section">
                       <fieldset className="checkout-fieldset">
