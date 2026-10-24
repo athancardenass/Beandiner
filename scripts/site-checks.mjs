@@ -102,10 +102,13 @@ export async function checkCheckoutRotation({ page, goto, setViewport }) {
         const style = getComputedStyle(field);
         return {
           left: rect.left, right: rect.right, parentLeft: parent.left, parentRight: parent.right,
+          viewportWidth: document.documentElement.clientWidth,
           appearance: style.appearance, fontSize: Number.parseFloat(style.fontSize), value: field.value,
         };
       });
       assert.equal(bounds.appearance, 'none', 'The time field must use the authored sizing instead of Safari native control sizing');
+      assert.ok(bounds.parentLeft >= -1 && bounds.parentRight <= bounds.viewportWidth + 1,
+        `Checkout form overflows after rotation (${width}px, docscroll=${mode}): ${JSON.stringify(bounds)}`);
       assert.ok(bounds.left >= bounds.parentLeft - 1 && bounds.right <= bounds.parentRight + 1,
         `Time field overflows after rotation (${width}px, docscroll=${mode}): ${JSON.stringify(bounds)}`);
       assert.ok(bounds.fontSize >= 16, 'The time field must retain its existing zoom-safe font size');
