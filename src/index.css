@@ -8754,6 +8754,22 @@ body:has(.floating-bag-bubble) .footer-artisanal {
 }
 
 @media (max-width: 820px) {
+  .header {
+    background: var(--surface-page);
+    color: var(--espresso);
+    border-bottom-color: var(--surface-border);
+  }
+
+  .header .logo-title,
+  .header .bag-button,
+  .header .mobile-menu {
+    color: var(--espresso);
+  }
+
+  .header .logo-location {
+    color: var(--warm-gray);
+  }
+
   .header-right {
     flex-shrink: 0;
   }
