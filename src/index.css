@@ -1182,13 +1182,6 @@ main {
   margin-top: 13px;
 }
 /* ↓ MENU TOOLBAR: Filter buttons and size note */
-.menu-toolbar-signature-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  gap: 16px;
-}
 /* ↓ MENU FILTERS: Drink category filter buttons */
 .social-ordering-guide {
   margin-bottom: 28px;
@@ -3891,9 +3884,6 @@ main {
 @media (max-width: 390px) {
   .header {
     padding: 0 10px;
-  }
-  .header {
-    padding: 0 10px;
     gap: 10px;
   }
   .logo {
@@ -5866,14 +5856,7 @@ body:has(.floating-bag-bubble) .footer-artisanal {
 .item-note-field input {
   width: 100%;
   min-width: 0;
-  min-height: 52px;
-  padding: 16px 18px;
-  border: 1.5px solid var(--surface-border);
-  border-radius: 16px;
-  background: var(--surface-page);
-  color: var(--ink);
   font: inherit;
-  font-size: 16px;
   outline: none;
   box-sizing: border-box;
   transition: border-color .15s ease, box-shadow .15s ease;
@@ -6782,10 +6765,6 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   margin: -12px 0 20px;
   font-size: 13px;
   color: var(--warm-gray);
-}
-
-.menu-results:empty {
-  margin: 0;
 }
 
 /* FULL-WIDTH STICKY MENU TOOLBAR */
