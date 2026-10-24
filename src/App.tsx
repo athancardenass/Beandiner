@@ -378,6 +378,47 @@ const formatOrderMessage = (
     .join("\n"));
 };
 
+function readInitialCart(): CartItem[] {
+  try {
+    const value = JSON.parse(
+      localStorage.getItem("beandiner-bag-v2") ||
+        localStorage.getItem("saya-bag") ||
+        "[]",
+    );
+    return Array.isArray(value)
+      ? value
+          .filter(
+            (item: CartItem) =>
+              (!!findProduct(item.id) ||
+                dinerBites.some(
+                  (b) => b.id === item.id && !b.sample && b.price !== null,
+                ) ||
+                allBeverages.some((b) => b.id === item.id) ||
+                beverageAddOns.some((m) => m.id === item.id) ||
+                beverageSubs.some((m) => m.id === item.id)) &&
+              typeof item.key === "string" &&
+              Number.isFinite(item.price) &&
+              item.price > 0 &&
+              Number.isInteger(item.quantity) &&
+              item.quantity > 0 &&
+              item.quantity <= 20,
+          )
+          .map((item: CartItem) =>
+            item.id === "latte" &&
+            item.name === "Classic Iced Caffe Latte"
+              ? {
+                  ...item,
+                  name: spanishLatte.name,
+                  price: item.price + 5,
+                }
+              : item,
+          )
+      : [];
+  } catch {
+    return [];
+  }
+}
+
 function App() {
   const [currentPage, setCurrentPage] = useState<AppPage>(() => pageFromSearch(window.location.search));
   const docScrollMode = isDocumentScrollModeEnabled();
@@ -551,46 +592,7 @@ function App() {
     navigateToUrl(new URL(event.currentTarget.href));
   };
   // ↓ CART STATE: Persisted to localStorage with backwards compatibility
-  const [cart, setCart] = useState<CartItem[]>(() => {
-    try {
-      const value = JSON.parse(
-        localStorage.getItem("beandiner-bag-v2") ||
-          localStorage.getItem("saya-bag") ||
-          "[]",
-      );
-      return Array.isArray(value)
-        ? value
-            .filter(
-              (item: CartItem) =>
-                (!!findProduct(item.id) ||
-                  dinerBites.some(
-                    (b) => b.id === item.id && !b.sample && b.price !== null,
-                  ) ||
-                  allBeverages.some((b) => b.id === item.id) ||
-                  beverageAddOns.some((m) => m.id === item.id) ||
-                  beverageSubs.some((m) => m.id === item.id)) &&
-                typeof item.key === "string" &&
-                Number.isFinite(item.price) &&
-                item.price > 0 &&
-                Number.isInteger(item.quantity) &&
-                item.quantity > 0 &&
-                item.quantity <= 20,
-            )
-            .map((item: CartItem) =>
-              item.id === "latte" &&
-              item.name === "Classic Iced Caffe Latte"
-                ? {
-                    ...item,
-                    name: spanishLatte.name,
-                    price: item.price + 5,
-                  }
-                : item,
-            )
-        : [];
-    } catch {
-      return [];
-    }
-  });
+  const [cart, setCart] = useState<CartItem[]>(readInitialCart);
   const hero = useRef<HTMLElement>(null);
   const videoHero = useRef<HTMLVideoElement>(null);
   const videoPlaybackTime = useRef(0);
