@@ -7795,6 +7795,9 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   box-sizing: border-box;
   transition: border-color .15s ease, box-shadow .15s ease;
 }
+.checkout-form-compact input[type="time"] {
+  appearance: none;
+}
 .checkout-form-compact textarea {
   height: 50px;
   resize: none;

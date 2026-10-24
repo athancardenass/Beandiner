@@ -83,6 +83,44 @@ export async function checkOrdering({ page, goto, setViewport }) {
   await page.getByRole('button', { name: 'Close dialog', exact: true }).click();
 }
 
+export async function checkCheckoutRotation({ page, goto, setViewport }) {
+  for (const mode of ['1', '0']) {
+    await setViewport({ width: 414, height: 896 });
+    await goto(`${base}/?docscroll=${mode}`);
+    await page.getByRole('button', { name: 'Make it a coffee date', exact: true }).click();
+    await page.getByRole('button', { name: 'Open bag, 2 items', exact: true }).click();
+    await page.getByRole('button', { name: 'Proceed to Details', exact: true }).click();
+    await page.getByText('Custom time', { exact: true }).click();
+    const time = page.locator('#checkout-custom-time');
+    await time.fill('18:00');
+    for (const [width, height] of [[414, 896], [896, 414], [414, 896], [320, 568]]) {
+      await setViewport({ width, height });
+      await time.focus();
+      const bounds = await time.evaluate(field => {
+        const rect = field.getBoundingClientRect();
+        const parent = field.closest('.checkout-form-column').getBoundingClientRect();
+        const style = getComputedStyle(field);
+        return {
+          left: rect.left, right: rect.right, parentLeft: parent.left, parentRight: parent.right,
+          viewportWidth: document.documentElement.clientWidth,
+          appearance: style.appearance, fontSize: Number.parseFloat(style.fontSize), value: field.value,
+        };
+      });
+      assert.equal(bounds.appearance, 'none', 'The time field must use the authored sizing instead of Safari native control sizing');
+      assert.ok(bounds.parentLeft >= -1 && bounds.parentRight <= bounds.viewportWidth + 1,
+        `Checkout form overflows after rotation (${width}px, docscroll=${mode}): ${JSON.stringify(bounds)}`);
+      assert.ok(bounds.left >= bounds.parentLeft - 1 && bounds.right <= bounds.parentRight + 1,
+        `Time field overflows after rotation (${width}px, docscroll=${mode}): ${JSON.stringify(bounds)}`);
+      assert.ok(bounds.fontSize >= 16, 'The time field must retain its existing zoom-safe font size');
+      assert.equal(bounds.value, '18:00', 'Rotation must preserve the selected time');
+    }
+    await page.getByRole('button', { name: 'Back to Bag', exact: true }).click();
+    await page.getByRole('button', { name: 'Remove Salted Caramel Macchiato from bag', exact: true }).click();
+    await page.getByRole('button', { name: 'Remove Matcha Latte from bag', exact: true }).click();
+    await page.getByRole('button', { name: 'Close dialog', exact: true }).click();
+  }
+}
+
 export async function checkFooter({ page, goto, setViewport }) {
   await setViewport({ width: 390, height: 844 });
   await goto(`${base}/`);
@@ -223,6 +261,7 @@ export async function checkAll(harness) {
   await checkPages(harness);
   await checkBag(harness);
   await checkOrdering(harness);
+  await checkCheckoutRotation(harness);
   await checkFooter(harness);
   await checkWhatsApp(harness);
   await checkBackground(harness);
