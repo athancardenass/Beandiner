@@ -420,6 +420,23 @@ function readInitialCart(): CartItem[] {
   }
 }
 
+function observeReveals() {
+  document.documentElement.classList.add("js-ready");
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("revealed");
+          observer.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.05, rootMargin: "100px" },
+  );
+  document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
+  return () => observer.disconnect();
+}
+
 function App() {
   const [currentPage, setCurrentPage] = useState<AppPage>(() => pageFromSearch(window.location.search));
   const docScrollMode = isDocumentScrollModeEnabled();
@@ -792,25 +809,13 @@ function App() {
       listen(coarsePointer, "change", handle),
     ];
     measure();
-    document.documentElement.classList.add("js-ready");
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("revealed");
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.05, rootMargin: "100px" },
-    );
-    document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
+    const stopObservingReveals = observeReveals();
     return () => {
       removeScrollListeners.forEach((remove) => remove());
       resizeObserver.disconnect();
       heroVisibility?.disconnect();
       cancelAnimationFrame(frame);
-      observer.disconnect();
+      stopObservingReveals();
     };
   }, [currentPage]);
   // ↓ ADD FEEDBACK: Bump bag icon, toast "Added <item>" with Undo snapshot
