@@ -495,12 +495,14 @@ function App() {
       bagHeadingRef.current?.focus({ preventScroll: true });
       if (docScrollMode) window.scrollTo(0, 0);
       else bagHeadingRef.current?.closest("dialog")?.scrollTo({ top: 0 });
-      if (lastOrder) {
-        void (async () => {
-          const copied = await copyToClipboard(lastOrder);
-          if (!copied) setToast("If copying was blocked, select and copy the order summary below.");
-        })();
-      }
+    }
+  }, [receipt, lastOrder, docScrollMode]);
+  useEffect(() => {
+    if (receipt && lastOrder) {
+      void (async () => {
+        const copied = await copyToClipboard(lastOrder);
+        if (!copied) setToast("If copying was blocked, select and copy the order summary below.");
+      })();
     }
   }, [receipt, lastOrder, docScrollMode]);
   const [storeStatus, setStoreStatus] = useState(getStoreStatus);
