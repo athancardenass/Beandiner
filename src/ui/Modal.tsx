@@ -41,7 +41,7 @@ function resetViewportState(el: HTMLElement) {
 }
 
 /** Keeps Tab / Shift+Tab cycling inside the dialog. */
-function trapTab(e: KeyboardEvent, el: HTMLElement) {
+function trapTab(e: KeyboardEvent, el: HTMLElement, preventScroll = false) {
   const nodes = Array.from(el.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
     (n) => n.offsetParent !== null,
   );
@@ -52,10 +52,10 @@ function trapTab(e: KeyboardEvent, el: HTMLElement) {
 
   if (e.shiftKey && active === first) {
     e.preventDefault();
-    last.focus();
+    last.focus({ preventScroll });
   } else if (!e.shiftKey && active === last) {
     e.preventDefault();
-    first.focus();
+    first.focus({ preventScroll });
   }
 }
 
@@ -113,6 +113,160 @@ function lockPageScroll({
   };
 }
 
+/** Keeps page geometry stable while the product form follows the keyboard viewport. */
+function openProductDocumentDialog(
+  el: HTMLDialogElement,
+  root: HTMLElement,
+  onClose: () => void,
+) {
+  const html = document.documentElement;
+  const body = document.body;
+  const scroll = { x: window.scrollX, y: window.scrollY };
+  const previousFocus = document.activeElement as HTMLElement | null;
+  const hadHtmlClass = html.classList.contains("docscroll-order-flow");
+  const hadBodyClass = body.classList.contains("docscroll-order-flow");
+  const previous = {
+    htmlBackground: html.style.backgroundColor,
+    bodyBackground: body.style.backgroundColor,
+    bodyMinHeight: body.style.minHeight,
+    rootBackground: root.style.backgroundColor,
+    rootTop: root.style.top,
+    rootLeft: root.style.left,
+    rootInert: root.inert,
+    dialogTop: el.style.top,
+  };
+  const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  const previousThemeColor = themeColor?.getAttribute("content") ?? null;
+  const surface = getComputedStyle(el).backgroundColor || "#FFFFFF";
+
+  // End the scrollable document with the sheet, so keyboard pan cannot pass it.
+  body.style.minHeight = `calc(${scroll.y}px + 100dvh)`;
+  root.style.top = `${-scroll.y}px`;
+  root.style.left = `${-scroll.x}px`;
+  root.inert = true;
+  el.style.top = `calc(${scroll.y}px + env(safe-area-inset-top, 0px))`;
+  html.classList.add("docscroll-order-flow");
+  body.classList.add("docscroll-order-flow");
+  el.classList.add("docscroll-mode");
+  html.style.backgroundColor = surface;
+  body.style.backgroundColor = surface;
+  root.style.backgroundColor = surface;
+  themeColor?.setAttribute("content", surface);
+  el.setAttribute("open", "");
+
+  const edge = document.createElement("div");
+  edge.setAttribute("data-product-backdrop-edge", "");
+  edge.setAttribute("aria-hidden", "true");
+  body.append(edge);
+
+  const viewport = window.visualViewport;
+  let fullViewportHeight = viewport?.height ?? window.innerHeight;
+  let viewportWidth = window.innerWidth;
+  let keyboardFlowStarted = false;
+  let revealFrame = 0;
+  let revealAfterLayout = false;
+
+  const revealFocusedField = () => {
+    const form = el.querySelector<HTMLElement>(".customize-form");
+    const active = document.activeElement;
+    if (
+      !form || !(active instanceof HTMLElement) || !form.contains(active) ||
+      form.scrollHeight <= form.clientHeight
+    ) return;
+    const field = active.getBoundingClientRect();
+    const bounds = form.getBoundingClientRect();
+    const top = bounds.top + 16;
+    const bottom = bounds.bottom - 16;
+    if (bottom <= top) return;
+    if (field.top < top) form.scrollTop -= top - field.top;
+    else if (field.bottom > bottom) form.scrollTop += field.bottom - bottom;
+  };
+
+  const updateViewportLayout = () => {
+    if (!viewport) return;
+    if (window.innerWidth !== viewportWidth) {
+      viewportWidth = window.innerWidth;
+      fullViewportHeight = Math.max(viewport.height, window.innerHeight);
+    } else {
+      fullViewportHeight = Math.max(fullViewportHeight, viewport.height);
+    }
+    const active = document.activeElement;
+    const editing = active instanceof HTMLElement && el.contains(active) && isEditableField(active);
+    const keyboardOpen =
+      (editing || el.classList.contains("is-product-keyboard")) &&
+      fullViewportHeight - viewport.height > KEYBOARD_MIN_DELTA;
+    el.classList.toggle("is-product-keyboard", keyboardOpen);
+    if (keyboardOpen) {
+      keyboardFlowStarted = true;
+      // Safari pageTop can lag native keyboard pan by several hundred milliseconds.
+      el.style.top = `${window.scrollY}px`;
+      el.style.setProperty("--product-keyboard-height", `${viewport.height}px`);
+    } else {
+      el.style.removeProperty("--product-keyboard-height");
+      if (keyboardFlowStarted) {
+        el.style.top = `calc(${window.scrollY}px + env(safe-area-inset-top, 0px))`;
+      }
+    }
+  };
+  const queueViewportLayout = (revealField: boolean) => {
+    revealAfterLayout ||= revealField;
+    if (revealFrame) return;
+    revealFrame = requestAnimationFrame(() => {
+      revealFrame = 0;
+      updateViewportLayout();
+      if (revealAfterLayout) revealFocusedField();
+      revealAfterLayout = false;
+    });
+  };
+  const removeListeners = [
+    listen(document, "keydown", (event) => {
+      if (!(event instanceof KeyboardEvent)) return;
+      if (event.key === "Tab") {
+        trapTab(event, el, true);
+        return;
+      }
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      onClose();
+    }, { capture: true }),
+    listen(el, "focusin", () => queueViewportLayout(true)),
+    listen(el, "focusout", () => queueViewportLayout(false)),
+    listen(window, "resize", () => queueViewportLayout(true)),
+    listen(window, "scroll", () => queueViewportLayout(false), { passive: true }),
+    listen(viewport, "resize", () => queueViewportLayout(true)),
+    // Viewport panning may move the sheet, but must preserve the user's form scroll.
+    listen(viewport, "scroll", () => queueViewportLayout(false), { passive: true }),
+  ];
+
+  el.querySelector<HTMLElement>(".modal-close")?.focus({ preventScroll: true });
+
+  return () => {
+    removeListeners.forEach((remove) => remove());
+    if (revealFrame) cancelAnimationFrame(revealFrame);
+    edge.remove();
+    el.removeAttribute("open");
+    el.classList.remove("docscroll-mode", "is-product-keyboard");
+    el.style.removeProperty("--product-keyboard-height");
+    el.style.top = previous.dialogTop;
+    if (!hadHtmlClass) html.classList.remove("docscroll-order-flow");
+    if (!hadBodyClass) body.classList.remove("docscroll-order-flow");
+    html.style.backgroundColor = previous.htmlBackground;
+    body.style.backgroundColor = previous.bodyBackground;
+    body.style.minHeight = previous.bodyMinHeight;
+    root.style.backgroundColor = previous.rootBackground;
+    root.style.top = previous.rootTop;
+    root.style.left = previous.rootLeft;
+    root.inert = previous.rootInert;
+    if (themeColor) {
+      if (previousThemeColor === null) themeColor.removeAttribute("content");
+      else themeColor.setAttribute("content", previousThemeColor);
+    }
+    if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
+    window.scrollTo(scroll.x, scroll.y);
+  };
+}
+
 // ─── Modal ────────────────────────────────────────────────────────────────────
 
 // ↓ MODAL COMPONENT: Base dialog with backdrop, focus trap, Esc-to-close, and return focus
@@ -134,8 +288,15 @@ export function Modal({
   const docScrollPositionRef = useRef<Point | null>(documentScrollPosition);
   onCloseRef.current = onClose;
 
-  const isBagModal = className.split(/\s+/).includes("bag-modal");
-  const docScrollMode = isBagModal && isDocumentScrollModeEnabled();
+  const modalClasses = className.split(/\s+/);
+  const isBagModal = modalClasses.includes("bag-modal");
+  const isSafariProductModal =
+    modalClasses.includes("product-modal") &&
+    !modalClasses.includes("bite-customize-modal") &&
+    document.documentElement.dataset.browserFamily === "safari" &&
+    isTouchDevice();
+  const docScrollMode =
+    (isBagModal || isSafariProductModal) && isDocumentScrollModeEnabled();
   const showBagDebug =
     import.meta.env.DEV &&
     isBagModal &&
@@ -146,6 +307,9 @@ export function Modal({
     const el = ref.current;
     const root = document.getElementById("root");
     if (!el || !docScrollMode || !root) return;
+    if (isSafariProductModal) {
+      return openProductDocumentDialog(el, root, () => onCloseRef.current());
+    }
 
     const html = document.documentElement;
     const body = document.body;
@@ -486,7 +650,7 @@ export function Modal({
     <dialog
       ref={ref}
       aria-label={label}
-      aria-modal={docScrollMode ? undefined : "true"}
+      aria-modal={docScrollMode && !isSafariProductModal ? undefined : "true"}
       className={`modal ${className}${docScrollMode ? " docscroll-mode" : ""}`}
       onCancel={(e) => {
         e.preventDefault();

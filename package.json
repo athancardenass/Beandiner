@@ -7,6 +7,7 @@
     "dev": "vite",
     "test": "node --test scripts/checkout-reliability.test.mjs scripts/assets.test.mjs scripts/clipboard.test.mjs",
     "test:browser": "node scripts/check-site.mjs",
+    "test:product-modal": "node scripts/check-product-modal.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint ."

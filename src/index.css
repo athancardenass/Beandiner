@@ -9932,3 +9932,175 @@ html.docscroll-order-flow body.docscroll-order-flow dialog.bag-modal.docscroll-m
     --docscroll-toolbar-clearance: max(64px, calc(100lvh - 100svh));
   }
 }
+
+/* Let touch Safari manage product-note keyboard scrolling in document flow. */
+body.docscroll-order-flow:has(dialog.product-modal.docscroll-mode[open]) {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+}
+body.docscroll-order-flow:has(dialog.product-modal.docscroll-mode[open])::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  height: auto;
+  z-index: 1;
+  background: rgba(18, 18, 18, 0.75);
+}
+html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  inset: auto;
+  width: 100%;
+  max-width: none;
+  height: auto;
+  min-height: calc(100vh - env(safe-area-inset-top, 0px));
+  min-height: calc(100dvh - env(safe-area-inset-top, 0px));
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: clip;
+  overscroll-behavior: auto;
+  z-index: 2;
+  animation: none;
+}
+html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .modal-inner {
+  width: 890px;
+  max-width: calc(100% - 32px);
+  margin: auto auto 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  border-radius: 6px;
+  background: var(--surface-page);
+  box-shadow: 0 25px 100px #0003;
+  animation: modal-arrive 0.35s ease both;
+}
+html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .customize-image {
+  border-radius: 6px 0 0 6px;
+}
+@media (max-width: 820px) {
+  html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .modal-inner {
+    width: 100%;
+    max-width: none;
+    height: min(92svh, 900px);
+    min-height: 0;
+    grid-template-rows: 175px minmax(0, 1fr);
+    border-radius: 22px 22px 0 0;
+  }
+  html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .customize-image {
+    height: 100%;
+    min-height: 0;
+    border-radius: 22px 22px 0 0;
+  }
+  html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .customize-form {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .customize-form > * {
+    flex-shrink: 0;
+  }
+  html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .add-row {
+    margin-top: auto;
+    padding-top: 14px;
+  }
+}
+
+/* Slide the phone sheet from below the viewport without changing page geometry. */
+@media (max-width: 820px) and (prefers-reduced-motion: no-preference) {
+  html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .modal-inner {
+    animation: product-sheet-arrive 0.35s ease both;
+  }
+}
+@keyframes product-sheet-arrive {
+  from { translate: 0 100%; }
+  to { translate: 0 0; }
+}
+
+
+/* Keep the six signature Add targets stable when tapped after scrolling. */
+.signature-menu-section .product-card {
+  content-visibility: visible;
+}
+
+/* Keep Safari's outer page offset stable while the product sheet opens. */
+html.docscroll-order-flow:has(dialog.product-modal.docscroll-mode[open]) {
+  overflow-y: hidden;
+}
+html.docscroll-order-flow body.docscroll-order-flow:has(dialog.product-modal.docscroll-mode[open]) #root {
+  display: block !important;
+  position: fixed;
+  width: 100%;
+  transform: translateZ(0);
+  pointer-events: none;
+  z-index: 0;
+}
+html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] {
+  position: absolute;
+  left: env(safe-area-inset-left, 0px);
+  width: calc(100% - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+}
+[data-product-backdrop-edge] {
+  display: none;
+}
+@media (max-width: 820px) {
+  html.docscroll-order-flow body.docscroll-order-flow:has(dialog.product-modal.docscroll-mode[open]) [data-product-backdrop-edge] {
+    display: block;
+    position: fixed;
+    inset: 0 0 auto;
+    height: max(0px, calc(100dvh - min(92svh, 900px)));
+    background-image: linear-gradient(rgba(18, 18, 18, 0.75), rgba(18, 18, 18, 0.75));
+    pointer-events: none;
+    z-index: 3;
+  }
+  html.docscroll-order-flow body.docscroll-order-flow:has(dialog.product-modal.docscroll-mode[open])::before {
+    background: linear-gradient(to bottom,
+      transparent max(0px, calc(100dvh - min(92svh, 900px))),
+      rgba(18, 18, 18, 0.75) 0);
+  }
+}
+/* Short wide viewports need the same bounded form scrolling as phone sheets. */
+@media (min-width: 821px) {
+  html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .modal-inner {
+    max-height: calc(100dvh - env(safe-area-inset-top, 0px));
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+  }
+  html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .customize-form {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .customize-image {
+    min-height: min(620px, calc(100dvh - env(safe-area-inset-top, 0px)));
+  }
+  html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .customize-image > img {
+    max-height: 100%;
+  }
+}
+/* Keep one form scroller above the keyboard without resetting the page offset. */
+html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode.is-product-keyboard[open] {
+  min-height: var(--product-keyboard-height);
+  height: var(--product-keyboard-height);
+}
+html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode.is-product-keyboard[open] .modal-inner {
+  height: min(92svh, var(--product-keyboard-height));
+  max-height: var(--product-keyboard-height);
+  padding-bottom: 0;
+}
+html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode.is-product-keyboard[open] .customize-image {
+  min-height: 0;
+}
+html.docscroll-order-flow body.docscroll-order-flow:has(dialog.product-modal.is-product-keyboard[open]) [data-product-backdrop-edge] {
+  display: none;
+}
+html.docscroll-order-flow body.docscroll-order-flow:has(dialog.product-modal.is-product-keyboard[open])::before {
+  background: rgba(18, 18, 18, 0.75);
+}
