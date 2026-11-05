@@ -1,9 +1,25 @@
-import { useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { createPortal } from "react-dom";
 import { BagModalDebugOverlay } from "../dev/DebugOverlays";
 import { listen } from "../utils/events";
 import { isDocumentScrollModeEnabled } from "../utils/navigation";
 import { Icon } from "./graphics";
+
+export const ModalContext = createContext<{ close: () => void }>({ close: () => {} });
+export const useModalClose = () => useContext(ModalContext).close;
+
+const prefersReducedMotion = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -288,6 +304,26 @@ export function Modal({
   const onCloseRef = useRef(onClose);
   const docScrollPositionRef = useRef<Point | null>(documentScrollPosition);
   onCloseRef.current = onClose;
+  const [closing, setClosing] = useState(false);
+  const closingTimerRef = useRef<number | null>(null);
+
+  const requestClose = useCallback(() => {
+    if (closing) return;
+    if (prefersReducedMotion() || !ref.current) {
+      onCloseRef.current();
+      return;
+    }
+    setClosing(true);
+    closingTimerRef.current = window.setTimeout(() => {
+      onCloseRef.current();
+    }, 220);
+  }, [closing]);
+
+  useEffect(() => {
+    return () => {
+      if (closingTimerRef.current) window.clearTimeout(closingTimerRef.current);
+    };
+  }, []);
 
   const modalClasses = className.split(/\s+/);
   const isBagModal = modalClasses.includes("bag-modal");
@@ -309,7 +345,7 @@ export function Modal({
     const root = document.getElementById("root");
     if (!el || !docScrollMode || !root) return;
     if (isSafariProductModal) {
-      return openProductDocumentDialog(el, root, () => onCloseRef.current());
+      return openProductDocumentDialog(el, root, () => requestClose());
     }
 
     const html = document.documentElement;
@@ -351,7 +387,7 @@ export function Modal({
       if (event.key !== "Escape") return;
       event.preventDefault();
       event.stopPropagation();
-      onCloseRef.current();
+      requestClose();
     };
     document.addEventListener("keydown", handleKeyDown, true);
 
@@ -595,7 +631,7 @@ export function Modal({
       if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
-        onCloseRef.current();
+        requestClose();
       } else if (e.key === "Tab") {
         trapTab(e, el);
       }
@@ -648,27 +684,29 @@ export function Modal({
   }, [docScrollMode]);
 
   const dialog = (
-    <dialog
-      ref={ref}
-      aria-label={label}
-      aria-modal={docScrollMode && !isSafariProductModal ? undefined : "true"}
-      className={`modal ${className}${docScrollMode ? " docscroll-mode" : ""}`}
-      onCancel={(e) => {
-        e.preventDefault();
-        onClose();
-      }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="modal-inner">
-        <button className="icon-button modal-close" onClick={onClose} aria-label="Close dialog">
-          <Icon name="close" />
-        </button>
-        {children}
-      </div>
-      {showBagDebug && <BagModalDebugOverlay />}
-    </dialog>
+    <ModalContext.Provider value={{ close: requestClose }}>
+      <dialog
+        ref={ref}
+        aria-label={label}
+        aria-modal={docScrollMode && !isSafariProductModal ? undefined : "true"}
+        className={`modal ${className}${docScrollMode ? " docscroll-mode" : ""}${closing ? " is-closing" : ""}`}
+        onCancel={(e) => {
+          e.preventDefault();
+          requestClose();
+        }}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) requestClose();
+        }}
+      >
+        <div className="modal-inner">
+          <button className="icon-button modal-close" onClick={requestClose} aria-label="Close dialog">
+            <Icon name="close" />
+          </button>
+          {children}
+        </div>
+        {showBagDebug && <BagModalDebugOverlay />}
+      </dialog>
+    </ModalContext.Provider>
   );
 
   return docScrollMode ? createPortal(dialog, document.body) : dialog;

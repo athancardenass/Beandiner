@@ -1278,6 +1278,7 @@ function App() {
           <Ingredient kind="bean" className="hero-bean bean-two" />
           <Ingredient kind="bean" className="hero-bean bean-three" />
           <Ingredient kind="leaf" className="hero-leaf" />
+          <Ingredient kind="cherry" className="hero-cherry" />
           <Ingredient kind="ice" className="hero-ice ice-one" />
           <Ingredient kind="ice" className="hero-ice ice-two" />
           <span className="drawn-spark spark-one" aria-hidden="true">
