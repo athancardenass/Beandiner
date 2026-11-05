@@ -39,70 +39,19 @@ try {
       assert.equal(await page.evaluate(() => scrollY), focusY, 'Tab cycling must not pan the page');
     } catch (error) { failures.push(product + ': ' + error.message); }
     await page.evaluate(() => { for (const a of document.querySelector('.modal-inner').getAnimations()) a.finish(); });
-    await page.locator('#item-note').scrollIntoViewIfNeeded();
+    assert.equal(await page.locator('#item-note').count(), 0, 'Barista note input must not exist in product modal');
     const before = await page.evaluate(() => ({ y: scrollY, height: document.body.style.minHeight, box: document.querySelector('.modal-inner').getBoundingClientRect().toJSON() }));
-    await page.evaluate(() => {
-      window.__focusScrollCalls = [];
-      const original = window.scrollTo.bind(window);
-      window.scrollTo = (...args) => { window.__focusScrollCalls.push(args); original(...args); };
-      const state = window.__keyboardViewport = { height: 750, pageTop: scrollY, offsetTop: 0 };
-      for (const key of ['height', 'pageTop', 'offsetTop']) Object.defineProperty(visualViewport, key, { configurable: true, get: () => state[key] });
-    });
-    await page.locator('#item-note').click();
-    const focused = await page.evaluate(() => ({ y: scrollY, height: document.body.style.minHeight, calls: window.__focusScrollCalls, box: document.querySelector('.modal-inner').getBoundingClientRect().toJSON() }));
-    try {
-      assert.equal(focused.y, before.y, 'Focusing Note must preserve the document offset');
-      assert.equal(focused.height, before.height, 'Focus must not collapse the document under an existing compositor layer');
-      assert.deepEqual(focused.calls, [], 'Focus must not issue a page scroll reset');
-      assert.deepEqual(focused.box, before.box, 'Focus alone must preserve card geometry');
-    } catch (error) { failures.push(product + ': ' + error.message); }
-    // Phone trace: the document has panned while pageTop still reports the old position.
-    await page.evaluate(() => { window.__keyboardViewport.height = 430; window.__keyboardViewport.pageTop = scrollY - 320; window.__keyboardViewport.offsetTop = 0; visualViewport.dispatchEvent(new Event('resize')); });
-    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-    const staleFrame = await dialog.evaluate(el => ({ top: el.querySelector('.modal-inner').getBoundingClientRect().top, bottom: el.querySelector('.modal-inner').getBoundingClientRect().bottom }));
-    try {
-      assert.ok(Math.abs(staleFrame.top) <= 1, 'A stale visualViewport.pageTop must not lift the sheet 320px above the visible page');
-      assert.ok(Math.abs(staleFrame.bottom - 430) <= 1, 'Keyboard sheet must remain anchored before visualViewport catches up');
-    } catch (error) { failures.push(product + ': ' + error.message); }
-    await page.evaluate(() => { window.__keyboardViewport.height = 430; window.__keyboardViewport.pageTop = scrollY; visualViewport.dispatchEvent(new Event('resize')); });
-    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     const geometry = await dialog.evaluate(el => {
       const form = el.querySelector('.customize-form');
       const action = el.querySelector('.add-row');
       const card = el.querySelector('.modal-inner');
-      return { card: card.getBoundingClientRect().toJSON(), formHeight: form.clientHeight, formRange: form.scrollHeight - form.clientHeight, actionHeight: action.getBoundingClientRect().height, bottomPadding: parseFloat(getComputedStyle(form).paddingBottom), viewportTop: visualViewport.pageTop - scrollY, viewportHeight: visualViewport.height };
+      return { card: card.getBoundingClientRect().toJSON(), formHeight: form.clientHeight, formRange: form.scrollHeight - form.clientHeight, actionHeight: action.getBoundingClientRect().height, bottomPadding: parseFloat(getComputedStyle(form).paddingBottom) };
     });
     try {
-      assert.ok(Math.abs(geometry.card.bottom - (geometry.viewportTop + geometry.viewportHeight)) <= 1, 'Card bottom must meet the measured keyboard viewport');
-      assert.ok(geometry.card.height <= geometry.viewportHeight + 1, 'The card must fit the visible keyboard area');
-      assert.ok(geometry.formRange > 120, 'The form must have real scroll range while the page is locked');
-      assert.ok(geometry.bottomPadding <= 20, 'No added keyboard or safe-area spacer below Add');
-      const form = page.locator('.customize-form');
-      await form.evaluate(el => { el.scrollTop = el.scrollHeight; });
-      const maxScroll = await form.evaluate(el => el.scrollTop);
-      const formBox = await form.boundingBox();
-      await page.mouse.move(formBox.x + 40, Math.max(0, formBox.y) + 40);
-      await page.mouse.wheel(0, -100);
-      await page.waitForTimeout(150);
-      assert.ok(await form.evaluate(el => el.scrollTop) < maxScroll, 'User must be able to scroll upward with Note focused');
-      const userScroll = await form.evaluate(el => el.scrollTop);
-      await page.evaluate(() => visualViewport.dispatchEvent(new Event('scroll')));
-      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(resolve)));
-      assert.equal(await form.evaluate(el => el.scrollTop), userScroll, 'Viewport scroll must not pull the form back to Note');
-      await form.evaluate(el => { el.scrollTop = el.scrollHeight; });
-      const actionBottom = await page.locator('.add-row').evaluate(el => el.getBoundingClientRect().bottom);
-      assert.ok(geometry.viewportTop + geometry.viewportHeight - actionBottom <= 21, 'Only normal form padding may remain below Add');
-      for (const state of [{ height: 332, offset: 98 }, { height: 430, offset: 0 }]) {
-        await page.evaluate(state => { window.__keyboardViewport.height = state.height; window.__keyboardViewport.pageTop = scrollY + state.offset; window.__keyboardViewport.offsetTop = state.offset; visualViewport.dispatchEvent(new Event('resize')); visualViewport.dispatchEvent(new Event('scroll')); }, state);
-        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-        const fit = await dialog.evaluate(el => { const box = el.querySelector('.modal-inner').getBoundingClientRect(); return { top: box.top, bottom: box.bottom, height: box.height, visibleTop: 0, visibleHeight: visualViewport.height }; });
-        assert.ok(fit.top >= fit.visibleTop - 1 && fit.bottom <= fit.visibleTop + fit.visibleHeight + 1, 'Sheet stays within the visible page despite delayed visual-viewport offsets');
-        assert.equal(await page.evaluate(() => window.__focusScrollCalls.length), 0, 'Keyboard events must never reset the page scroll');
-      }
+      assert.ok(geometry.card.height <= 750 + 1, 'The card must fit within the phone viewport');
+      assert.ok(geometry.bottomPadding <= 20, 'Normal form padding below Add');
     } catch (error) { failures.push(product + ': ' + error.message); }
-    console.log(JSON.stringify({ product, openingY: before.y, focusedY: focused.y, keyboard: geometry }));
-    await page.locator('#item-note').blur();
-    await page.evaluate(() => { window.__keyboardViewport.height = 750; window.__keyboardViewport.pageTop = scrollY; visualViewport.dispatchEvent(new Event('resize')); });
+    console.log(JSON.stringify({ product, openingY: before.y, geometry }));
     await page.getByRole('button', { name: 'Close dialog', exact: true }).click();
     await expect(dialog).toHaveCount(0);
     assert.equal(await page.evaluate(() => scrollY), before.y, 'Closing restores the opening offset');
@@ -138,17 +87,6 @@ try {
       await form.evaluate(el => { el.scrollTop = el.scrollHeight; });
       const action = await page.locator('.add-row').boundingBox();
       assert.ok(action.y >= 0 && action.y + action.height <= viewport.height + 1, 'Add must be reachable inside a wide short viewport');
-      if (viewport.height > 1000) {
-        await page.locator('#item-note').focus();
-        await page.evaluate(() => {
-          Object.defineProperty(visualViewport, 'height', { configurable: true, get: () => 430 });
-          visualViewport.dispatchEvent(new Event('resize'));
-        });
-        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-        await form.evaluate(el => { el.scrollTop = el.scrollHeight; });
-        const keyboardAction = await page.locator('.add-row').boundingBox();
-        assert.ok(keyboardAction.y >= 0 && keyboardAction.y + keyboardAction.height <= 431, 'Tablet keyboard must leave Add reachable by form scrolling');
-      }
       await page.getByRole('button', { name: 'Close dialog', exact: true }).click();
       await expect(dialog).toHaveCount(0);
       assert.equal(await page.evaluate(() => scrollY), openingY, 'Wide dialog restores the page offset');

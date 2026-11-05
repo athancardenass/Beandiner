@@ -137,10 +137,11 @@ function openProductDocumentDialog(
   };
   const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
   const previousThemeColor = themeColor?.getAttribute("content") ?? null;
-  const surface = getComputedStyle(el).backgroundColor || "#FFFFFF";
+  const surface = "#FFFFFF";
 
   // End the scrollable document with the sheet, so keyboard pan cannot pass it.
-  body.style.minHeight = `calc(${scroll.y}px + 100dvh)`;
+  const lvh = typeof CSS !== "undefined" && CSS.supports("height", "100lvh") ? "100lvh" : "100vh";
+  body.style.minHeight = `calc(${scroll.y}px + ${lvh})`;
   root.style.top = `${-scroll.y}px`;
   root.style.left = `${-scroll.x}px`;
   root.inert = true;
@@ -151,7 +152,7 @@ function openProductDocumentDialog(
   html.style.backgroundColor = surface;
   body.style.backgroundColor = surface;
   root.style.backgroundColor = surface;
-  themeColor?.setAttribute("content", surface);
+  themeColor?.setAttribute("content", "#121212");
   el.setAttribute("open", "");
 
   const edge = document.createElement("div");

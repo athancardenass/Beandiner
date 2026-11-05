@@ -70,7 +70,6 @@ export function ProductModal({
   const [sweetness, setSweetness] = useState("100% Sweet");
   const [iceLevel, setIceLevel] = useState("Regular Ice");
   const [quantity, setQuantity] = useState(1);
-  const [note, setNote] = useState("");
   const hasMilk = product.allowMilkCustomization ?? true;
   const price =
     (sizeOptions.find((option) => option.size === size)?.price ?? product.price) +
@@ -89,9 +88,8 @@ export function ProductModal({
         className="customize-form"
         onSubmit={(e) => {
           e.preventDefault();
-          const trimmedNote = note.trim();
           onAdd({
-            key: `${product.id}-${size}-${milk}-${temperature}-${sweetness}-${iceLevel}${trimmedNote ? `-${trimmedNote}` : ""}`,
+            key: `${product.id}-${size}-${milk}-${temperature}-${sweetness}-${iceLevel}`,
             id: product.id,
             size,
             milk,
@@ -101,7 +99,6 @@ export function ProductModal({
             quantity,
             price,
             name: product.name,
-            note: trimmedNote || undefined,
           });
           onClose();
         }}
@@ -132,24 +129,20 @@ export function ProductModal({
           </p>
         )}
 
-        {sizeOptions.length > 1 ? (
-          <Segmented
-            legend="Size"
-            name="size"
-            value={size}
-            onChange={setSize}
-            options={sizeOptions.map((option) => ({
-              value: option.size,
-              label: option.size,
-              extra:
-                option.price > sizeOptions[0].price
-                  ? `+${money(option.price - sizeOptions[0].price)}`
-                  : undefined,
-            }))}
-          />
-        ) : (
-          <p className="customize-fixed">Size: {sizeOptions[0].size}</p>
-        )}
+        <Segmented
+          legend="Size"
+          name="size"
+          value={size}
+          onChange={setSize}
+          options={sizeOptions.map((option) => ({
+            value: option.size,
+            label: option.size,
+            extra:
+              option.price > sizeOptions[0].price
+                ? `+${money(option.price - sizeOptions[0].price)}`
+                : undefined,
+          }))}
+        />
 
         {hasMilk && (
           <Segmented
@@ -189,22 +182,6 @@ export function ProductModal({
             ]}
           />
         )}
-
-        <div className="item-note-field">
-          <label htmlFor="item-note">Note for the barista (optional)</label>
-          <input
-            id="item-note"
-            type="text"
-            autoComplete="off"
-            autoCapitalize="off"
-            autoCorrect="off"
-            spellCheck={false}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="e.g. separate syrup"
-            maxLength={ITEM_NOTE_MAX_LENGTH}
-          />
-        </div>
 
         <div className="add-row">
           <div className="quantity" role="group" aria-label="Quantity">

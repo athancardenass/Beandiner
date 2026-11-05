@@ -5541,42 +5541,60 @@ body:has(.floating-bag-bubble) .footer-artisanal {
     border-radius: 22px 22px 0 0;
     overscroll-behavior-y: contain;
   }
+  .product-modal[open] {
+    height: auto;
+    max-height: min(82svh, 800px);
+  }
   .product-modal .modal-inner {
+    height: auto;
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 125px auto;
+    align-content: start;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   .customize-image {
-    min-height: 155px;
-    max-height: 175px;
-    padding: 12px 20px;
+    min-height: 0;
+    height: 130px;
+    padding: 8px 16px;
   }
   .customize-image > img {
-    width: 130px;
-    height: 150px;
+    width: auto;
+    height: 114px;
+    object-fit: contain;
   }
   .customize-image > .eyebrow {
-    top: 16px;
-    left: 18px;
+    top: 12px;
+    left: 14px;
     max-width: 120px;
     font-size: 8px;
   }
   .customize-image > .sun {
-    width: 40px;
-    height: 40px;
-    right: 20px;
-    bottom: 14px;
+    width: 32px;
+    height: 32px;
+    right: 16px;
+    bottom: 10px;
   }
   .customize-form {
-    padding: 15px 20px 20px;
+    padding: 10px 18px 16px;
   }
   .customize-form h2 {
-    font-size: 32px;
-    margin: 5px 0 10px;
+    font-size: 24px;
+    margin: 2px 0 4px;
+    line-height: 1.1;
+  }
+  .customize-desc {
+    font-size: 11px;
+    line-height: 14px;
+    min-height: 28px;
+    margin-bottom: 2px;
   }
   .customize-form fieldset {
-    margin-top: 13px;
+    margin-top: 10px;
   }
   .customize-form .choice-row:not(.order-type-row) label {
-    min-height: 48px;
+    min-height: 38px;
+    padding: 4px 8px;
+    font-size: 12px;
   }
   .order-extra-field input,
   .checkout-form input {
@@ -5595,15 +5613,16 @@ body:has(.floating-bag-bubble) .footer-artisanal {
     margin-top: 14px;
   }
   .add-row > .quantity {
-    min-height: 52px;
+    min-height: 46px;
   }
   .add-row > .quantity > button {
-    width: 44px;
-    height: 44px;
+    width: 38px;
+    height: 38px;
   }
   .add-row > .button {
-    min-height: 52px;
-    font-size: 11px;
+    min-height: 46px;
+    font-size: 12px;
+    padding: 10px 14px;
   }
   .button-whatsapp-checkout,
   .button-whatsapp-order {
@@ -6555,7 +6574,8 @@ body:has(.floating-bag-bubble) .footer-artisanal {
 
 @media (max-width: 640px) {
   .bev-page-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
   }
   .bev-category-hero-frame {
     min-height: 170px;
@@ -9585,7 +9605,185 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   .signature-menu-section .product-image-button > img { height: 124px; }
   .signature-menu-section .product-card-title { flex-wrap: wrap; min-height: 52px; }
   .bev-page-menu .bev-page-grid,
-  .food-page-menu .food-page-grid { grid-template-columns: minmax(0, 1fr); }
+  .food-page-menu .food-page-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .bev-page-menu .bev-item-card {
+    padding: 10px 10px 12px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    contain-intrinsic-block-size: auto 260px;
+  }
+  .bev-page-menu .bev-item-top {
+    min-height: 20px;
+    gap: 4px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+  .bev-page-menu .bev-badge {
+    font-size: 8.5px;
+    padding: 2px 6px;
+    letter-spacing: 0.04em;
+  }
+  .bev-page-menu .bev-type-tag {
+    font-size: 9.5px;
+  }
+  .bev-page-menu .bev-item-name {
+    font-size: 0.85rem;
+    line-height: 1.25;
+    margin: 0 0 4px;
+    min-height: 34px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .bev-page-menu .bev-item-desc {
+    font-size: 0.72rem;
+    line-height: 1.35;
+    margin: 0 0 8px;
+    min-height: 32px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .bev-page-menu .bev-size-selector {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+  .bev-page-menu .bev-size-pill {
+    min-height: 34px;
+    padding: 2px 4px;
+    font-size: 10px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1px;
+    border-radius: 8px;
+  }
+  .bev-page-menu .bev-size-name {
+    font-size: 10px;
+    line-height: 1.1;
+  }
+  .bev-page-menu .bev-size-cost {
+    font-size: 9.5px;
+    line-height: 1.1;
+  }
+  .bev-page-menu .bev-single-size-tag {
+    min-height: 34px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+  }
+  .bev-page-menu .bev-single-badge {
+    font-size: 9.5px;
+    padding: 3px 6px;
+    border-radius: 6px;
+    width: 100%;
+    text-align: center;
+  }
+  .bev-page-menu .bev-item-bottom {
+    margin-top: auto;
+    padding-top: 8px;
+    border-top: 1px solid rgba(110, 98, 86, 0.18);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: stretch;
+  }
+  .bev-page-menu .bev-price-block {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+  .bev-page-menu .bev-price-label {
+    font-size: 9px;
+  }
+  .bev-page-menu .bev-price-val {
+    font-size: 1rem;
+    font-weight: 700;
+  }
+  .bev-page-menu .menu-add-btn {
+    width: 100%;
+    padding: 6px 8px;
+    font-size: 0.74rem;
+    justify-content: center;
+  }
+
+  /* Food page items 2-column mobile optimization */
+  .food-page-menu .food-page-item {
+    padding: 10px 10px 12px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    contain-intrinsic-block-size: auto 240px;
+  }
+  .food-page-menu .food-page-item-top {
+    font-size: 9px;
+    gap: 4px;
+    flex-wrap: wrap;
+    display: flex;
+    justify-content: space-between;
+  }
+  .food-page-menu .food-page-item h3 {
+    margin-top: 6px;
+    font-size: 0.85rem;
+    line-height: 1.25;
+    min-height: 34px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .food-page-menu .food-page-item-subtitle {
+    font-size: 0.65rem;
+    line-height: 1.2;
+    display: block;
+    margin-top: 2px;
+  }
+  .food-page-menu .food-page-item > p {
+    margin-top: 6px;
+    margin-bottom: 8px;
+    font-size: 0.72rem;
+    line-height: 1.35;
+    min-height: 32px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .food-page-menu .food-page-item-bottom {
+    margin-top: auto;
+    padding-top: 8px;
+    border-top: 1px solid rgba(110, 98, 86, 0.18);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: stretch;
+  }
+  .food-page-menu .food-page-item-bottom strong {
+    font-size: 1rem;
+    font-weight: 700;
+  }
+  .food-page-menu .food-page-item-bottom .menu-add-btn {
+    width: 100%;
+    padding: 6px 8px;
+    font-size: 0.74rem;
+    justify-content: center;
+  }
+  .food-page-menu .food-page-price-pending {
+    font-size: 0.75rem;
+  }
+  .food-page-menu .food-page-sample-state {
+    font-size: 0.68rem;
+  }
 }
 
 /* Video-first homepage anchor offsets */
@@ -9936,7 +10134,7 @@ html.docscroll-order-flow body.docscroll-order-flow dialog.bag-modal.docscroll-m
 /* Let touch Safari manage product-note keyboard scrolling in document flow. */
 body.docscroll-order-flow:has(dialog.product-modal.docscroll-mode[open]) {
   min-height: 100vh;
-  min-height: 100dvh;
+  min-height: 100lvh;
   padding-top: env(safe-area-inset-top, 0px);
   padding-right: env(safe-area-inset-right, 0px);
   padding-left: env(safe-area-inset-left, 0px);
@@ -9958,19 +10156,21 @@ html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscro
   max-width: none;
   height: auto;
   min-height: calc(100vh - env(safe-area-inset-top, 0px));
-  min-height: calc(100dvh - env(safe-area-inset-top, 0px));
+  min-height: calc(100lvh - env(safe-area-inset-top, 0px));
   max-height: none;
   margin: 0;
   padding: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-  overflow: clip;
+  overflow: visible;
   overscroll-behavior: auto;
   z-index: 2;
   animation: none;
 }
 html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .modal-inner {
+  position: relative;
+  overflow: visible;
   width: 890px;
   max-width: calc(100% - 32px);
   margin: auto auto 0;
@@ -9980,6 +10180,16 @@ html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscro
   box-shadow: 0 25px 100px #0003;
   animation: modal-arrive 0.35s ease both;
 }
+html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .modal-inner::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 250px;
+  background: var(--surface-page, #FFFFFF);
+  pointer-events: none;
+}
 html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .customize-image {
   border-radius: 6px 0 0 6px;
 }
@@ -9987,36 +10197,91 @@ html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscro
   html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .modal-inner {
     width: 100%;
     max-width: none;
-    height: min(92svh, 900px);
+    height: auto;
+    max-height: min(82svh, 800px);
     min-height: 0;
-    grid-template-rows: 175px minmax(0, 1fr);
+    grid-template-rows: 125px auto;
+    align-content: start;
     border-radius: 22px 22px 0 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .customize-image {
-    height: 100%;
+    height: 125px;
     min-height: 0;
+    padding: 8px 16px;
     border-radius: 22px 22px 0 0;
+  }
+  html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .customize-image > img {
+    height: 110px;
+    width: auto;
+    object-fit: contain;
   }
   html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .customize-form {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    padding: 10px 18px 14px;
     overflow-y: auto;
     overscroll-behavior: contain;
+  }
+  html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .customize-form h2 {
+    font-size: 23px;
+    margin: 0 0 3px;
+    line-height: 1.1;
+  }
+  html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .customize-desc {
+    font-size: 11px;
+    line-height: 14px;
+    min-height: 28px;
+    margin-bottom: 2px;
+  }
+  html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .customize-fixed {
+    font-size: 10.5px;
+    line-height: 1.3;
+    margin-top: 1px;
+  }
+  html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .segmented {
+    margin-top: 8px;
+  }
+  html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .segmented legend {
+    font-size: 9.5px;
+    margin-bottom: 3px;
+  }
+  html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .segmented-track {
+    padding: 2.5px;
+    gap: 2.5px;
+  }
+  html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .segmented-track label {
+    min-height: 36px;
+    padding: 3px 6px;
+    font-size: 11.5px;
   }
   html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .customize-form > * {
     flex-shrink: 0;
   }
   html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .add-row {
-    margin-top: auto;
-    padding-top: 14px;
+    margin-top: 14px;
+    padding-top: 0;
+    padding-bottom: calc(var(--docscroll-toolbar-clearance, 68px) + 20px);
+  }
+  html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .add-row > .button {
+    min-height: 46px;
+    font-size: 12px;
+    padding: 10px 14px;
+  }
+  html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .add-row > .quantity {
+    min-height: 46px;
+  }
+  html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .add-row > .quantity > button {
+    width: 38px;
+    height: 38px;
   }
 }
 
 /* Slide the phone sheet from below the viewport without changing page geometry. */
 @media (max-width: 820px) and (prefers-reduced-motion: no-preference) {
   html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscroll-mode[open] .modal-inner {
-    animation: product-sheet-arrive 0.35s ease both;
+    animation: product-sheet-arrive 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 }
 @keyframes product-sheet-arrive {
@@ -10031,8 +10296,10 @@ html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscro
 }
 
 /* Keep Safari's outer page offset stable while the product sheet opens. */
-html.docscroll-order-flow:has(dialog.product-modal.docscroll-mode[open]) {
+html.docscroll-order-flow:has(dialog.product-modal.docscroll-mode[open]),
+body.docscroll-order-flow:has(dialog.product-modal.docscroll-mode[open]) {
   overflow-y: hidden;
+  background: #FFFFFF !important;
 }
 html.docscroll-order-flow body.docscroll-order-flow:has(dialog.product-modal.docscroll-mode[open]) #root {
   display: block !important;
@@ -10048,22 +10315,14 @@ html.docscroll-order-flow body.docscroll-order-flow dialog.product-modal.docscro
   width: calc(100% - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
 }
 [data-product-backdrop-edge] {
-  display: none;
+  display: none !important;
 }
 @media (max-width: 820px) {
   html.docscroll-order-flow body.docscroll-order-flow:has(dialog.product-modal.docscroll-mode[open]) [data-product-backdrop-edge] {
-    display: block;
-    position: fixed;
-    inset: 0 0 auto;
-    height: max(0px, calc(100dvh - min(92svh, 900px)));
-    background-image: linear-gradient(rgba(18, 18, 18, 0.75), rgba(18, 18, 18, 0.75));
-    pointer-events: none;
-    z-index: 3;
+    display: none !important;
   }
   html.docscroll-order-flow body.docscroll-order-flow:has(dialog.product-modal.docscroll-mode[open])::before {
-    background: linear-gradient(to bottom,
-      transparent max(0px, calc(100dvh - min(92svh, 900px))),
-      rgba(18, 18, 18, 0.75) 0);
+    background: rgba(18, 18, 18, 0.75) !important;
   }
 }
 /* Short wide viewports need the same bounded form scrolling as phone sheets. */
