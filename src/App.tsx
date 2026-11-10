@@ -623,11 +623,13 @@ function App() {
         setBeverageQuery("");
       }
     }
+    // A new page starts at its top at once; only same-page links glide.
+    const staysOnPage = pageFromSearch(url.search) === currentPage;
     if (url.href !== window.location.href) window.history.pushState(null, "", url);
     setCurrentPage(pageFromSearch(url.search));
     setNavOpen(false);
     cancelAnimationFrame(navigationFrame.current);
-    navigationFrame.current = requestAnimationFrame(() => scrollToPageAnchor(true));
+    navigationFrame.current = requestAnimationFrame(() => scrollToPageAnchor(staysOnPage));
   };
   const handlePageLink = (event: MouseEvent<HTMLAnchorElement>) => {
     if (
@@ -1232,41 +1234,21 @@ function App() {
               Every day deserves a good cup of coffee. At Bean Diner, we make every sip worth enjoying.
             </p>
             <nav className="video-hero-actions" aria-label="Menus">
-              <a className="menu-door" href={beveragesHref} onClick={handlePageLink}>
-                <img
-                  className="menu-door-thumb menu-door-thumb-cup"
-                  src="./images/hero-drinks/salted-caramel-macchiato-header.webp"
-                  alt=""
-                  width="500"
-                  height="700"
-                  decoding="async"
-                />
-                <span className="menu-door-text">
-                  <strong>Beverages menu</strong>
-                  <span>{allBeverages.length} drinks, from espresso to frappes</span>
+              <a className="menu-board-link" href={beveragesHref} onClick={handlePageLink}>
+                <span className="menu-board-text">
+                  <strong>Beverages</strong>
+                  <small>{allBeverages.length} drinks</small>
                 </span>
                 <Icon name="arrow" />
               </a>
-              <a className="menu-door" href={foodHref} onClick={handlePageLink}>
-                <img
-                  className="menu-door-thumb"
-                  src="./images/optimized/menu-categories/biscoff-caramel-croffle.webp"
-                  alt=""
-                  width="600"
-                  height="450"
-                  decoding="async"
-                />
-                <span className="menu-door-text">
-                  <strong>Diner bites menu</strong>
-                  <span>{dinerBites.length} dishes, from croffles to rice plates</span>
+              <a className="menu-board-link" href={foodHref} onClick={handlePageLink}>
+                <span className="menu-board-text">
+                  <strong>Diner bites</strong>
+                  <small>{dinerBites.length} dishes</small>
                 </span>
                 <Icon name="arrow" />
               </a>
             </nav>
-            <span className={`store-status-badge hero-store-status ${storeStatus.isOpen ? "is-open" : "is-closed"}`}>
-              <span className="store-status-dot" aria-hidden="true" />
-              {storeStatus.text}
-            </span>
           </div>
         </section>
         {/* ↓ DRINK HERO: Existing signature drink section */}

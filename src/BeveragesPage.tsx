@@ -16,6 +16,7 @@ import {
   StickyMenuBar,
   matchesQuery,
   normalizeQuery,
+  revealSearchResults,
   scrollListIntoView,
 } from "./ui/menu";
 
@@ -221,7 +222,10 @@ export default function BeveragesPage({
           {showSearch && (
             <MenuSearch
               value={query}
-              onChange={onQueryChange}
+              onChange={(value) => {
+                onQueryChange(value);
+                revealSearchResults(listRef.current);
+              }}
               label="Search beverages"
               placeholder="Search all drinks or flavors..."
             />
@@ -323,7 +327,12 @@ export default function BeveragesPage({
               className="bev-category-block"
               aria-labelledby={`bev-heading-${cat.id}`}
             >
-              {/* Category hero frame banner (one picture per category) */}
+              {/* Category hero frame banner (one picture per category); a plain heading while searching */}
+              {q ? (
+                <h3 id={`bev-heading-${cat.id}`} className="menu-search-group">
+                  {cat.name}
+                </h3>
+              ) : (
               <div
                 className={`bev-category-hero-frame ${
                   cat.categoryImage ? "has-image" : "no-image"
@@ -350,6 +359,7 @@ export default function BeveragesPage({
                   </h3>
                 </div>
               </div>
+              )}
 
               {/* Items grid for this category */}
               <div className="bev-page-grid">

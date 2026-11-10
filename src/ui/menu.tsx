@@ -406,6 +406,20 @@ export function scrollListIntoView(list: HTMLElement | null, behavior?: ScrollBe
   window.scrollTo({ top: target, behavior: behavior ?? (prefersReducedMotion() ? "auto" : "smooth") });
 }
 
+/* Typing in the pinned search bar: if the results now start under the bar,
+   bring their first line (the match count, else the list) back into view. */
+export function revealSearchResults(list: HTMLElement | null) {
+  requestAnimationFrame(() => {
+    const bar = document.querySelector<HTMLElement>(".menu-sticky");
+    if (!list || !bar) return;
+    const note = list.previousElementSibling;
+    const first = note instanceof HTMLElement && note.classList.contains("menu-results") ? note : list;
+    if (first.getBoundingClientRect().top < bar.getBoundingClientRect().bottom) {
+      scrollListIntoView(first, "auto");
+    }
+  });
+}
+
 /* Publishes the pinned header height so sticky menu bars stack under it. */
 export function useStickyHeaderOffset(stickyEnabled = true) {
   useEffect(() => {

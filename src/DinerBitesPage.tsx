@@ -11,6 +11,7 @@ import {
   StickyMenuBar,
   matchesQuery,
   normalizeQuery,
+  revealSearchResults,
   scrollListIntoView,
 } from "./ui/menu";
 
@@ -83,7 +84,8 @@ export default function DinerBitesPage({
   const visibleCategories = useMemo(
     () =>
       foodCategories
-        .filter((cat) => cat.id === activeCategory)
+        // A search covers every category; otherwise show the selected one.
+        .filter((cat) => q || cat.id === activeCategory)
         .map((cat) => ({
           ...cat,
           items: cat.items.filter((bite) =>
@@ -162,9 +164,12 @@ export default function DinerBitesPage({
           {showSearch && (
             <MenuSearch
               value={query}
-              onChange={setQuery}
+              onChange={(value) => {
+                setQuery(value);
+                revealSearchResults(listRef.current);
+              }}
               label="Search diner bites"
-              placeholder="Search this category..."
+              placeholder="Search all diner bites..."
             />
           )}
           <CategoryTabs
@@ -263,7 +268,12 @@ export default function DinerBitesPage({
               className="food-category-block"
               aria-labelledby={`heading-${cat.id}`}
             >
-              {/* Dedicated category hero image banner */}
+              {/* Dedicated category hero image banner; a plain heading while searching */}
+              {q ? (
+                <h3 id={`heading-${cat.id}`} className="menu-search-group">
+                  {cat.name}
+                </h3>
+              ) : (
               <div className="food-category-hero-frame">
                 <FadeImage
                   src={cat.categoryImage}
@@ -278,6 +288,7 @@ export default function DinerBitesPage({
                   </h3>
                 </div>
               </div>
+              )}
 
               {/* Category items grid without individual photos */}
               <div className="food-page-grid">

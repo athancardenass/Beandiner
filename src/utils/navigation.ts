@@ -1,5 +1,4 @@
 import { isSafariBrowser, shouldUseDocumentScrollMode } from "../ui/browser";
-import { scrollListIntoView } from "../ui/menu";
 
 export type AppPage = "home" | "diner-bites" | "beverages" | "our-story";
 
@@ -33,13 +32,10 @@ export const isDocumentScrollModeEnabled = () =>
 export const scrollToPageAnchor = (animate = false) => {
   const anchor = window.location.hash.slice(1);
   const behavior = animate ? clickScrollBehavior() : "instant";
-  if (!anchor || anchor === "home" || anchor === "top") {
+  // Menu and story pages always open at their top; their hashes only preselect a view or category.
+  if (!anchor || anchor === "home" || anchor === "top" || pageFromSearch(window.location.search) !== "home") {
     window.scrollTo({ top: 0, left: 0, behavior });
   } else {
-    if (["drink-menu-products", "signature-drinks", "best-sellers"].includes(anchor)) {
-      scrollListIntoView(document.getElementById("drink-menu-products"), behavior);
-      return;
-    }
     document.getElementById(anchor)?.scrollIntoView({ behavior });
   }
 };
