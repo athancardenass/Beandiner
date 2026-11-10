@@ -242,7 +242,7 @@ export function BiteCustomizeModal({
     >
       <div className="customize-image bite-modal-header-hero">
         <span className="eyebrow">{bite.tag}</span>
-        <h3 className="bite-modal-hero-title">{cleanName}</h3>
+        <h2 className="bite-modal-hero-title">{cleanName}</h2>
         <span className="bite-modal-badge">{bite.badge}</span>
       </div>
       <form
@@ -264,8 +264,6 @@ export function BiteCustomizeModal({
           onClose();
         }}
       >
-        <span className="eyebrow">{bite.subtitle}</span>
-        <h2>{cleanName}</h2>
         <p>{bite.description}</p>
         <span className="availability">
           Freshly cooked to order at Antonio Luna St., Bayambang

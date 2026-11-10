@@ -29,7 +29,6 @@ function FoodItem({
     <article className="food-page-item" key={bite.id}>
       <div className="food-page-item-top">
         <span>{bite.badge}</span>
-        <span>{bite.tag}</span>
       </div>
       <h3>{bite.name}</h3>
       <span className="food-page-item-subtitle">{bite.subtitle}</span>
@@ -61,7 +60,12 @@ function FoodItem({
 export default function DinerBitesPage({
   onAdd,
 }: DinerBitesPageProps) {
-  const [activeCategory, setActiveCategory] = useState(foodCategories[0].id);
+  // Home page tiles link here as #cat-<id>; open that category first.
+  const [activeCategory, setActiveCategory] = useState(
+    () =>
+      foodCategories.find((cat) => `#cat-${cat.id}` === window.location.hash)?.id ??
+      foodCategories[0].id,
+  );
   const [mobileCategoriesOpen, setMobileCategoriesOpen] = useState(false);
   const [query, setQuery] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
@@ -132,28 +136,6 @@ export default function DinerBitesPage({
 
   return (
     <>
-      <section className="food-page-hero" aria-labelledby="food-page-title">
-        <FadeImage
-          src="./images/optimized/menu-categories/food-menu-overview.webp"
-          alt=""
-          aria-hidden="true"
-          className="food-page-hero-image"
-          loading="eager"
-        />
-        <div className="food-page-hero-inner">
-          <h1 id="food-page-title">
-            Diner bites &amp; <em>comfort plates.</em>
-          </h1>
-          <div className="food-page-hero-bottom">
-            <p>
-              Crispy chicken wings, loaded nachos, freshly pressed croffles, and hearty skillets.
-            </p>
-            <a className="button food-page-hero-link" href="#food-menu">
-              Browse the food menu
-            </a>
-          </div>
-        </div>
-      </section>
 
       <section
         className="food-page-menu"
@@ -161,9 +143,12 @@ export default function DinerBitesPage({
         aria-labelledby="food-menu-title"
       >
         <div className="food-page-menu-heading">
-          <h2 id="food-menu-title">
+          <div>
+            <span className="eyebrow">CHEF'S COMFORT KITCHEN</span>
+            <h1 id="food-menu-title">
             Find your <em>comfort.</em>
-          </h2>
+          </h1>
+          </div>
           <p>
             {totalDishes} chef-prepared dishes across {foodCategories.length} categories,
             crafted fresh to order on Antonio Luna Street.

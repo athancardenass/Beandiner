@@ -196,17 +196,6 @@ export default function BeveragesPage({
 
   return (
     <>
-      {/* ↓ BEVERAGE PAGE HERO */}
-      <section className="bev-page-hero" aria-labelledby="bev-page-title">
-        <div className="bev-page-hero-inner">
-          <span className="eyebrow">
-            ✦ THIRD-WAVE ESPRESSO &amp; ARTISANAL CREATIONS
-          </span>
-          <h1 id="bev-page-title">
-            Artisanal brews &amp; <em>specialty sips.</em>
-          </h1>
-        </div>
-      </section>
 
       {/* ↓ BEVERAGES MENU SECTION */}
       <section
@@ -216,9 +205,9 @@ export default function BeveragesPage({
       >
         <div className="bev-page-menu-heading">
           <span className="eyebrow">COMPLETE BEVERAGES DIRECTORY</span>
-          <h2 id="drinks-menu-title">
+          <h1 id="drinks-menu-title">
             Discover your <em>daily cup.</em>
-          </h2>
+          </h1>
           <p>
             {totalDrinks} handcrafted drinks across {beverageCategories.length} categories,
             plus artisanal add-ons and plant-based milk substitutions.

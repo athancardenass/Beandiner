@@ -49,6 +49,39 @@ const isTouchDevice = () => navigator.maxTouchPoints > 0 || "ontouchstart" in wi
 
 const isEditableField = (node: HTMLElement) => node.matches(EDITABLE_FIELD_SELECTOR);
 
+// The 0.75 #121212 backdrop over the white header, as it looks on screen.
+const STATUS_BAR_DIM = "#4D4D4D";
+
+/**
+ * Dims the status bar while a sheet is open. Older iOS reads theme-color. Safari 26 ignores it and colours each
+ * edge from the fixed element hit there (WebKit LocalFrameView::fixedContainerEdges). A modal dialog counts as a
+ * dimming layer, which keeps the edge's previous colour (the white header), so the notch never dims. A fixed
+ * strip with a plain dim colour owns the top instead. For a modal dialog it is a popover inside the dialog: the top
+ * layer lifts it above the backdrop, and outside the dialog it would be inert and missed. iPhone Safari still kept the
+ * notch white with that popover, so sheets there skip the top layer (flat sheets) and use the body strip, like the
+ * food sheet. Returns the restore.
+ */
+function tintStatusBar(modalDialog?: HTMLElement) {
+  const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  const previous = meta?.getAttribute("content") ?? null;
+  const strip = document.createElement("div");
+  strip.setAttribute("data-status-bar-dim", "");
+  strip.setAttribute("aria-hidden", "true");
+  meta?.setAttribute("content", STATUS_BAR_DIM);
+  if (modalDialog && "showPopover" in strip) {
+    strip.popover = "manual";
+    modalDialog.append(strip);
+    strip.showPopover();
+  } else {
+    document.body.append(strip);
+  }
+  return () => {
+    strip.remove();
+    if (!meta) return;
+    if (previous === null) meta.removeAttribute("content");
+    else meta.setAttribute("content", previous);
+  };
+}
 
 /** Removes keyboard state classes and all viewport CSS variables from the dialog. */
 function resetViewportState(el: HTMLElement) {
@@ -151,8 +184,6 @@ function openProductDocumentDialog(
     rootInert: root.inert,
     dialogTop: el.style.top,
   };
-  const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
-  const previousThemeColor = themeColor?.getAttribute("content") ?? null;
   const surface = "#FFFFFF";
 
   // End the scrollable document with the sheet, so keyboard pan cannot pass it.
@@ -168,7 +199,7 @@ function openProductDocumentDialog(
   html.style.backgroundColor = surface;
   body.style.backgroundColor = surface;
   root.style.backgroundColor = surface;
-  themeColor?.setAttribute("content", "#121212");
+  const restoreThemeColor = tintStatusBar();
   el.setAttribute("open", "");
 
   const edge = document.createElement("div");
@@ -259,6 +290,7 @@ function openProductDocumentDialog(
   el.querySelector<HTMLElement>(".modal-close")?.focus({ preventScroll: true });
 
   return () => {
+    restoreThemeColor();
     removeListeners.forEach((remove) => remove());
     if (revealFrame) cancelAnimationFrame(revealFrame);
     edge.remove();
@@ -275,10 +307,6 @@ function openProductDocumentDialog(
     root.style.top = previous.rootTop;
     root.style.left = previous.rootLeft;
     root.inert = previous.rootInert;
-    if (themeColor) {
-      if (previousThemeColor === null) themeColor.removeAttribute("content");
-      else themeColor.setAttribute("content", previousThemeColor);
-    }
     if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
     window.scrollTo(scroll.x, scroll.y);
   };
@@ -309,7 +337,9 @@ export function Modal({
 
   const requestClose = useCallback(() => {
     if (closing) return;
-    if (prefersReducedMotion() || !ref.current) {
+    // The page-flow bag has no exit animation: waiting only held the sheet while the notch strip was already gone.
+    const instant = ref.current?.matches(".bag-modal.docscroll-mode");
+    if (prefersReducedMotion() || !ref.current || instant) {
       onCloseRef.current();
       return;
     }
@@ -327,13 +357,15 @@ export function Modal({
 
   const modalClasses = className.split(/\s+/);
   const isBagModal = modalClasses.includes("bag-modal");
+  const isSafariTouch =
+    document.documentElement.dataset.browserFamily === "safari" && isTouchDevice();
   const isSafariProductModal =
-    modalClasses.includes("product-modal") &&
-    !modalClasses.includes("bite-customize-modal") &&
-    document.documentElement.dataset.browserFamily === "safari" &&
-    isTouchDevice();
+    // Food sheets share this path: outside it their note field let iOS pan the page under the keyboard.
+    modalClasses.includes("product-modal") && isSafariTouch;
   const docScrollMode =
     (isBagModal || isSafariProductModal) && isDocumentScrollModeEnabled();
+  // iPhone Safari never tints the notch from a top-layer sheet, so other sheets open there with show(), not showModal().
+  const flatSheet = isSafariTouch && !isBagModal && !docScrollMode;
   const showBagDebug =
     import.meta.env.DEV &&
     isBagModal &&
@@ -380,6 +412,8 @@ export function Modal({
     root.style.backgroundColor = sheetSurface;
     root.style.display = "none";
     themeColor?.setAttribute("content", sheetSurface);
+    // After the bag's own theme-color, so the restore hands it back to the bag before the bag restores the page's.
+    const restoreStatusBar = tintStatusBar();
     el.setAttribute("open", "");
     window.scrollTo(0, 0);
 
@@ -393,6 +427,7 @@ export function Modal({
 
     return () => {
       document.removeEventListener("keydown", handleKeyDown, true);
+      restoreStatusBar();
       el.removeAttribute("open");
       el.classList.remove("docscroll-mode");
       if (!hadHtmlClass) html.classList.remove("docscroll-order-flow");
@@ -412,7 +447,9 @@ export function Modal({
   }, [docScrollMode]);
 
   // ── Mode B: native <dialog> modal (focus trap, keyboard-aware viewport) ─────
-  useEffect(() => {
+  // Layout effect: teardown must run in the same commit that removes the dialog. As a passive effect it ran after a
+  // paint, and in that frame the backdrop and status-bar strip lost their closing styles and flashed back.
+  useLayoutEffect(() => {
     const el = ref.current;
     if (!el || docScrollMode) return;
 
@@ -638,13 +675,28 @@ export function Modal({
     };
 
     // ── Setup ──
+    // A flat sheet is portalled to <body>, so #root can go inert while the sheet stays usable.
+    const flat = el.classList.contains("flat-sheet");
+    const root = flat ? document.getElementById("root") : null;
+    const rootWasInert = root?.inert ?? false;
     if (!el.open) {
       try {
-        el.showModal();
+        if (flat) el.show();
+        else el.showModal();
       } catch {
         /* Dialog already open */
       }
     }
+    let backdrop: HTMLElement | null = null;
+    if (flat) {
+      if (root) root.inert = true;
+      backdrop = document.createElement("div");
+      backdrop.setAttribute("data-sheet-backdrop", "");
+      backdrop.setAttribute("aria-hidden", "true");
+      document.body.append(backdrop);
+    }
+    // After showModal, so the strip's popover stacks above this dialog. The order bag keeps its own colour.
+    const restoreThemeColor = isBag ? () => {} : tintStatusBar(flat ? undefined : el);
     const unlockPage = lockPageScroll({
       freeze: shouldFreezePage,
       isBagModal: isBag,
@@ -657,6 +709,7 @@ export function Modal({
       listen(window, "resize", isBag ? handleBagViewportChange : updateViewport),
       listen(viewport, "resize", isBag ? handleBagViewportChange : updateViewport),
     ];
+    if (backdrop) removers.push(listen(backdrop, "click", () => requestClose()));
     if (isTopSixProduct) {
       removers.push(listen(viewport, "scroll", updateProductViewport));
       removers.push(listen(el, "focusin", queueReveal));
@@ -678,7 +731,10 @@ export function Modal({
       layoutProbe?.remove();
       resetViewportState(el);
       if (el.open) el.close();
+      backdrop?.remove();
+      if (root) root.inert = rootWasInert;
       unlockPage();
+      restoreThemeColor();
       if (previousFocus && typeof previousFocus.focus === "function") previousFocus.focus({ preventScroll: true });
     };
   }, [docScrollMode]);
@@ -689,7 +745,7 @@ export function Modal({
         ref={ref}
         aria-label={label}
         aria-modal={docScrollMode && !isSafariProductModal ? undefined : "true"}
-        className={`modal ${className}${docScrollMode ? " docscroll-mode" : ""}${closing ? " is-closing" : ""}`}
+        className={`modal ${className}${docScrollMode ? " docscroll-mode" : ""}${flatSheet ? " flat-sheet" : ""}${closing ? " is-closing" : ""}`}
         onCancel={(e) => {
           e.preventDefault();
           requestClose();
@@ -709,5 +765,5 @@ export function Modal({
     </ModalContext.Provider>
   );
 
-  return docScrollMode ? createPortal(dialog, document.body) : dialog;
+  return docScrollMode || flatSheet ? createPortal(dialog, document.body) : dialog;
 }

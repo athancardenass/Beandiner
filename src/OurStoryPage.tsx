@@ -1,4 +1,13 @@
-export default function OurStoryPage() {
+import type { MouseEvent } from "react";
+import { Icon } from "./ui/graphics";
+
+type OurStoryPageProps = {
+  menuHref: string;
+  onPageLink: (event: MouseEvent<HTMLAnchorElement>) => void;
+  mapsUrl: string;
+};
+
+export default function OurStoryPage({ menuHref, onPageLink, mapsUrl }: OurStoryPageProps) {
   return (
     <section className="brand-story our-story-page" aria-labelledby="our-story-title">
       <div className="brand-photo reveal">
@@ -31,6 +40,15 @@ export default function OurStoryPage() {
           milk.
         </p>
         <span className="brand-signature handwritten">Tara, kain at kape tayo.</span>
+        <div className="story-next">
+          <a className="button" href={menuHref} onClick={onPageLink}>
+            See the menu <Icon name="arrow" />
+          </a>
+          <a className="story-next-visit" href={mapsUrl} target="_blank" rel="noopener noreferrer">
+            <strong>Visit us on Gen. Antonio Luna St.</strong>
+            <span>Open daily, 10:00 AM to 9:00 PM</span>
+          </a>
+        </div>
       </div>
     </section>
   );
