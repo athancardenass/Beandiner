@@ -77,7 +77,6 @@ const wazeUrl = "https://waze.com/ul?q=Bean%20Diner%20Bayambang";
 const homeBiteCategories = ["croffles", "rice-plates", "pastas"]
   .map((id) => foodCategories.find((cat) => cat.id === id))
   .filter((cat) => cat !== undefined);
-const homeBitesTotal = foodCategories.reduce((n, cat) => n + cat.items.length, 0);
 
 // ↓ DATA: Six signature drink products matching Bean Diner sample photos
 const products: Product[] = [
@@ -1205,7 +1204,9 @@ function App() {
             aria-hidden="true"
             tabIndex={-1}
           >
-            <source src="./videos/bean-diner-hero-mobile-720.mp4" media="(max-width: 820px)" type="video/mp4" />
+            {/* First matching source wins: 4K on retina or very wide desktops, 1080p on phones and other desktops, 720p only on low-density small screens. */}
+            <source src="./videos/bean-diner-hero-4k30.mp4" media="(min-width: 821px) and (min-resolution: 2dppx), (min-width: 1921px)" type="video/mp4" />
+            <source src="./videos/bean-diner-hero-mobile-720.mp4" media="(max-width: 820px) and (max-resolution: 1.5dppx)" type="video/mp4" />
             <source src="./videos/bean-diner-hero-desktop-1080.mp4" type="video/mp4" />
           </video>
           <div className="video-hero-content">
@@ -1220,9 +1221,6 @@ function App() {
             <div className="video-hero-actions">
               <a className="button" href={beveragesHref} onClick={handlePageLink}>
                 See the menu <Icon name="arrow" />
-              </a>
-              <a className="video-hero-link" href={foodHref} onClick={handlePageLink}>
-                Diner bites
               </a>
             </div>
             <span className={`store-status-badge hero-store-status ${storeStatus.isOpen ? "is-open" : "is-closed"}`}>
@@ -1335,8 +1333,6 @@ function App() {
             <p>
               Study sessions, afternoon catchups, or cozy diner merienda on
               Antonio Luna Street.
-              <br />
-              Salted Caramel Macchiato + Matcha Latte, together for one price.
             </p>
             <div className="offer-price">
               {money(coffeeDatePairPrice)}
@@ -1379,14 +1375,9 @@ function App() {
         </section>
         {/* ↓ DINER BITES BAND: Food categories on the homepage */}
         <section className="home-bites" aria-labelledby="home-bites-title">
-          <div className="home-bites-head">
-            <h2 id="home-bites-title">
-              Come hungry, <em>too.</em>
-            </h2>
-            <a className="home-bites-all" href={foodHref} onClick={handlePageLink}>
-              All {homeBitesTotal} diner bites <Icon name="arrow" size={16} />
-            </a>
-          </div>
+          <h2 id="home-bites-title" className="home-bites-head">
+            Come hungry, <em>too.</em>
+          </h2>
           <div className="home-bites-grid">
             {homeBiteCategories.map((cat) => (
               <a
@@ -1506,13 +1497,6 @@ function App() {
                   <p>
                     Daily: 10:00 AM – 9:00 PM
                   </p>
-                  <span
-                    className={`store-status-badge footer-store-status ${storeStatus.isOpen ? "is-open" : "is-closed"}`}
-                    role="status"
-                  >
-                    <span className="store-status-dot" aria-hidden="true" />
-                    {storeStatus.text}
-                  </span>
                 </div>
               </div>
               <div className="info-row">
