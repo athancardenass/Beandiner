@@ -566,12 +566,6 @@ main {
   font-weight: 400;
   color: var(--pine-wood, #D49E77);
 }
-.hero-order-cta {
-  margin-top: clamp(18px, 1.8vw, 26px);
-  padding: 13px 20px;
-  gap: 18px;
-  font-size: 11px;
-}
 /* ↓ HERO COPY: Subheadline and CTAs */
 .hero-copy {
   position: absolute;
@@ -601,9 +595,6 @@ main {
   .hero.has-entered .hero-heading-copy {
     animation: home-headline-reveal 760ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both;
   }
-  .hero.has-entered .hero-order-cta {
-    animation: hero-order-reveal 460ms ease-out 420ms both;
-  }
   .hero.has-entered .hero-copy {
     animation: home-copy-reveal 540ms cubic-bezier(0.16, 1, 0.3, 1) 300ms both;
   }
@@ -623,10 +614,6 @@ main {
   .hero.is-in-view .hero-ice {
     animation-play-state: running;
   }
-}
-@keyframes hero-order-reveal {
-  from { opacity: 0; }
-  to { opacity: 1; }
 }
 .hero-copy p {
   font-size: 14px;
@@ -1894,61 +1881,6 @@ main {
   margin-bottom: 16px;
   display: block;
 }
-.footer-nav-col {
-  display: flex;
-  flex-direction: column;
-}
-.footer-pill-links {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.footer-pill {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 18px;
-  border-radius: 12px;
-  background: #1c1c1b;
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  text-decoration: none;
-  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
-  min-height: 48px;
-}
-.footer-pill:hover {
-  background: #252422;
-  border-color: rgba(212, 158, 119, 0.45);
-  transform: translateX(4px);
-}
-.footer-pill-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-.footer-pill-title {
-  font-family: var(--sans, "DM Sans", sans-serif);
-  font-size: 14px;
-  font-weight: 700;
-  color: #ffffff;
-  letter-spacing: 0.1px;
-}
-.footer-pill small {
-  font-size: 12px;
-  color: rgba(255, 240, 214, 0.65);
-  line-height: 1.35;
-}
-.footer-nav-arrow {
-  font-size: 16px;
-  color: var(--pine-wood, #D49E77);
-  transition: transform 0.2s ease, color 0.2s ease;
-  flex-shrink: 0;
-}
-.footer-pill:hover .footer-nav-arrow {
-  transform: translateX(3px);
-  color: #ffffff;
-}
 .footer-info-col {
   display: flex;
   flex-direction: column;
@@ -2150,9 +2082,6 @@ main {
     max-width: 600px;
     gap: 14px;
   }
-  .footer-nav-col {
-    grid-column: 1;
-  }
   .footer-info-col {
     grid-column: 2;
   }
@@ -2197,9 +2126,6 @@ main {
   }
   .footer-info-col {
     order: 2;
-  }
-  .footer-nav-col {
-    order: 3;
   }
   .footer-tagline {
     font-size: 13px;
@@ -5439,13 +5365,6 @@ body:has(.floating-bag-bubble) .footer-artisanal {
     line-height: 1;
     letter-spacing: -0.045em;
     text-wrap: balance;
-  }
-  .hero-order-cta {
-    position: absolute;
-    top: 540px;
-    left: 50%;
-    margin-top: 0;
-    translate: -50% 0;
   }
   .hero-product-wrap {
     left: 50%;
@@ -9931,36 +9850,6 @@ html:has(.video-hero) {
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.28);
 }
 
-.video-hero-scroll {
-  position: absolute;
-  z-index: 2;
-  right: clamp(26px, 6vw, 84px);
-  bottom: 42px;
-  display: inline-flex;
-  align-items: center;
-  gap: 11px;
-  color: rgba(255, 240, 214, 0.9);
-  font-size: 10px;
-  letter-spacing: 1.2px;
-  text-decoration: none;
-  text-transform: uppercase;
-}
-
-.video-hero-scroll svg {
-  width: 18px;
-  height: 18px;
-  transition: transform 180ms ease;
-}
-
-.video-hero-scroll:hover svg {
-  transform: translateY(3px);
-}
-
-.video-hero-scroll:focus-visible {
-  outline: 2px solid var(--surface-border);
-  outline-offset: 5px;
-}
-
 @media (max-width: 1100px) {
   .video-hero {
     height: calc(100svh - 92px);
@@ -10008,12 +9897,6 @@ html:has(.video-hero) {
     max-width: 470px;
     margin-top: 16px;
     font-size: clamp(14px, 1.9vw, 16px);
-  }
-
-  .video-hero-scroll {
-    right: 6%;
-    bottom: 27px;
-    font-size: 9px;
   }
 }
 
@@ -10066,8 +9949,7 @@ html:has(.video-hero) {
       height: calc(100lvh - var(--header-h, 80px) + var(--mobile-toolbar-range, 0px));
     }
 
-    .video-hero-content,
-    .video-hero-scroll {
+    .video-hero-content {
       margin-bottom: var(--mobile-toolbar-range, 0px);
     }
   }
@@ -10541,15 +10423,35 @@ body:has(dialog.modal.is-closing) [data-status-bar-dim] {
 /* ===== Site design additions (2026-11-10): hero actions, home bites band, story close, menu polish ===== */
 
 /* Hero: one primary action, one quiet link, live opening status. */
+/* Two equal menu doors: filled for Beverages, outlined for Diner bites. */
 .video-hero-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px 22px;
+  gap: 12px;
   margin-top: 26px;
 }
-.video-hero-actions .button {
+.video-hero-menu {
+  gap: 18px;
+  min-height: 52px;
+  padding: 15px 24px;
+  font-size: 14px;
   border-color: transparent;
+}
+.video-hero-menu-alt {
+  background: rgba(18, 18, 18, 0.45);
+  color: var(--cream);
+  border-color: rgba(255, 240, 214, 0.7);
+  box-shadow: none;
+}
+.video-hero-menu-alt:hover {
+  background: var(--cream);
+  color: var(--ink);
+  border-color: var(--cream);
+}
+.video-hero-menu:focus-visible {
+  outline: 2px solid var(--cream);
+  outline-offset: 3px;
 }
 .hero-store-status {
   margin-top: 18px;
@@ -10565,6 +10467,15 @@ body:has(dialog.modal.is-closing) [data-status-bar-dim] {
   }
   .video-hero-actions {
     margin-top: 20px;
+    gap: 10px;
+  }
+  .video-hero-menu {
+    flex: 1 1 0;
+    min-width: 0;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 14px 16px;
+    font-size: 13px;
   }
   .hero-store-status {
     margin-top: 14px;
@@ -10741,4 +10652,26 @@ body:has(dialog.modal.is-closing) [data-status-bar-dim] {
 }
 .signature-menu-section .product-image-button:is(:hover, :focus-visible) .product-art-word {
   opacity: 0.22;
+}
+
+/* Footer: brand and visit card only; page links live in the header nav. */
+@media (min-width: 641px) {
+  .footer-inner {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  }
+  .footer-brand-col,
+  .footer-info-col {
+    grid-column: auto;
+  }
+}
+
+/* Smallest phones: drop the arrows so both menu labels keep their full width. */
+@media (max-width: 380px) {
+  .video-hero-menu {
+    justify-content: center;
+    padding-inline: 10px;
+  }
+  .video-hero-menu svg {
+    display: none;
+  }
 }

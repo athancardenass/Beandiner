@@ -1119,7 +1119,7 @@ function App() {
             className="nav-item"
             aria-current={isBeveragesPage ? "page" : undefined}
           >
-            <span className="nav-label">Menu</span>
+            <span className="nav-label">Beverages</span>
           </a>
           <a
             href={foodHref}
@@ -1218,31 +1218,19 @@ function App() {
             <p>
               Every day deserves a good cup of coffee. At Bean Diner, we make every sip worth enjoying.
             </p>
-            <div className="video-hero-actions">
-              <a className="button" href={beveragesHref} onClick={handlePageLink}>
-                See the menu <Icon name="arrow" />
+            <nav className="video-hero-actions" aria-label="Menus">
+              <a className="button video-hero-menu" href={beveragesHref} onClick={handlePageLink}>
+                Beverages menu <Icon name="arrow" />
               </a>
-            </div>
+              <a className="button video-hero-menu video-hero-menu-alt" href={foodHref} onClick={handlePageLink}>
+                Diner bites menu <Icon name="arrow" />
+              </a>
+            </nav>
             <span className={`store-status-badge hero-store-status ${storeStatus.isOpen ? "is-open" : "is-closed"}`}>
               <span className="store-status-dot" aria-hidden="true" />
               {storeStatus.text}
             </span>
           </div>
-          <a
-            className="video-hero-scroll"
-            href="#drink-hero"
-            onClick={(event) => {
-              event.preventDefault();
-              document.getElementById("drink-hero")?.scrollIntoView({
-                behavior: clickScrollBehavior(),
-              });
-            }}
-          >
-            <span>Scroll to discover</span>
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M12 4v15m0 0 6-6m-6 6-6-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </a>
         </section>
         {/* ↓ DRINK HERO: Existing signature drink section */}
         <section id="drink-hero" className="hero" ref={hero}>
@@ -1259,13 +1247,6 @@ function App() {
                 <em>Macchiato.</em>
               </h2>
             </div>
-            <a
-              className="button hero-order-cta"
-              href={beveragesHref}
-              onClick={handlePageLink}
-            >
-              Order now <Icon name="arrow" size={17} />
-            </a>
           </div>
           <div className="hero-product-wrap">
             <img
@@ -1401,9 +1382,6 @@ function App() {
             <br />
             <em>Another bite?</em>
           </h2>
-          <a href={foodHref} className="button" onClick={handlePageLink}>
-            Explore the menu <Icon name="arrow" />
-          </a>
           <Ingredient kind="leaf" className="final-leaf" />
           <Sun />
         </section>
@@ -1435,41 +1413,6 @@ function App() {
               <span>Benguet 100% Arabica</span>
             </div>
           </div>
-
-          <div className="footer-nav-col">
-            <span className="footer-heading">EXPLORE THE DINER</span>
-            <div className="footer-pill-links">
-              <a href={beveragesHref} onClick={handlePageLink} className="footer-pill">
-                <div className="footer-pill-copy">
-                  <span className="footer-pill-title">Beverages menu</span>
-                  <small>{allBeverages.length} handcrafted brews &amp; sips</small>
-                </div>
-                <span className="footer-nav-arrow" aria-hidden="true">→</span>
-              </a>
-              <a href={foodHref} onClick={handlePageLink} className="footer-pill">
-                <div className="footer-pill-copy">
-                  <span className="footer-pill-title">Diner bites</span>
-                  <small>{dinerBites.length} comfort dishes &amp; plates</small>
-                </div>
-                <span className="footer-nav-arrow" aria-hidden="true">→</span>
-              </a>
-              <a href={signatureHref} onClick={handlePageLink} className="footer-pill">
-                <div className="footer-pill-copy">
-                  <span className="footer-pill-title">Top 6 signatures</span>
-                  <small>Bestsellers &amp; artisan lattes</small>
-                </div>
-                <span className="footer-nav-arrow" aria-hidden="true">→</span>
-              </a>
-              <a href={storyHref} onClick={handlePageLink} className="footer-pill" aria-current={isStoryPage ? "page" : undefined}>
-                <div className="footer-pill-copy">
-                  <span className="footer-pill-title">Our story</span>
-                  <small>Two crafts, one Bayambang home</small>
-                </div>
-                <span className="footer-nav-arrow" aria-hidden="true">→</span>
-              </a>
-            </div>
-          </div>
-
           <div className="footer-info-col">
             <span className="footer-heading">VISIT OUR TABLE</span>
             <div className="footer-info-card">
@@ -2312,6 +2255,7 @@ function App() {
               {
                 num: "02",
                 label: "Diner bites",
+                sub: "Croffles, rice plates, pasta & sandwiches",
                 href: foodHref,
               },
               {
