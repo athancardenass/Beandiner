@@ -1029,6 +1029,17 @@ function App() {
       (beverageCategory !== "best-seller" || isFeaturedBestSeller(p)) &&
       matchesQuery(normalizeQuery(beverageQuery), p.name, p.short, p.badge),
   );
+  // Switch between the two menus from the top of either menu page.
+  const menuSwitch = (
+    <nav className="menu-switch" aria-label="Menus">
+      <a href={beveragesHref} onClick={handlePageLink} aria-current={isBeveragesPage ? "page" : undefined}>
+        Beverages
+      </a>
+      <a href={foodHref} onClick={handlePageLink} aria-current={isFoodPage ? "page" : undefined}>
+        Diner bites
+      </a>
+    </nav>
+  );
   const signatureSection = (
         <section id="signature-drinks" className="signature-menu-section" aria-labelledby="signature-menu-title">
           <div className="menu-heading">
@@ -1080,7 +1091,7 @@ function App() {
                     onClick={() => setSelected(p)}
                     aria-label={`Customize ${p.name}`}
                   >
-                    <PlusIcon size={14} /> Add
+                    <PlusIcon size={14} /> Add to bag
                   </button>
                 </div>
               </article>
@@ -1170,12 +1181,14 @@ function App() {
         {isFoodPage ? (
           <DinerBitesPage
             onAdd={addBite}
+            menuSwitch={menuSwitch}
           />
         ) : isBeveragesPage ? (
           <BeveragesPage
             onAdd={addBeverage}
             onAddModifier={addModifier}
             signatureSection={signatureSection}
+            menuSwitch={menuSwitch}
             activeCategory={beverageCategory}
             onCategoryChange={setBeverageCategory}
             query={beverageQuery}
@@ -1219,11 +1232,35 @@ function App() {
               Every day deserves a good cup of coffee. At Bean Diner, we make every sip worth enjoying.
             </p>
             <nav className="video-hero-actions" aria-label="Menus">
-              <a className="button video-hero-menu" href={beveragesHref} onClick={handlePageLink}>
-                Beverages menu <Icon name="arrow" />
+              <a className="menu-door" href={beveragesHref} onClick={handlePageLink}>
+                <img
+                  className="menu-door-thumb menu-door-thumb-cup"
+                  src="./images/hero-drinks/salted-caramel-macchiato-header.webp"
+                  alt=""
+                  width="500"
+                  height="700"
+                  decoding="async"
+                />
+                <span className="menu-door-text">
+                  <strong>Beverages menu</strong>
+                  <span>{allBeverages.length} drinks, from espresso to frappes</span>
+                </span>
+                <Icon name="arrow" />
               </a>
-              <a className="button video-hero-menu video-hero-menu-alt" href={foodHref} onClick={handlePageLink}>
-                Diner bites menu <Icon name="arrow" />
+              <a className="menu-door" href={foodHref} onClick={handlePageLink}>
+                <img
+                  className="menu-door-thumb"
+                  src="./images/optimized/menu-categories/biscoff-caramel-croffle.webp"
+                  alt=""
+                  width="600"
+                  height="450"
+                  decoding="async"
+                />
+                <span className="menu-door-text">
+                  <strong>Diner bites menu</strong>
+                  <span>{dinerBites.length} dishes, from croffles to rice plates</span>
+                </span>
+                <Icon name="arrow" />
               </a>
             </nav>
             <span className={`store-status-badge hero-store-status ${storeStatus.isOpen ? "is-open" : "is-closed"}`}>

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { foodCategories, type DinerBite } from "./dinerBites";
 import { money } from "./utils/presentation";
 import {
@@ -16,6 +16,7 @@ import {
 
 type DinerBitesPageProps = {
   onAdd: (bite: DinerBite) => void;
+  menuSwitch: ReactNode;
 };
 
 function FoodItem({
@@ -59,6 +60,7 @@ function FoodItem({
 
 export default function DinerBitesPage({
   onAdd,
+  menuSwitch,
 }: DinerBitesPageProps) {
   // Home page tiles link here as #cat-<id>; open that category first.
   const [activeCategory, setActiveCategory] = useState(
@@ -144,7 +146,7 @@ export default function DinerBitesPage({
       >
         <div className="food-page-menu-heading">
           <div>
-            <span className="eyebrow">CHEF'S COMFORT KITCHEN</span>
+            {menuSwitch}
             <h1 id="food-menu-title">
             Find your <em>comfort.</em>
           </h1>

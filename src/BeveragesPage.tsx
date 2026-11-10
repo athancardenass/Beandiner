@@ -23,6 +23,7 @@ type BeveragesPageProps = {
   onAdd: (bev: BeverageItem, size: string, price: number) => void;
   onAddModifier: (mod: BeverageModifier, type: "Add-on" | "Sub") => void;
   signatureSection: ReactNode;
+  menuSwitch: ReactNode;
   activeCategory: string;
   onCategoryChange: (id: string) => void;
   query: string;
@@ -110,6 +111,7 @@ export default function BeveragesPage({
   onAdd,
   onAddModifier,
   signatureSection,
+  menuSwitch,
   activeCategory,
   onCategoryChange,
   query,
@@ -204,7 +206,7 @@ export default function BeveragesPage({
         aria-labelledby="drinks-menu-title"
       >
         <div className="bev-page-menu-heading">
-          <span className="eyebrow">COMPLETE BEVERAGES DIRECTORY</span>
+          {menuSwitch}
           <h1 id="drinks-menu-title">
             Discover your <em>daily cup.</em>
           </h1>
