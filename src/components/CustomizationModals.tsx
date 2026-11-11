@@ -3,10 +3,9 @@ import type { DinerBite } from "../dinerBites";
 import type { CartItem, Product } from "../types";
 import { Icon } from "../ui/graphics";
 import { Modal } from "../ui/Modal";
-import { MAX_CART_QUANTITY } from "../utils/cart";
+import { MAX_CART_QUANTITY, OAT_MILK_SURCHARGE } from "../utils/cart";
 import { money, productImage } from "../utils/presentation";
 
-const OAT_MILK_SURCHARGE = 35;
 const ITEM_NOTE_MAX_LENGTH = 120;
 
 // ↓ SEGMENTED: Radio group styled as a segmented control (arrow keys move selection)

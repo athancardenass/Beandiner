@@ -35,7 +35,14 @@ import {
   writePendingOrder,
   type PendingOrder,
 } from "./utils/checkout";
-import { cartItemSpecs, MAX_CART_QUANTITY, mergeCartItem } from "./utils/cart";
+import {
+  cartItemSpecs,
+  MAX_CART_QUANTITY,
+  mergeCartItem,
+  OAT_MILK_SURCHARGE,
+  sizeKey,
+  sizeLabel,
+} from "./utils/cart";
 import { copyToClipboard } from "./utils/clipboard";
 import { listen } from "./utils/events";
 import { FACEBOOK_PAGE_URL, getMessengerUrl, openMessengerOnMobile } from "./utils/messenger";
@@ -78,117 +85,6 @@ const homeBiteCategories = ["croffles", "rice-plates", "pastas"]
   .map((id) => foodCategories.find((cat) => cat.id === id))
   .filter((cat) => cat !== undefined);
 
-// ↓ DATA: Six signature drink products matching Bean Diner sample photos
-const products: Product[] = [
-  {
-    id: "latte",
-    name: "Iced Spanish Latte",
-    short: "Signature espresso & fresh milk",
-    note: "Double espresso, silky milk, poured over ice.",
-    description:
-      "Our signature double-shot espresso extraction over chilled fresh milk and crisp ice. The everyday crowd favorite at Antonio Luna Street.",
-    price: 145,
-    color: "#f2dfb8",
-    word: "Daily joy.",
-    ingredients: ["Double espresso", "Fresh milk", "Ice chill"],
-    type: "Coffee",
-    badge: "BEST SELLER",
-    photo: "caffe-latte",
-  },
-  {
-    id: "matcha",
-    name: "Iced Matcha Latte",
-    short: "Ceremonial matcha & creamy milk",
-    note: "Whisked smooth. 100% authentic green tea.",
-    description:
-      "Vibrant ceremonial-grade Japanese matcha whisked smooth and paired with creamy milk (or Oatside oat milk) over ice. Earthy, soothing, and perfectly balanced.",
-    price: 165,
-    color: "#dce4b8",
-    word: "Matcha chill.",
-    ingredients: [
-      "Ceremonial matcha",
-      "Fresh milk / Oatside",
-      "Clean ice chill",
-    ],
-    type: "Not coffee",
-    badge: "OATSIDE COLLAB",
-    photo: "matcha-latte",
-  },
-  {
-    id: "caramel",
-    name: "Iced Caramel Macchiato",
-    short: "Caramel syrup, cold milk & espresso",
-    note: "Sweet golden caramel meets dark roast.",
-    description:
-      "Rich amber caramel syrup layered with cold fresh milk, marked with a bold double espresso float and finished with golden drizzle.",
-    price: 160,
-    color: "#eedec7",
-    word: "Caramel swirl.",
-    ingredients: ["Dark caramel drizzle", "Chilled milk", "Espresso float"],
-    type: "Coffee",
-    badge: "HOUSE SPECIAL",
-    photo: "caramel-macchiato",
-  },
-  {
-    id: "strawberry",
-    name: "Sweet Strawberry Iced Latte",
-    short: "Real strawberry fruit & espresso float",
-    note: "Coffee that says stay, strawberry that says sweet.",
-    description:
-      "Real crushed strawberry puree poured with silky milk, topped with a gentle espresso kick. Refreshing, vibrant, and a diner customer favorite.",
-    price: 155,
-    color: "#fed7d7",
-    word: "Berry sweet.",
-    ingredients: [
-      "Real strawberry fruit",
-      "Velvety fresh milk",
-      "Bold espresso float",
-    ],
-    type: "Coffee",
-    badge: "CROWD FAVORITE",
-    photo: "strawberry-latte",
-  },
-  {
-    id: "chai",
-    name: "Iced Milk Tea Chai Latte",
-    short: "Spiced artisan black tea blend",
-    note: "Warm aromatic spice, served ice-cold.",
-    description:
-      "Slow-steeped artisan spiced black tea infused with cardamom, cinnamon, and clove, softened with creamy sweetened milk over ice.",
-    price: 145,
-    color: "#efcebc",
-    word: "Spiced chill.",
-    ingredients: [
-      "Artisan spiced tea",
-      "Silky fresh milk",
-      "Fragrant cinnamon",
-    ],
-    type: "Not coffee",
-    badge: "BARISTA CRAFT",
-    photo: "chai-latte",
-  },
-  {
-    id: "hot",
-    name: "Artisan Hot Roast & Latte",
-    short: "Middle East barista craft brew",
-    note: "Crafted by our Middle East-trained barista.",
-    description:
-      "Full-bodied, deeply aromatic extraction celebrating Middle Eastern specialty coffee techniques with golden crema and latte art.",
-    price: 130,
-    color: "#e9c3a4",
-    word: "Warm comfort.",
-    ingredients: [
-      "Artisan roast espresso",
-      "Steamed velvety milk",
-      "Latte art pour",
-    ],
-    type: "Coffee",
-    hot: true,
-    badge: "BARISTA SPECIAL",
-    photo: "hot-roast",
-  },
-];
-
 type FeaturedDrinkPresentation = {
   menuId: string;
   name?: string;
@@ -215,10 +111,10 @@ const createFeaturedDrink = ({
   const menuItem = allBeverages.find((item) => item.id === menuId);
   if (!menuItem) throw new Error(`Missing featured drink in beverages menu: ${menuId}`);
   const sizePrices = Object.entries(menuItem.prices).map(([size, price]) => ({
-    size: size.replace(/(\d+)oz/i, "$1 oz"),
+    size: sizeLabel(size),
     price,
   }));
-  const defaultSize = menuItem.defaultSize.replace(/(\d+)oz/i, "$1 oz");
+  const defaultSize = sizeLabel(menuItem.defaultSize);
 
   return {
     id: menuItem.id,
@@ -306,20 +202,51 @@ const heroSelectorProducts: Product[] = [
   }),
 ];
 
-const allProducts = [...products, ...heroSelectorProducts];
+const findProduct = (id: string) => heroSelectorProducts.find((product) => product.id === id);
 
-const findProduct = (id: string) => allProducts.find((product) => product.id === id);
+const allModifiers = [...beverageAddOns, ...beverageSubs];
 
 const resolveCartItem = (item: CartItem) => {
   const p = findProduct(item.id);
   const b = dinerBites.find((b) => b.id === item.id);
   const bev = allBeverages.find((bev) => bev.id === item.id);
-  const mod = [...beverageAddOns, ...beverageSubs].find((m) => m.id === item.id);
+  const mod = allModifiers.find((m) => m.id === item.id);
   const title = p ? p.name : b ? b.name : bev ? bev.name : mod ? mod.name : item.name || "Item";
   return { p, bev, mod, title };
 };
 
-const spanishLatte = products.find((product) => product.id === "latte")!;
+// Current menu price for one unit, or undefined when the item is no longer on the menu.
+const currentUnitPrice = (item: CartItem): number | undefined => {
+  const bite = dinerBites.find((b) => b.id === item.id);
+  if (bite) return bite.price ?? undefined;
+  const mod = allModifiers.find((m) => m.id === item.id);
+  if (mod) return mod.price;
+  const bev = allBeverages.find((b) => b.id === item.id);
+  if (!bev) return undefined;
+  const base = bev.prices[sizeKey(item.size || bev.defaultSize)];
+  return base === undefined ? undefined : base + (item.milk === "Oat" ? OAT_MILK_SURCHARGE : 0);
+};
+
+const isDrinkLine = (item: CartItem) => !item.isFood && !allModifiers.some((m) => m.id === item.id);
+
+const drinkLabel = (item: CartItem) => {
+  const specs = cartItemSpecs(item).join(", ");
+  return `${resolveCartItem(item).title}${specs ? ` (${specs})` : ""}`;
+};
+
+// Drink an add-on / milk swap applies to, if it is still in the bag.
+const modTarget = (item: CartItem, items: CartItem[]) =>
+  item.forKey ? items.find((candidate) => candidate.key === item.forKey) : undefined;
+
+const itemSpecText = (item: CartItem, items: CartItem[], separator: string) => {
+  const { mod } = resolveCartItem(item);
+  if (item.isFood) return item.size && item.size !== "Plate" ? `Flavor: ${item.size}` : "Plate";
+  if (mod) {
+    const target = modTarget(item, items);
+    return target ? `For ${drinkLabel(target)}` : "Drink not chosen";
+  }
+  return cartItemSpecs(item).join(separator);
+};
 
 const coffeeDateSaltedCaramel = allBeverages.find(
   (beverage) => beverage.id === "iced-salted-caramel",
@@ -331,7 +258,7 @@ const coffeeDateMatcha = allBeverages.find(
 
 const coffeeDatePairSize = "16oz";
 
-const coffeeDatePairSizeLabel = "16 oz";
+const coffeeDatePairSizeLabel = sizeLabel(coffeeDatePairSize);
 
 const coffeeDatePairPrice =
   coffeeDateSaltedCaramel.prices[coffeeDatePairSize] +
@@ -350,7 +277,7 @@ const formatOrderMessage = (
   orderNote: string = "",
 ) => {
   const lines = items.map((item) => {
-    const { bev, mod, title } = resolveCartItem(item);
+    const { title } = resolveCartItem(item);
     const noteSuffix = item.note?.trim()
       ? ` - Note: "${item.note.trim()}"`
       : "";
@@ -360,19 +287,8 @@ const formatOrderMessage = (
           item.price * item.quantity,
         )}`;
     }
-    if (bev) {
-      return `• ${item.quantity}x ${title} (${item.size || bev.defaultSize}, ${bev.hot ? "Hot" : "Over Iced"})${noteSuffix} - ${money(
-          item.price * item.quantity,
-        )}`;
-    }
-    if (mod) {
-      return `• ${item.quantity}x ${title} (Customization)${noteSuffix} - ${money(
-          item.price * item.quantity,
-        )}`;
-    }
-    const specs = cartItemSpecs(item)
-      .join(", ");
-    return `• ${item.quantity}x ${title} (${specs})${noteSuffix} - ${money(
+    const specs = itemSpecText(item, items, ", ");
+    return `• ${item.quantity}x ${title}${specs ? ` (${specs})` : ""}${noteSuffix} - ${money(
         item.price * item.quantity,
       )}`;
   });
@@ -412,34 +328,23 @@ function readInitialCart(): CartItem[] {
         localStorage.getItem("saya-bag") ||
         "[]",
     );
+    // Never trust a stored price: re-price every line from the current menu, drop what is gone.
     return Array.isArray(value)
-      ? value
-          .filter(
-            (item: CartItem) =>
-              (!!findProduct(item.id) ||
-                dinerBites.some(
-                  (b) => b.id === item.id && !b.sample && b.price !== null,
-                ) ||
-                allBeverages.some((b) => b.id === item.id) ||
-                beverageAddOns.some((m) => m.id === item.id) ||
-                beverageSubs.some((m) => m.id === item.id)) &&
-              typeof item.key === "string" &&
-              Number.isFinite(item.price) &&
-              item.price > 0 &&
-              Number.isInteger(item.quantity) &&
-              item.quantity > 0 &&
-              item.quantity <= MAX_CART_QUANTITY,
+      ? value.flatMap((item: CartItem) => {
+          if (
+            !item ||
+            typeof item.key !== "string" ||
+            typeof item.id !== "string" ||
+            !Number.isInteger(item.quantity) ||
+            item.quantity <= 0 ||
+            item.quantity > MAX_CART_QUANTITY
           )
-          .map((item: CartItem) =>
-            item.id === "latte" &&
-            item.name === "Classic Iced Caffe Latte"
-              ? {
-                  ...item,
-                  name: spanishLatte.name,
-                  price: item.price + 5,
-                }
-              : item,
-          )
+            return [];
+          const price = currentUnitPrice(item);
+          if (price === undefined) return [];
+          const size = item.size && !item.isFood ? sizeLabel(item.size) : item.size;
+          return [{ ...item, size, price }];
+        })
       : [];
   } catch {
     return [];
@@ -903,10 +808,10 @@ function App() {
     price: number,
   ) => {
     const item: CartItem = {
-      key: `bev-${bev.id}-${size}`,
+      key: `bev-${bev.id}-${sizeKey(size)}`,
       id: bev.id,
-      name: `${bev.name} (${size})`,
-      size: size,
+      name: `${bev.name} (${sizeLabel(size)})`,
+      size: sizeLabel(size),
       temperature: bev.hot ? "Hot" : "Over Iced",
       quantity: 1,
       price: price,
@@ -923,7 +828,7 @@ function App() {
       key: `bev-${beverage.id}-${coffeeDatePairSize}`,
       id: beverage.id,
       name: `${beverage.name} (${coffeeDatePairSizeLabel})`,
-      size: coffeeDatePairSize,
+      size: coffeeDatePairSizeLabel,
       temperature: "Over Iced",
       quantity: 1,
       price: beverage.prices[coffeeDatePairSize],
@@ -937,18 +842,38 @@ function App() {
   };
 
   // ↓ ADD MODIFIER: Add add-on or milk substitution to bag
+  // Add-ons / milk swaps attach to the newest drink in the bag; the bag lets the guest change it.
+  const modifierLine = (item: CartItem, forKey?: string): CartItem => ({
+    ...item,
+    forKey,
+    key: `mod-${item.id}-${forKey ?? "unassigned"}`,
+  });
   const addModifier = (mod: BeverageModifier, type: "Add-on" | "Sub") => {
-    const item: CartItem = {
-      key: `mod-${mod.id}`,
-      id: mod.id,
-      name: `${mod.name} (${type})`,
-      size: "Customization",
-      quantity: 1,
-      price: mod.price,
-      isFood: false,
-    };
-    add(item);
+    const target = [...cartRef.current].reverse().find(isDrinkLine);
+    add(
+      modifierLine(
+        {
+          key: "",
+          id: mod.id,
+          name: `${mod.name} (${type})`,
+          size: "Customization",
+          quantity: 1,
+          price: mod.price,
+          isFood: false,
+        },
+        target?.key,
+      ),
+    );
   };
+  const assignModifier = (key: string, forKey: string) =>
+    setCart((items) => {
+      const line = items.find((item) => item.key === key);
+      if (!line) return items;
+      return mergeCartItem(
+        items.filter((item) => item.key !== key),
+        modifierLine(line, forKey || undefined),
+      );
+    });
   const cartCount = cart.reduce((n, i) => n + i.quantity, 0);
   const subtotal = cart.reduce((n, i) => n + i.price * i.quantity, 0);
   const removeItem = (key: string) =>
@@ -1797,17 +1722,12 @@ function App() {
                 </button>
                 <div className="cart-items">
                   {cart.map((item) => {
-                    const { p, bev, mod, title } = resolveCartItem(item);
-                    const desc = item.isFood
-                      ? item.size && item.size !== "Plate"
-                        ? `Flavor: ${item.size}`
-                        : "Chef's Comfort Kitchen Plate"
-                      : bev
-                        ? `${item.size || bev.defaultSize} · ${bev.hot ? "Hot" : "Over Iced"}`
-                        : mod
-                          ? "Barista Customization"
-                          : cartItemSpecs(item)
-                              .join(" · ");
+                    const { p, mod, title } = resolveCartItem(item);
+                    const desc =
+                      item.isFood && !(item.size && item.size !== "Plate")
+                        ? "Chef's Comfort Kitchen Plate"
+                        : itemSpecText(item, cart, " · ");
+                    const drinks = mod ? cart.filter(isDrinkLine) : [];
                     return (
                       <div className="cart-item" key={item.key}>
                         {p ? (
@@ -1832,7 +1752,26 @@ function App() {
                         )}
                         <div>
                           <h3>{title}</h3>
-                          <p>{desc}</p>
+                          {mod ? (
+                            <label className="cart-item-for">
+                              <span>For</span>
+                              <select
+                                value={modTarget(item, cart)?.key ?? ""}
+                                onChange={(e) => assignModifier(item.key, e.target.value)}
+                              >
+                                <option value="">
+                                  {drinks.length ? "Choose a drink" : "Add a drink first"}
+                                </option>
+                                {drinks.map((drink) => (
+                                  <option key={drink.key} value={drink.key}>
+                                    {drinkLabel(drink)}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                          ) : (
+                            <p>{desc}</p>
+                          )}
                           {item.note?.trim() && (
                             <p className="cart-item-note">
                               Note: "{item.note.trim()}"
@@ -2206,9 +2145,7 @@ function App() {
                               <div className="checkout-summary-meta">
                                 <span className="checkout-summary-name">{title}</span>
                                 <span className="checkout-summary-spec">
-                                  {item.isFood
-                                    ? item.size || "Plate"
-                                    : [item.size, item.temperature, item.sweetness].filter(Boolean).join(" · ")}
+                                  {itemSpecText(item, cart, " · ")}
                                 </span>
                               </div>
                             </div>

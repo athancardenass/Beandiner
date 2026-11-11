@@ -2464,6 +2464,26 @@ main {
 .cart-item p {
   overflow-wrap: anywhere;
 }
+.cart-item-for {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 6px;
+  font-size: 13px;
+  color: var(--ink, #343b32);
+}
+.cart-item-for select {
+  min-width: 0;
+  flex: 1;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--ink, #343b32) 22%, transparent);
+  border-radius: 10px;
+  background: var(--cream, #fbf5e9);
+  color: inherit;
+  font: inherit;
+  text-overflow: ellipsis;
+}
 .cart-item-remove {
   min-width: 64px;
   min-height: 44px;
