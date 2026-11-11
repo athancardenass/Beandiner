@@ -150,3 +150,14 @@ test('blocked storage leaves the current session functional', () => {
     else delete globalThis.sessionStorage;
   }
 });
+
+test('cart size labels match across menu keys and the modal, and drink specs keep sweetness and ice', async () => {
+  const { sizeLabel, sizeKey, cartItemSpecs } = await import('../src/utils/cart.ts');
+  assert.equal(sizeLabel('16oz'), '16 oz');
+  assert.equal(sizeLabel('16 oz'), '16 oz');
+  assert.equal(sizeKey(sizeLabel('22oz')), '22oz');
+  assert.deepEqual(
+    cartItemSpecs({ key: 'k', id: 'x', size: '22 oz', temperature: 'Iced', sweetness: '50% Sweet', iceLevel: 'Less Ice', quantity: 1, price: 1 }),
+    ['22 oz', 'Iced', '50% Sweet', 'Less Ice'],
+  );
+});

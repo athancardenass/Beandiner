@@ -34,6 +34,8 @@ export type CartItem = {
   name?: string;
   isFood?: boolean;
   note?: string;
+  // Add-on / milk swap only: key of the drink in the bag it applies to.
+  forKey?: string;
 };
 
 export type CheckoutPayment = "cash" | "gcash" | "maya";
