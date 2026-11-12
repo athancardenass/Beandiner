@@ -54,7 +54,7 @@ import {
   scrollToPageAnchor,
   type AppPage,
 } from "./utils/navigation";
-import { money, productImage } from "./utils/presentation";
+import { menuItemPhoto, money, productImage } from "./utils/presentation";
 import { getWhatsAppUrl, withOrderRequestStatus, WHATSAPP_URL_LIMIT } from "./utils/whatsapp";
 
 const PAGE_METADATA: Record<AppPage, { title: string; description: string }> = {
@@ -1710,16 +1710,13 @@ function App() {
               </div>
             ) : checkoutStep === "bag" ? (
               <>
-                <button
-                  type="button"
-                  className="button button-order-more"
-                  onClick={() => {
-                    setBagOpen(false);
-                    scrollToMenu();
-                  }}
-                >
-                  + Order More / Browse Menu
-                </button>
+                <section className="order-slip" aria-label="Order slip">
+                <div className="order-slip-head" aria-hidden="true">
+                  <span>Order slip</span>
+                  <span>
+                    {cartCount} {cartCount === 1 ? "item" : "items"}
+                  </span>
+                </div>
                 <div className="cart-items">
                   {cart.map((item) => {
                     const { p, mod, title } = resolveCartItem(item);
@@ -1728,26 +1725,20 @@ function App() {
                         ? "Chef's Comfort Kitchen Plate"
                         : itemSpecText(item, cart, " · ");
                     const drinks = mod ? cart.filter(isDrinkLine) : [];
+                    const menuPhoto = p ? undefined : menuItemPhoto(item.id);
+                    const photo = p ? productImage(p) : menuPhoto?.src;
                     return (
                       <div className="cart-item" key={item.key}>
-                        {p ? (
+                        {photo ? (
                           <img
-                            src={productImage(p)}
-                            alt={p.name}
-                            style={{ background: p.color }}
+                            className={p ? undefined : menuPhoto?.cutout ? "cart-item-photo is-cutout" : "cart-item-photo"}
+                            src={photo}
+                            alt=""
+                            style={p ? { background: p.color } : undefined}
                           />
                         ) : (
-                          <div
-                            className="cart-food-icon"
-                            style={{
-                              background: item.isFood ? "var(--pine, #D49E77)" : "var(--black, #121212)",
-                              color: item.isFood ? "var(--black, #121212)" : "var(--cream, #FFF0D6)",
-                              fontSize: "10px",
-                              fontWeight: "800",
-                              letterSpacing: "0.5px",
-                            }}
-                          >
-                            {item.isFood ? "BITE" : "SIP"}
+                          <div className="cart-food-icon" aria-hidden="true">
+                            <img src="./images/bean_diner_logo_transparent.png" alt="" />
                           </div>
                         )}
                         <div>
@@ -1809,20 +1800,25 @@ function App() {
                     );
                   })}
                 </div>
-                <div className="cart-totals">
-                  <div>
-                    <span>Subtotal</span>
-                    <span>{money(subtotal)}</span>
-                  </div>
-                  <div className="cart-total">
+                <button
+                  type="button"
+                  className="button-order-more"
+                  onClick={() => {
+                    setBagOpen(false);
+                    scrollToMenu();
+                  }}
+                >
+                  <Icon name="plus" size={14} /> Add more from the menu
+                </button>
+                </section>
+                <div className="bag-actions-bar">
+                  <div className="bag-total">
                     <span>Total</span>
                     <strong aria-live="polite">{money(subtotal)}</strong>
                   </div>
-                </div>
-                <div className="bag-actions-bar">
                   <button
                     type="button"
-                    className="button button-proceed-checkout"
+                    className="button button-proceed-checkout funnel-cta"
                     onClick={() => setCheckoutStep("details")}
                   >
                     Proceed to Details <Icon name="arrow" size={17} />
@@ -2174,7 +2170,7 @@ function App() {
                 </aside>
                 <div className="checkout-actions-block">
                   <button
-                    className="button button-whatsapp-checkout prominent"
+                    className="button button-whatsapp-checkout prominent funnel-cta"
                     type="submit"
                     form="checkout-order-form"
                   >

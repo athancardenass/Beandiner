@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import { foodCategories, type DinerBite } from "./dinerBites";
-import { money } from "./utils/presentation";
+import { earnedBadge, menuItemPhoto, money } from "./utils/presentation";
 import {
   CategoryTabs,
   FadeImage,
@@ -27,12 +27,25 @@ function FoodItem({
   bite: DinerBite;
   onAdd: (bite: DinerBite) => void;
 }) {
+  const photo = menuItemPhoto(bite.id);
+  const badge = earnedBadge(bite.badge);
   return (
     <article className="food-page-item" key={bite.id}>
-      <div className="food-page-item-top">
-        <span>{bite.badge}</span>
+      <div className="menu-item-head">
+        {photo && (
+          <img
+            className={`menu-item-thumb${photo.cutout ? " is-cutout" : ""}`}
+            src={photo.src}
+            alt=""
+            loading="lazy"
+            decoding="async"
+          />
+        )}
+        <div className="menu-item-head-text">
+          {badge && <span className="food-page-item-badge">{badge}</span>}
+          <h3>{bite.name}</h3>
+        </div>
       </div>
-      <h3>{bite.name}</h3>
       <span className="food-page-item-subtitle">{bite.subtitle}</span>
       <p>{bite.description}</p>
       <div className="food-page-item-bottom">

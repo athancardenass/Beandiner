@@ -19,6 +19,7 @@ import {
   revealSearchResults,
   scrollListIntoView,
 } from "./ui/menu";
+import { earnedBadge, menuItemPhoto } from "./utils/presentation";
 
 type BeveragesPageProps = {
   onAdd: (bev: BeverageItem, size: string, price: number) => void;
@@ -49,15 +50,26 @@ function BeverageCard({
   const [selectedSize, setSelectedSize] = useState<string>(initialSize);
 
   const currentPrice = bev.prices[selectedSize] ?? bev.prices[sizeKeys[0]] ?? 0;
+  const photo = menuItemPhoto(bev.id);
+  const badge = earnedBadge(bev.badge);
 
   return (
     <article className="bev-item-card" key={bev.id}>
-      <div className="bev-item-top">
-        <span className="bev-badge">{bev.badge ?? (bev.hot ? "HOT BREW" : "ICED SIP")}</span>
-        <span className="bev-type-tag">{bev.hot ? "Hot" : "Over Iced"}</span>
+      <div className="menu-item-head">
+        {photo && (
+          <img
+            className={`menu-item-thumb${photo.cutout ? " is-cutout" : ""}`}
+            src={photo.src}
+            alt=""
+            loading="lazy"
+            decoding="async"
+          />
+        )}
+        <div className="menu-item-head-text">
+          {badge && <span className="bev-badge">{badge}</span>}
+          <h3 className="bev-item-name">{bev.name}</h3>
+        </div>
       </div>
-
-      <h3 className="bev-item-name">{bev.name}</h3>
       <p className="bev-item-desc">{bev.description}</p>
 
       {/* Size selection selector */}
@@ -85,16 +97,11 @@ function BeverageCard({
           })}
         </div>
       ) : (
-        <div className="bev-single-size-tag">
-          <span className="bev-single-badge">Single Size: {selectedSize}</span>
-        </div>
+        <p className="bev-single-size-tag">{selectedSize}</p>
       )}
 
       <div className="bev-item-bottom">
-        <div className="bev-price-block">
-          <span className="bev-price-label">Price</span>
-          <strong className="bev-price-val">{money(currentPrice)}</strong>
-        </div>
+        <strong className="bev-price-val">{money(currentPrice)}</strong>
         <button
           type="button"
           className="button menu-add-btn"
