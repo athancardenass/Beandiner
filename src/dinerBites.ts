@@ -9,6 +9,8 @@ export type DinerBite = {
   sample?: boolean;
   options?: string[];
   optionLabel?: string;
+  // Real product photo; items without one show no picture.
+  photo?: string;
 };
 
 export type FoodCategory = {
@@ -75,6 +77,7 @@ export const foodCategories: FoodCategory[] = [
       },
       {
         "id": "biscoff-caramel-croffle",
+        "photo": "./images/optimized/menu-categories/biscoff-caramel-croffle.webp",
         "name": "Biscoff Caramel",
         "subtitle": "LOTUS CRUMBLE & CARAMEL",
         "description": "Warm Lotus Biscoff spread, crushed spiced cookie crumbs, and sea salt caramel swirl.",
@@ -140,6 +143,7 @@ export const foodCategories: FoodCategory[] = [
       },
       {
         "id": "mexican-nachos",
+        "photo": "./images/optimized/menu-categories/mexican-nachos.webp",
         "name": "Mexican Nachos",
         "subtitle": "CHEF'S SHARING PLATTER",
         "description": "Stone-ground corn chips piled high with seasoned beef, melted queso, salsa, and jalape\u00f1os.",
@@ -185,6 +189,7 @@ export const foodCategories: FoodCategory[] = [
       },
       {
         "id": "potato-feast",
+        "photo": "./images/optimized/menu-categories/potato-feast.webp",
         "name": "Potato Feast",
         "subtitle": "LOADED POTATO PLATTER",
         "description": "Generous loaded potato platter with melted cheese, bacon bits, and herb dips.",
@@ -225,6 +230,7 @@ export const foodCategories: FoodCategory[] = [
     "items": [
       {
         "id": "bd-crispy-chicken",
+        "photo": "./images/optimized/menu-categories/bd-crispy-chicken.webp",
         "name": "BD Crispy Chicken",
         "subtitle": "SIGNATURE FRIED CHICKEN",
         "description": "Crispy fried chicken leg quarter with rich savory country gravy and steaming garlic rice.",
@@ -317,6 +323,7 @@ export const foodCategories: FoodCategory[] = [
       },
       {
         "id": "korean-beef-mushroom",
+        "photo": "./images/optimized/menu-categories/korean-beef-mushroom.webp",
         "name": "Korean Beef Mushroom",
         "subtitle": "SOY-GARLIC UMAMI SKILLET",
         "description": "Tender beef slices saut\u00e9ed with fresh button mushrooms in sweet garlic soy sauce.",
@@ -353,6 +360,7 @@ export const foodCategories: FoodCategory[] = [
     "items": [
       {
         "id": "chicken-caesar-salad",
+        "photo": "./images/optimized/menu-categories/salad.webp",
         "name": "Chicken Caesar",
         "subtitle": "PARMESAN & HERB CROUTONS",
         "description": "Crisp romaine lettuce tossed in creamy garlic Caesar dressing, grilled chicken, and Parmesan.",
@@ -425,6 +433,7 @@ export const foodCategories: FoodCategory[] = [
       },
       {
         "id": "chicken-pesto-base",
+        "photo": "./images/optimized/menu-categories/chicken-pesto.webp",
         "name": "Chicken Pesto (Oil base / Cream base)",
         "subtitle": "CHOICE OF OIL BASE OR CREAM BASE",
         "description": "Fragrant Genovese sweet basil pesto with grilled chicken and aged shaved Parmesan.",
@@ -463,6 +472,7 @@ export const foodCategories: FoodCategory[] = [
     "items": [
       {
         "id": "chicken-caesar-wrap",
+        "photo": "./images/optimized/menu-categories/chicken-caesar-wrap.webp",
         "name": "Chicken Caesar Wrap",
         "subtitle": "SERVED W/ SEASONED FRIES",
         "description": "Grilled chicken, romaine lettuce, Parmesan, and Caesar dressing wrapped in warm tortilla.",

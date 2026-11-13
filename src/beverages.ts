@@ -7,6 +7,8 @@ export type BeverageItem = {
   hot?: boolean;
   description: string;
   badge?: string;
+  // Real product photo; items without one show no picture rather than a borrowed one.
+  photo?: string;
 };
 
 export type BeverageCategory = {
@@ -252,6 +254,7 @@ export const beverageCategories: BeverageCategory[] = [
       },
       {
         "id": "iced-cafe-latte",
+        "photo": "./images/menu/caffe-latte.webp",
         "name": "Cafe Latte",
         "prices": {
           "16oz": 140,
@@ -288,6 +291,7 @@ export const beverageCategories: BeverageCategory[] = [
       },
       {
         "id": "iced-caramel-macchiato",
+        "photo": "./images/menu/caramel-macchiato.webp",
         "name": "Caramel Macchiato",
         "prices": {
           "16oz": 180,
@@ -300,6 +304,7 @@ export const beverageCategories: BeverageCategory[] = [
       },
       {
         "id": "iced-salted-caramel",
+        "photo": "./images/hero-drinks/salted-caramel-macchiato-header.webp",
         "name": "Salted Caramel Macchiato",
         "prices": {
           "16oz": 180,
@@ -432,6 +437,7 @@ export const beverageCategories: BeverageCategory[] = [
     "items": [
       {
         "id": "iced-matcha-latte",
+        "photo": "./images/hero-drinks/drink-06-matcha-latte.webp",
         "name": "Matcha Latte",
         "prices": {
           "16oz": 170,
@@ -513,6 +519,7 @@ export const beverageCategories: BeverageCategory[] = [
     "items": [
       {
         "id": "strawberry-milk",
+        "photo": "./images/hero-drinks/drink-02-strawberry-milk.webp",
         "name": "Strawberry Milk",
         "prices": {
           "16oz": 160,
@@ -592,6 +599,7 @@ export const beverageCategories: BeverageCategory[] = [
       },
       {
         "id": "butterfly-pea-tea",
+        "photo": "./images/hero-drinks/drink-01-honey-lemon.webp",
         "name": "Honey Lemon Butterfly Pea",
         "prices": {
           "22oz": 165
@@ -667,6 +675,7 @@ export const beverageCategories: BeverageCategory[] = [
       },
       {
         "id": "blend-double-dutch",
+        "photo": "./images/hero-drinks/drink-04-double-dutch.webp",
         "name": "Double Dutch",
         "prices": {
           "22oz": 200
@@ -731,6 +740,7 @@ export const beverageCategories: BeverageCategory[] = [
       },
       {
         "id": "blend-choco-pistachio",
+        "photo": "./images/hero-drinks/drink-05-choco-pistachio.webp",
         "name": "Choco Pistachio",
         "prices": {
           "22oz": 200
@@ -784,6 +794,7 @@ export const beverageCategories: BeverageCategory[] = [
       },
       {
         "id": "shake-oreo",
+        "photo": "./images/hero-drinks/drink-03-oreo-milkshake.webp",
         "name": "Oreo",
         "prices": {
           "16oz": 180

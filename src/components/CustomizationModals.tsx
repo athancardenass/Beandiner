@@ -122,26 +122,33 @@ export function ProductModal({
             ]}
           />
         )}
-        {fixedTemperature && (
+        {(fixedTemperature || sizeOptions.length === 1) && (
           <p className="customize-fixed">
-            {fixedTemperature === "Iced" ? "Served iced" : "Served hot"}
+            {[
+              fixedTemperature && (fixedTemperature === "Iced" ? "Served iced" : "Served hot"),
+              sizeOptions.length === 1 && sizeOptions[0].size,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </p>
         )}
 
-        <Segmented
-          legend="Size"
-          name="size"
-          value={size}
-          onChange={setSize}
-          options={sizeOptions.map((option) => ({
-            value: option.size,
-            label: option.size,
-            extra:
-              option.price > sizeOptions[0].price
-                ? `+${money(option.price - sizeOptions[0].price)}`
-                : undefined,
-          }))}
-        />
+        {sizeOptions.length > 1 && (
+          <Segmented
+            legend="Size"
+            name="size"
+            value={size}
+            onChange={setSize}
+            options={sizeOptions.map((option) => ({
+              value: option.size,
+              label: option.size,
+              extra:
+                option.price > sizeOptions[0].price
+                  ? `+${money(option.price - sizeOptions[0].price)}`
+                  : undefined,
+            }))}
+          />
+        )}
 
         {hasMilk && (
           <Segmented
@@ -202,7 +209,7 @@ export function ProductModal({
               <Icon name="plus" size={16} />
             </button>
           </div>
-          <button className="button" type="submit">
+          <button className="button funnel-cta" type="submit">
             Add {quantity > 1 ? `${quantity} ` : ""}to bag
             <span className="add-row-price" aria-live="polite">
               {money(price * quantity)}
@@ -318,7 +325,7 @@ export function BiteCustomizeModal({
               <Icon name="plus" size={16} />
             </button>
           </div>
-          <button className="button" type="submit">
+          <button className="button funnel-cta" type="submit">
             Add {quantity > 1 ? `${quantity} ` : ""}to bag
             <span className="add-row-price" aria-live="polite">
               {money(price * quantity)}
