@@ -5,7 +5,7 @@
 - **Production:** https://beandiner.com and `www.beandiner.com`, served by the Cloudflare Pages project `beandiner`.
 - **Domain:** `beandiner.com` is registered at Cloudflare Registrar and expires 2027-11-26. Keep auto-renew on. DNS has two proxied CNAME records, `@` and `www`, both pointing at `beandiner.pages.dev`.
 - **Deploys:** `.github/workflows/deploy-cloudflare-pages.yml` runs on every push to `main`. It runs `npm ci`, `npm test`, and `npm run build` with `VITE_SITE_URL=https://beandiner.com`, then `wrangler pages deploy dist`. It needs the repo secret `CLOUDFLARE_API_TOKEN`: an account token with Cloudflare Pages → Edit.
-- **Old Vercel address:** `beandiner.vercel.app` still exists. Its only job is a 308 redirect of every path, keeping the query string, to `https://beandiner.com` (`vercel.json`). Delete the Vercel project only after every printed and posted link uses `beandiner.com`. After deletion, old links return 404.
+- **Old Vercel address:** the Vercel project was deleted on 2026-11-26, so `beandiner.vercel.app` now returns 404. Every published link and printed QR uses `https://beandiner.com`.
 
 ## VITE_SITE_URL
 
