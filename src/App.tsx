@@ -668,6 +668,8 @@ function App() {
   // ↓ TOAST TIMER: Auto-dismiss toast (longer when Undo is offered)
   useEffect(() => {
     if (!toast) return;
+    // Undo belongs to the "Added" toast only; any later toast (e.g. order sent) must not restore an old bag.
+    if (!toast.startsWith("Added ")) setUndoCart(null);
     const id = setTimeout(() => {
       setToast("");
       setUndoCart(null);

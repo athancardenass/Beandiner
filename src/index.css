@@ -10820,6 +10820,10 @@ section:first-of-type > .menu-search-group {
   margin-bottom: 4px;
   border-bottom: 3px double rgba(110, 98, 86, 0.45);
 }
+/* The pinned close button (44px, 16px from the edge) passes over this row while scrolling; keep the count clear of it. */
+html.docscroll-order-flow body.docscroll-order-flow dialog.bag-modal.docscroll-mode[open] .order-slip-head {
+  padding-right: 44px;
+}
 .order-slip-head span:first-child {
   font-family: var(--serif);
   font-size: 20px;
