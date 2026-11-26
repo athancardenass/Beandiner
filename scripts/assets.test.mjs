@@ -26,9 +26,9 @@ test('the preloaded image is the existing video poster', () => {
 });
 
 test('responsive videos are bounded, start with metadata, and preserve the original', () => {
-  assert.ok(existsSync('public/videos/bean-diner-hero-4k30.mp4'));
+  assert.ok(existsSync('assets/videos/bean-diner-hero-4k-source.mp4'));
   const app = readFileSync('src/App.tsx', 'utf8');
-  for (const [name, maxMB] of [['mobile-720', 5], ['desktop-1080', 10]]) {
+  for (const [name, maxMB] of [['mobile-720', 5], ['desktop-1080', 10], ['4k30', 24]]) {
     const file = `public/videos/bean-diner-hero-${name}.mp4`;
     assert.ok(statSync(file).size < maxMB * 1024 * 1024, `${file} exceeds ${maxMB} MB`);
     assert.ok(app.includes(`./videos/bean-diner-hero-${name}.mp4`));
