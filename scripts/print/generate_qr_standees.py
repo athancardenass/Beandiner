@@ -24,7 +24,7 @@ TEMP_PDF = ROOT / "tmp" / "pdfs" / "qr-standees-untrimmed.pdf"
 PDF_PATH = OUTPUT_DIR / "qr-standees.pdf"
 SVG_PATH = OUTPUT_DIR / "table-standee-template.svg"
 
-QR_URL = "https://beandiner.vercel.app/"
+QR_URL = "https://beandiner.com/"
 TABLE_NUMBERS = tuple(range(1, 21))
 
 PAGE_W_MM = 156

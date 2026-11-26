@@ -65,8 +65,8 @@ const html = `<!doctype html>
         </div>
         <div class="destination">
           <div>
-            <div class="destination-label">QR destination · proposal only</div>
-            <p>This demo QR opens beandiner.vercel.app. It can be updated to beandiner.com once the domain is active.</p>
+            <div class="destination-label">QR destination</div>
+            <p>Each QR opens beandiner.com.</p>
           </div>
         </div>
       </div>
