@@ -7598,6 +7598,17 @@ body:has(.floating-bag-bubble) .footer-artisanal {
   opacity: 0.45;
 }
 
+/* 320px phones: the three pills plus arrows overflowed the sheet's side padding. */
+@media (max-width: 360px) {
+  .checkout-steps {
+    gap: 4px;
+  }
+  .checkout-step-btn {
+    gap: 4px;
+    padding: 6px 10px;
+  }
+}
+
 .bag-actions-bar {
   display: flex;
   align-items: center;
