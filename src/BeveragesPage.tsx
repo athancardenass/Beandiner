@@ -19,7 +19,7 @@ import {
   revealSearchResults,
   scrollListIntoView,
 } from "./ui/menu";
-import { earnedBadge, menuItemPhoto } from "./utils/presentation";
+import { earnedBadge } from "./utils/presentation";
 
 type BeveragesPageProps = {
   onAdd: (bev: BeverageItem, size: string, price: number) => void;
@@ -50,21 +50,12 @@ function BeverageCard({
   const [selectedSize, setSelectedSize] = useState<string>(initialSize);
 
   const currentPrice = bev.prices[selectedSize] ?? bev.prices[sizeKeys[0]] ?? 0;
-  const photo = menuItemPhoto(bev.id);
   const badge = earnedBadge(bev.badge);
 
+  // List cards stay text-only; photos live in the Top 6 strip, where every card has one.
   return (
     <article className="bev-item-card" key={bev.id}>
       <div className="menu-item-head">
-        {photo && (
-          <img
-            className={`menu-item-thumb${photo.cutout ? " is-cutout" : ""}`}
-            src={photo.src}
-            alt=""
-            loading="lazy"
-            decoding="async"
-          />
-        )}
         <div className="menu-item-head-text">
           {badge && <span className="bev-badge">{badge}</span>}
           <h3 className="bev-item-name">{bev.name}</h3>

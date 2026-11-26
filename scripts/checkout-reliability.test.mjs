@@ -161,3 +161,19 @@ test('cart size labels match across menu keys and the modal, and drink specs kee
     ['22 oz', 'Iced', '50% Sweet', 'Less Ice'],
   );
 });
+
+test('customer names allow periods and accented letters but not markup', async () => {
+  const { validateCustomerName } = await import('../src/utils/checkout.ts');
+  for (const ok of ['Ma. Peña Jr.', 'Juan Dela Cruz Jr.', "O'Neil-Santos", 'Zoë']) assert.equal(validateCustomerName(ok), null, ok);
+  for (const bad of ['', ' ', 'A', 'QA <b>x</b>', 'Juan 2']) assert.notEqual(validateCustomerName(bad), null, bad);
+});
+
+test('removing a drink also removes the add-ons attached to it', async () => {
+  const { dropOrphanedModifiers } = await import('../src/utils/cart.ts');
+  const shot = { key: 'mod-shot-latte', id: 'shot', forKey: 'latte', quantity: 1, price: 40 };
+  const loose = { key: 'mod-oat-unassigned', id: 'oat', quantity: 1, price: 35 };
+  const mocha = { key: 'mocha', id: 'mocha', quantity: 1, price: 180 };
+  assert.deepEqual(dropOrphanedModifiers([mocha, shot, loose]), [mocha, loose]);
+  const latte = { key: 'latte', id: 'latte', quantity: 1, price: 170 };
+  assert.deepEqual(dropOrphanedModifiers([latte, shot]), [latte, shot]);
+});

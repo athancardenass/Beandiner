@@ -2484,6 +2484,9 @@ main {
   font: inherit;
   text-overflow: ellipsis;
 }
+.cart-item-for select[aria-invalid="true"] {
+  border-color: #C8421B;
+}
 .cart-item-remove {
   min-width: 64px;
   min-height: 44px;

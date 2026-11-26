@@ -26,3 +26,7 @@ export const cartItemSpecs = (item: CartItem) => [
   item.temperature === "Iced" ? item.iceLevel : null,
   item.milk && item.milk !== "Regular" ? `${item.milk} milk` : null,
 ].filter(Boolean);
+
+// Add-ons / milk swaps leave with the drink they were attached to.
+export const dropOrphanedModifiers = (items: CartItem[]) =>
+  items.filter((item) => !item.forKey || items.some((other) => other.key === item.forKey));

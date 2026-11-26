@@ -31,12 +31,14 @@ import {
   ORDER_TIMING_OPTIONS,
   PENDING_ORDER_TTL_MS,
   readPendingOrder,
+  validateCustomerName,
   validateOrderTiming,
   writePendingOrder,
   type PendingOrder,
 } from "./utils/checkout";
 import {
   cartItemSpecs,
+  dropOrphanedModifiers,
   MAX_CART_QUANTITY,
   mergeCartItem,
   OAT_MILK_SURCHARGE,
@@ -484,15 +486,6 @@ function App() {
     return `${cleaned.slice(0, 4)}-${cleaned.slice(4, 7)}-${cleaned.slice(7)}`;
   };
 
-  const validateCustomerName = (val: string) => {
-    const trimmed = val.trim();
-    if (!trimmed) return "Please enter your name";
-    if (trimmed.length < 2) return "Name must be at least 2 characters";
-    if (!/^[a-zA-ZÀ-ÿ\s'-]+$/.test(trimmed))
-      return "Name can only contain letters, spaces, hyphens, and apostrophes";
-    return null;
-  };
-
   const validateCustomerPhone = (val: string) => {
     const digits = val.replace(/\D/g, "");
     if (!digits) return "Please enter your contact number";
@@ -877,19 +870,35 @@ function App() {
   const cartCount = cart.reduce((n, i) => n + i.quantity, 0);
   const subtotal = cart.reduce((n, i) => n + i.price * i.quantity, 0);
   const removeItem = (key: string) =>
-    setCart((items) => items.filter((item) => item.key !== key));
+    setCart((items) => dropOrphanedModifiers(items.filter((item) => item.key !== key)));
   const changeQuantity = (key: string, difference: number) =>
     setCart((items) =>
-      items
-        .map((i) =>
-          i.key === key
-            ? { ...i, quantity: Math.min(MAX_CART_QUANTITY, i.quantity + difference) }
-            : i,
-        )
-        .filter((i) => i.quantity > 0),
+      dropOrphanedModifiers(
+        items
+          .map((i) =>
+            i.key === key
+              ? { ...i, quantity: Math.min(MAX_CART_QUANTITY, i.quantity + difference) }
+              : i,
+          )
+          .filter((i) => i.quantity > 0),
+      ),
     );
+  // An add-on without a drink would be charged on the receipt with no drink to go in.
+  const hasUnassignedModifier = cart.some((item) => resolveCartItem(item).mod && !modTarget(item, cart));
+  // Inline, not a toast: the toast sits behind the open bag (hidden with #root in docscroll mode, under the sheet on desktop).
+  const [modifierError, setModifierError] = useState(false);
+  const blockUnassignedModifier = () => {
+    setModifierError(hasUnassignedModifier);
+    if (!hasUnassignedModifier) return false;
+    setCheckoutStep("bag");
+    requestAnimationFrame(() =>
+      document.querySelector('.cart-item-for select[aria-invalid="true"]')?.scrollIntoView({ block: "center" }),
+    );
+    return true;
+  };
   const submitCheckout = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (blockUnassignedModifier()) return;
     const currentAddressErr = validateDeliveryAddress(checkoutExtra, checkoutOrderType);
     const currentNameErr = validateCustomerName(checkoutName);
     const currentPhoneErr = validateCustomerPhone(checkoutPhone);
@@ -1144,9 +1153,9 @@ function App() {
             aria-hidden="true"
             tabIndex={-1}
           >
-            {/* First matching source wins: 4K on retina or very wide desktops, 1080p on phones and other desktops, 720p only on low-density small screens. */}
-            <source src="./videos/bean-diner-hero-4k30.mp4" media="(min-width: 821px) and (min-resolution: 2dppx), (min-width: 1921px)" type="video/mp4" />
-            <source src="./videos/bean-diner-hero-mobile-720.mp4" media="(max-width: 820px) and (max-resolution: 1.5dppx)" type="video/mp4" />
+            {/* First matching source wins: 720p (3.5 MB) on phones and tablets, 4K (30 MB) only on screens wider than 1920px, 1080p (8 MB) everywhere else. */}
+            <source src="./videos/bean-diner-hero-4k30.mp4" media="(min-width: 1921px)" type="video/mp4" />
+            <source src="./videos/bean-diner-hero-mobile-720.mp4" media="(max-width: 820px)" type="video/mp4" />
             <source src="./videos/bean-diner-hero-desktop-1080.mp4" type="video/mp4" />
           </video>
           <div className="video-hero-content">
@@ -1611,7 +1620,7 @@ function App() {
                   <div className="receipt-ticket-header">
                     <div className="receipt-brand-meta">
                       <img
-                        src="./favicon-badge.png"
+                        src="./apple-touch-icon.png"
                         alt="Bean Diner"
                         className="receipt-brand-seal"
                         width="36"
@@ -1749,6 +1758,7 @@ function App() {
                               <select
                                 value={modTarget(item, cart)?.key ?? ""}
                                 onChange={(e) => assignModifier(item.key, e.target.value)}
+                                aria-invalid={modifierError && !modTarget(item, cart) ? "true" : undefined}
                               >
                                 <option value="">
                                   {drinks.length ? "Choose a drink" : "Add a drink first"}
@@ -1762,6 +1772,11 @@ function App() {
                             </label>
                           ) : (
                             <p>{desc}</p>
+                          )}
+                          {mod && modifierError && !modTarget(item, cart) && (
+                            <span className="form-field-error" role="alert">
+                              <Icon name="alert-circle" size={14} /> Choose a drink for this add-on, or remove it.
+                            </span>
                           )}
                           {item.note?.trim() && (
                             <p className="cart-item-note">
@@ -1819,7 +1834,9 @@ function App() {
                   <button
                     type="button"
                     className="button button-proceed-checkout funnel-cta"
-                    onClick={() => setCheckoutStep("details")}
+                    onClick={() => {
+                      if (!blockUnassignedModifier()) setCheckoutStep("details");
+                    }}
                   >
                     Proceed to Details <Icon name="arrow" size={17} />
                   </button>

@@ -90,3 +90,13 @@ export function validateOrderTiming(option: string, custom: string, now = new Da
   if (current + offset >= closes) return "Please choose a time before 9:00 PM.";
   return null;
 }
+
+export function validateCustomerName(val: string): string | null {
+  const trimmed = val.trim();
+  if (!trimmed) return "Please enter your name";
+  if (trimmed.length < 2) return "Name must be at least 2 characters";
+  // Periods allow "Ma." and "Jr."; \p{L} covers ñ and other accented letters.
+  if (!/^[\p{L}\s.'-]+$/u.test(trimmed))
+    return "Name can only contain letters, spaces, periods, hyphens, and apostrophes";
+  return null;
+}

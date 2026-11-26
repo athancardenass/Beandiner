@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import { foodCategories, type DinerBite } from "./dinerBites";
-import { earnedBadge, menuItemPhoto, money } from "./utils/presentation";
+import { earnedBadge, money } from "./utils/presentation";
 import {
   CategoryTabs,
   FadeImage,
@@ -27,20 +27,11 @@ function FoodItem({
   bite: DinerBite;
   onAdd: (bite: DinerBite) => void;
 }) {
-  const photo = menuItemPhoto(bite.id);
   const badge = earnedBadge(bite.badge);
+  // List cards stay text-only, matching the Beverages page.
   return (
     <article className="food-page-item" key={bite.id}>
       <div className="menu-item-head">
-        {photo && (
-          <img
-            className={`menu-item-thumb${photo.cutout ? " is-cutout" : ""}`}
-            src={photo.src}
-            alt=""
-            loading="lazy"
-            decoding="async"
-          />
-        )}
         <div className="menu-item-head-text">
           {badge && <span className="food-page-item-badge">{badge}</span>}
           <h3>{bite.name}</h3>
