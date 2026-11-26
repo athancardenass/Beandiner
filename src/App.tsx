@@ -1419,7 +1419,7 @@ function App() {
                   rel="noopener noreferrer"
                   className="button footer-map-btn btn-maps-primary"
                 >
-                  Google Maps ↗
+                  Google Maps
                 </a>
                 <a
                   href={wazeUrl}
@@ -1427,7 +1427,7 @@ function App() {
                   rel="noopener noreferrer"
                   className="button footer-map-btn btn-waze-secondary"
                 >
-                  Waze ↗
+                  Waze
                 </a>
               </div>
             </div>
